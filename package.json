@@ -1,0 +1,29 @@
+{
+  "name": "compose-generator",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "generate:names": "tsx scripts/generate-names.ts",
+    "start": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 5173"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.10",
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "vite": "^5.4.8",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}
