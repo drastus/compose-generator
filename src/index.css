@@ -1,21 +1,28 @@
 :root {
 	color-scheme: light dark;
-	--fg: #1a1a1a;
-	--bg: #ffffff;
+	--text-primary: #1a1a1a;
+	--bg-primary: #ffffff;
+	--bg-secondary: #f3f4f6;
+	--text-secondary: #555;
 	--muted: #6b7280;
 	--border: #e5e7eb;
 }
 
 @media (prefers-color-scheme: dark) {
 	:root {
-		--fg: #e5e7eb;
-		--bg: #202b36;
+		--text-primary: #e5e7eb;
+		--bg-primary: #202b36;
+		--bg-secondary: #1a202c;
+		--text-secondary: #999;
 		--muted: #94a3b8;
 		--border: #1f2937;
 	}
 }
 
-* { box-sizing: border-box; }
+* {
+	box-sizing: border-box;
+}
+
 html, body, #root {
 	height: 100%;
 }
@@ -23,8 +30,8 @@ html, body, #root {
 body {
 	margin: 0;
 	font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-	color: var(--fg);
-	background: var(--bg);
+	color: var(--text-primary);
+	background: var(--bg-primary);
 }
 
 .container {
@@ -37,6 +44,12 @@ h1 { margin: 0 0 16px; font-size: 28px; }
 h2 { margin: 24px 0 8px; font-size: 20px; }
 h3 { margin: 16px 0 8px; font-size: 16px; }
 
+.description {
+    font-size: 0.9em;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
+
 section + section { margin-top: 24px; }
 .table-header {
 	cursor: pointer;
@@ -48,11 +61,141 @@ section + section { margin-top: 24px; }
 	align-items: center;
 	gap: 8px;
 }
-.table-wrapper { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
 
-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-thead th { text-align: left; background: rgba(127,127,127,0.08); position: sticky; top: 0; }
-th, td { padding: 8px 10px; border-bottom: 1px solid var(--border); }
+.table-container {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
 
-.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-.char { font-size: 20px; width: 48px; text-align: center; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  table-layout: fixed;
+}
+
+th, td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+th {
+  background: var(--bg-primary);
+  font-weight: 500;
+}
+
+.mono {
+  font-family: monospace;
+}
+
+.char {
+  font-size: 1.2em;
+  text-align: center;
+}
+
+.diacritic-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 1rem 0;
+}
+.diacritic-table th, .diacritic-table td {
+	border: 1px solid #ddd;
+	padding: 8px 12px;
+	text-align: left;
+}
+.diacritic-table th {
+	font-weight: 600;
+}
+.diacritic-table tr:nth-child(even) {
+	background-color: var(--bg-primary);
+}
+.key-input {
+	width: 40px;
+	text-align: center;
+	padding: 4px 8px;
+	border: 1px solid #ccc;
+	border-radius: 4px;
+}
+
+.page-footer {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	background-color: var(--bg-primary);
+	border-top: 1px solid var(--border);
+	padding: 1rem;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	z-index: 100;
+}
+
+/* Modal styles */
+.modal-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-color: rgba(0, 0, 0, 0.5);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	z-index: 1000;
+}
+
+.modal-content {
+	background-color: var(--bg-primary);
+	padding: 20px;
+	border-radius: 8px;
+	max-width: 80%;
+	max-height: 80vh;
+	overflow: auto;
+}
+
+.modal-header {
+	display: flex;
+	justify-content: space-between;
+	margin-bottom: 15px;
+}
+
+.modal-close-button {
+	background: none;
+	border: none;
+	font-size: 1.2em;
+	cursor: pointer;
+}
+
+.modal-body {
+	white-space: pre-wrap;
+	word-break: break-word;
+	margin: 0;
+	font-family: monospace;
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+/* Footer styles */
+.footer-selected-count {
+	font-size: 0.9em;
+	color: var(--text-secondary);
+}
+
+.footer-actions {
+	display: flex;
+	gap: 10px;
+}
+
+.generate-button {
+	padding: 0.5rem 1.5rem;
+	background-color: #4f46e5;
+	color: white;
+	border: none;
+	border-radius: 0.375rem;
+	cursor: pointer;
+	font-weight: 500;
+}

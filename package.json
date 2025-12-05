@@ -8,7 +8,8 @@
     "generate:names": "tsx scripts/generate-names.ts",
     "start": "vite",
     "build": "vite build",
-    "preview": "vite preview --port 5173"
+    "preview": "vite preview --port 5173",
+    "lint": "npx eslint . --ext .ts --cache"
   },
   "author": "",
   "license": "ISC",
@@ -18,12 +19,17 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@types/csv-parse": "^1.1.12",
     "@types/node": "^22.18.10",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
-    "vite": "^5.4.8",
+    "csv-parse": "^6.1.0",
+    "eslint-config-xo": "^0.49.0",
+    "eslint-config-xo-react": "^0.29.0",
+    "eslint-config-xo-typescript": "^9.0.0",
     "tsx": "^4.20.6",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vite": "^5.4.8"
   }
 }

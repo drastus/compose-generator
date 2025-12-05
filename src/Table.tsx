@@ -1,68 +1,72 @@
-import {useState} from 'react';
-import type {NameEntry} from './names'
+import {useEffect, useRef, useState} from 'react';
+import type {NameEntry} from './names';
+import {buildName} from './utils/buildName';
 
 function formatCodePoint(cp: number): string {
-    return 'U+' + cp.toString(16).toUpperCase().padStart(4, '0')
+	return 'U+' + cp.toString(16).toUpperCase().padStart(4, '0');
 }
 
 function codePointChar(cp: number): string {
-    try {
-        return String.fromCodePoint(cp)
-    } catch {
-        return ''
-    }
+	try {
+		return String.fromCodePoint(cp);
+	} catch {
+		return '';
+	}
 }
 
-function buildName(entry: NameEntry): string {
-    if (entry.name) return entry.name;
-    let nameParts = [];
-    (entry.template ?? []).forEach((part, i) => {
-        if (i === 2) nameParts.push('WITH');
-        else if (i > 2) nameParts.push('AND');
-        nameParts.push(part);
-    });
-    if (entry.end) nameParts.push(entry.end);
-    return nameParts.join(' ');
-}
+export default function Table({entries}: {readonly entries: NameEntry[]}) {
+	const [isExpanded, setIsExpanded] = useState(false);
+	const [contentHeight, setContentHeight] = useState(0);
+	const contentRef = useRef<HTMLDivElement>(null);
 
-export default function Table({entries}: {entries: NameEntry[]}) {
-    const [isExpanded, setIsExpanded] = useState(false);
+	useEffect(() => {
+		if (contentRef.current) {
+			setContentHeight(contentRef.current.scrollHeight);
+		}
+	}, [entries]);
 
-    const toggleExpand = () => {
-        setIsExpanded(!isExpanded);
-    };
+	const toggleExpand = () => {
+		setIsExpanded(!isExpanded);
+	};
 
-    return (
-        <div className="table-wrapper">
-            <div
-                className="table-header"
-                onClick={toggleExpand}
-            >
-                <span style={{transition: 'transform 0.2s', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0)'}}>
-                    ▶
-                </span>
-                <span>{entries.length} character{entries.length !== 1 ? 's' : ''}</span>
-            </div>
-            {isExpanded && (
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Code point</th>
-                            <th>Char</th>
-                            <th>Name</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {entries.map((e) => (
-                            <tr key={e.cp}>
-                                <td className="mono">{formatCodePoint(e.cp)}</td>
-                                <td className="char">{codePointChar(e.cp)}</td>
-                                <td>{buildName(e)}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
-        </div>
-    )
+	return (
+		<div className='table-container'>
+			<div
+				className='table-header'
+				onClick={toggleExpand}
+			>
+				<span style={{transition: 'transform 0.5s', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0)'}}>
+					▶
+				</span>
+				<span>{entries.length} character{entries.length === 1 ? '' : 's'}</span>
+			</div>
+			<div
+				ref={contentRef}
+				style={{
+					maxHeight: isExpanded ? `${contentHeight}px` : '0',
+					overflow: 'hidden',
+					transition: 'max-height 0.5s ease-in-out',
+				}}
+			>
+				<table>
+					<thead>
+						<tr>
+							<th>Code point</th>
+							<th>Char</th>
+							<th>Name</th>
+						</tr>
+					</thead>
+					<tbody>
+						{entries.map((e) => (
+							<tr key={e.cp}>
+								<td className='mono'>{formatCodePoint(e.cp)}</td>
+								<td className='char'>{codePointChar(e.cp)}</td>
+								<td>{buildName(e)}</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	);
 }
