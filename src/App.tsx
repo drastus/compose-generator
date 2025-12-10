@@ -1,6 +1,6 @@
 import {Fragment, ReactNode, useState, useCallback, useMemo} from 'react';
 import {createPortal} from 'react-dom';
-import {characters, LCL, LSL, NameEntry} from './names';
+import {characters, LCL, LSL, GCL, GSL, CCL, CSL, NameEntry} from './names';
 import Table from './Table';
 import {buildName} from './utils/buildName';
 import './index.css';
@@ -179,11 +179,13 @@ export default function App() {
 	};
 
 	const sequences = useMemo(() => {
-		const seqSequences = Object.values(selectedCharacters).flat().filter((char) => char.seq);
+		const seqSequences = Object.values(selectedCharacters).flat()
+			.filter((char) => char.seq)
+			.map((char) => ({...char, name: buildName(char)}));
 		const templateSequences = Object.values(selectedCharacters).flat()
 			.filter((char) => char.template
 				&& char.template.length === 3
-				&& [LCL, LSL].includes(char.template[0])
+				&& [LCL, LSL, GCL, GSL, CCL, CSL].includes(char.template[0])
 				&& char.template[1].length === 1)
 			.map((char) => {
 				const mark = diacriticMarks.find((mark) => mark.name === char.template![2].toLowerCase());

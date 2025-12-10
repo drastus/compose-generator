@@ -450,13 +450,13 @@ function main() {
 	}
 
 	lines.push('');
-	lines.push('const ML = \'MODIFIER LETTER\';');
-	lines.push('const LCL = \'LATIN CAPITAL LETTER\';');
-	lines.push('const LSL = \'LATIN SMALL LETTER\';');
-	lines.push('const GCL = \'GREEK CAPITAL LETTER\';');
-	lines.push('const GSL = \'GREEK SMALL LETTER\';');
-	lines.push('const CCL = \'CYRILLIC CAPITAL LETTER\';');
-	lines.push('const CSL = \'CYRILLIC SMALL LETTER\';\n');
+	lines.push('export const ML = \'MODIFIER LETTER\';');
+	lines.push('export const LCL = \'LATIN CAPITAL LETTER\';');
+	lines.push('export const LSL = \'LATIN SMALL LETTER\';');
+	lines.push('export const GCL = \'GREEK CAPITAL LETTER\';');
+	lines.push('export const GSL = \'GREEK SMALL LETTER\';');
+	lines.push('export const CCL = \'CYRILLIC CAPITAL LETTER\';');
+	lines.push('export const CSL = \'CYRILLIC SMALL LETTER\';\n');
 
 	// Helper function to add entries for a single array of code points
 	const addEntries = (key: string, entries: {cp: number; name: string}[]) => {
