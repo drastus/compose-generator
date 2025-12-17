@@ -33,6 +33,7 @@ export default function Table({entries}: {readonly entries: NameEntry[]}) {
 		<div className='table-container'>
 			<div
 				className='table-header'
+				style={{overflow: isExpanded ? 'unset' : 'hidden'}}
 				onClick={toggleExpand}
 			>
 				<span style={{transition: 'transform 0.5s', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0)'}}>
@@ -44,7 +45,7 @@ export default function Table({entries}: {readonly entries: NameEntry[]}) {
 				ref={contentRef}
 				style={{
 					maxHeight: isExpanded ? `${contentHeight}px` : '0',
-					overflow: 'hidden',
+					overflow: isExpanded ? 'unset' : 'hidden',
 					transition: 'max-height 0.5s ease-in-out',
 				}}
 			>
@@ -53,6 +54,7 @@ export default function Table({entries}: {readonly entries: NameEntry[]}) {
 						<tr>
 							<th>Code point</th>
 							<th>Char</th>
+							<th>Sequence</th>
 							<th>Name</th>
 						</tr>
 					</thead>
@@ -61,6 +63,22 @@ export default function Table({entries}: {readonly entries: NameEntry[]}) {
 							<tr key={e.cp}>
 								<td className='mono'>{formatCodePoint(e.cp)}</td>
 								<td className='char'>{codePointChar(e.cp)}</td>
+								<td>
+									{e.seq && (
+										<div className='key-sequence'>
+											<div className='key-cap'>⎄</div>
+											{Array.from(e.seq).map((ch, i) => (
+												<div
+													// eslint-disable-next-line react/no-array-index-key
+													key={`${ch}-${i}`}
+													className='key-cap'
+												>
+													{ch}
+												</div>
+											))}
+										</div>
+									)}
+								</td>
 								<td>{buildName(e)}</td>
 							</tr>
 						))}

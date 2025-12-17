@@ -15,7 +15,7 @@
 		--bg-secondary: #1a202c;
 		--text-secondary: #999;
 		--muted: #94a3b8;
-		--border: #1f2937;
+		--border: #284165;
 	}
 }
 
@@ -66,7 +66,6 @@ section + section { margin-top: 24px; }
   border: 1px solid var(--border);
   border-radius: 8px;
   margin-bottom: 16px;
-  overflow: hidden;
 }
 
 table {
@@ -74,6 +73,12 @@ table {
   border-collapse: collapse;
   font-size: 14px;
   table-layout: fixed;
+}
+
+table th {
+	position: sticky;
+	top: 1px;
+	z-index: 1;
 }
 
 th, td {
@@ -92,7 +97,27 @@ th {
 }
 
 .char {
-  font-size: 1.2em;
+	font-size: 1.2em;
+}
+
+.key-sequence {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+
+.key-cap {
+	min-width: 2em;
+	padding: 0 6px;
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	background-color: var(--bg-secondary);
+	text-align: center;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+	font-size: 0.85em;
 }
 
 .diacritic-table {

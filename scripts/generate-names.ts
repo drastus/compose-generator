@@ -1,6 +1,7 @@
 #!/usr/bin/env tsx
 
 // example invocation: npm run generate:names -- --category modifier
+// to save to names.ts: npx tsx scripts/generate-names.ts > src/names.ts
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -35,7 +36,17 @@ const LATIN_DIACRITICS = [
 const LATIN_DIACRITICS_PATTERN = LATIN_DIACRITICS.join('|');
 
 const GREEK_DIACRITICS = [
-	'TONOS', 'DIALYTIKA', 'PSILI', 'DASIA',
+	'TONOS',
+	'DIALYTIKA',
+	'PSILI',
+	'DASIA',
+	'VARIA',
+	'OXIA',
+	'PERISPOMENI',
+	'YPOGEGRAMMENI',
+	'PROSGEGRAMMENI',
+	'VRACHY',
+	'MACRON',
 ];
 const GREEK_DIACRITICS_PATTERN = GREEK_DIACRITICS.join('|');
 
@@ -274,6 +285,7 @@ const sets = {
 			[0x03CA, 0x03CE],
 		],
 		historic: [ // polytonic
+			[0x1F00, 0x1FFC],
 		],
 		// archaic: [],
 	},
@@ -443,7 +455,7 @@ function main() {
 
 	// Add constants
 	lines.push('// Constants');
-	const constants = [...LATIN_DIACRITICS, ...GREEK_DIACRITICS];
+	const constants = Array.from(new Set([...LATIN_DIACRITICS, ...GREEK_DIACRITICS]));
 
 	for (const c of constants) {
 		lines.push(`const ${c.replace(/ /g, '_')} = '${c}';`);
@@ -458,6 +470,42 @@ function main() {
 	lines.push('export const CCL = \'CYRILLIC CAPITAL LETTER\';');
 	lines.push('export const CSL = \'CYRILLIC SMALL LETTER\';\n');
 
+	const addLetterEntry = (
+		linesArr: string[],
+		cpHex: string,
+		set: string | undefined,
+		seqPart: string,
+		name: string,
+		script: 'LATIN' | 'GREEK',
+		caseLabel: 'CAPITAL' | 'SMALL',
+		templateIdent: 'LCL' | 'LSL' | 'GCL' | 'GSL',
+		diacriticsPattern: string,
+	): boolean => {
+		const re = new RegExp(`^${script} ${caseLabel} LETTER ([A-Z0-9 -]+?)(?: WITH (${diacriticsPattern})(?: AND (${diacriticsPattern})(?: AND (${diacriticsPattern}))?)?)?$`);
+		const match = name.match(re);
+		if (!match) return false;
+		const [, letter, diacritic1, diacritic2, diacritic3] = match as [string, string, string?, string?, string?];
+		const setPart = set ? `, set: '${set}'` : '';
+		if (diacritic1) {
+			const d1 = diacritic1.replace(/ /g, '_');
+			const d2 = diacritic2 ? diacritic2.replace(/ /g, '_') : undefined;
+			const d3 = diacritic3 ? diacritic3.replace(/ /g, '_') : undefined;
+			if (d3) {
+				linesArr.push(`\t{cp: ${cpHex}, template: [${templateIdent}, '${letter}', ${d1}, ${d2}, ${d3}]${setPart}${seqPart}},`);
+			} else if (d2) {
+				linesArr.push(`\t{cp: ${cpHex}, template: [${templateIdent}, '${letter}', ${d1}, ${d2}]${setPart}${seqPart}},`);
+			} else {
+				linesArr.push(`\t{cp: ${cpHex}, template: [${templateIdent}, '${letter}', ${d1}]${setPart}${seqPart}},`);
+			}
+		} else if (script === 'LATIN' && /^[A-Z]$/.test(letter)) {
+			linesArr.push(`\t{cp: ${cpHex}, template: [${templateIdent}, '${letter}']${setPart}${seqPart}},`);
+		} else {
+			const endingEsc = escapeTSString(letter);
+			linesArr.push(`\t{cp: ${cpHex}, end: '${endingEsc}', template: [${templateIdent}]${setPart}${seqPart}},`);
+		}
+		return true;
+	};
+
 	// Helper function to add entries for a single array of code points
 	const addEntries = (key: string, entries: {cp: number; name: string}[]) => {
 		if (entries.length === 0) return;
@@ -469,34 +517,16 @@ function main() {
 			const seq = sequences.get(cp);
 			const seqPart = seq ? `, seq: '${escapeTSString(seq)}'` : '';
 
-			// Check for Latin letters with diacritics
-			const latinCapitalMatch = name.match(new RegExp(`^LATIN CAPITAL LETTER ([A-Z]+) WITH (${LATIN_DIACRITICS_PATTERN})$`));
-			const latinSmallMatch = name.match(new RegExp(`^LATIN SMALL LETTER ([A-Z]+) WITH (${LATIN_DIACRITICS_PATTERN})$`));
-			// Check for Greek letters with diacritics
-			const greekCapitalMatch = name.match(new RegExp(`^GREEK CAPITAL LETTER ([A-Z]+) WITH (${GREEK_DIACRITICS_PATTERN})$`));
-			const greekSmallMatch = name.match(new RegExp(`^GREEK SMALL LETTER ([A-Z]+) WITH (${GREEK_DIACRITICS_PATTERN})$`));
+			const handledLatinCapital = addLetterEntry(lines, cpHex, set, seqPart, name, 'LATIN', 'CAPITAL', 'LCL', LATIN_DIACRITICS_PATTERN);
+			const handledLatinSmall = !handledLatinCapital && addLetterEntry(lines, cpHex, set, seqPart, name, 'LATIN', 'SMALL', 'LSL', LATIN_DIACRITICS_PATTERN);
+			const handledGreekCapital = !handledLatinCapital && addLetterEntry(lines, cpHex, set, seqPart, name, 'GREEK', 'CAPITAL', 'GCL', GREEK_DIACRITICS_PATTERN);
+			const handledGreekSmall = !handledLatinCapital && !handledGreekCapital && addLetterEntry(lines, cpHex, set, seqPart, name, 'GREEK', 'SMALL', 'GSL', GREEK_DIACRITICS_PATTERN);
 
-			if (latinCapitalMatch) {
-				const [, letter, diacritic] = latinCapitalMatch;
-				lines.push(`\t{cp: ${cpHex}, template: [LCL, '${letter}', ${diacritic.replace(/ /g, '_')}]${set ? `, set: '${set}'` : ''}${seqPart}},`);
-			} else if (latinSmallMatch) {
-				const [, letter, diacritic] = latinSmallMatch;
-				lines.push(`\t{cp: ${cpHex}, template: [LSL, '${letter}', ${diacritic.replace(/ /g, '_')}]${set ? `, set: '${set}'` : ''}${seqPart}},`);
-			} else if (name.startsWith('LATIN CAPITAL LETTER ')) {
-				const end = name.substring('LATIN CAPITAL LETTER '.length);
-				const endingEsc = escapeTSString(end);
-				lines.push(`\t{cp: ${cpHex}, end: '${endingEsc}', template: [LCL]${set ? `, set: '${set}'` : ''}${seqPart}},`);
-			} else if (name.startsWith('LATIN SMALL LETTER ')) {
-				const end = name.substring('LATIN SMALL LETTER '.length);
-				const endingEsc = escapeTSString(end);
-				lines.push(`\t{cp: ${cpHex}, end: '${endingEsc}', template: [LSL]${set ? `, set: '${set}'` : ''}${seqPart}},`);
-			} else if (greekCapitalMatch) {
-				const [, letter, diacritic] = greekCapitalMatch;
-				lines.push(`\t{cp: ${cpHex}, template: [GCL, '${letter}', ${diacritic.replace(/ /g, '_')}]${set ? `, set: '${set}'` : ''}${seqPart}},`);
-			} else if (greekSmallMatch) {
-				const [, letter, diacritic] = greekSmallMatch;
-				lines.push(`\t{cp: ${cpHex}, template: [GSL, '${letter}', ${diacritic.replace(/ /g, '_')}]${set ? `, set: '${set}'` : ''}${seqPart}},`);
-			} else if (name.startsWith('GREEK CAPITAL LETTER ')) {
+			if (handledLatinCapital || handledLatinSmall || handledGreekCapital || handledGreekSmall) {
+				continue;
+			}
+
+			if (name.startsWith('GREEK CAPITAL LETTER ')) {
 				const end = name.substring('GREEK CAPITAL LETTER '.length);
 				const endingEsc = escapeTSString(end);
 				lines.push(`\t{cp: ${cpHex}, end: '${endingEsc}', template: [GCL]${set ? `, set: '${set}'` : ''}${seqPart}},`);

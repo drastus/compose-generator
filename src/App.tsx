@@ -1,6 +1,7 @@
 import {Fragment, ReactNode, useState, useCallback, useMemo} from 'react';
 import {createPortal} from 'react-dom';
 import {characters, LCL, LSL, GCL, GSL, CCL, CSL, NameEntry} from './names';
+import Checkbox from './Checkbox';
 import Table from './Table';
 import {buildName} from './utils/buildName';
 import './index.css';
@@ -86,6 +87,13 @@ const defaultDiacriticMarks: DiacriticMark[] = [
 	{name: 'comma below', mark: '̦', key: ','},
 ];
 
+const initialSetSelection = {
+	latin: {base: true, ext: true, historic: false},
+	greek: {basic: true, base: false, historic: false},
+};
+
+type SetSelectionState = typeof initialSetSelection;
+
 const keySymNames: Record<string, string> = {
 	' ': 'space',
 	'!': 'exclam',
@@ -126,6 +134,7 @@ export default function App() {
 	const [showModal, setShowModal] = useState(false);
 	const [modalContent, setModalContent] = useState('');
 	const [diacriticMarks, setDiacriticMarks] = useState<DiacriticMark[]>(defaultDiacriticMarks);
+	const [setSelection, setSetSelection] = useState<SetSelectionState>(initialSetSelection);
 
 	const handleDiacriticKeyChange = useCallback((index: number, newKey: string) => {
 		setDiacriticMarks((prev) => {
@@ -138,16 +147,29 @@ export default function App() {
 		key,
 		entries.filter((entry) => {
 			if (key === 'latin') {
-				return entry.set === 'base' || entry.set === 'ext';
+				const selection = initialSetSelection.latin;
+				return entry.set ? selection[entry.set as keyof typeof selection] ?? false : false;
 			}
 			if (key === 'greek') {
-				return entry.set === 'basic';
+				const selection = initialSetSelection.greek;
+				return entry.set ? selection[entry.set as keyof typeof selection] ?? false : false;
 			}
 			return entry.set === 'base';
 		}),
 	]));
 
 	const [selectedCharacters, setSelectedCharacters] = useState<typeof defaultCharacters>({...defaultCharacters, cyrillic: []});
+
+	const buildScriptSelection = <K extends keyof SetSelectionState & keyof typeof characters>(
+		script: K,
+		selection: SetSelectionState[K],
+	) => characters[script].filter((entry) => {
+		if (!entry.set) return false;
+		if (entry.set in selection) {
+			return selection[entry.set as keyof typeof selection];
+		}
+		return true;
+	});
 
 	const scriptsGroups: {label: string; keys: (keyof typeof defaultCharacters)[]; description: string}[] = [
 		{label: 'Modifier letters', keys: ['modifier'], description: 'Spacing modifier letters used for phonetic/diacritic purposes.'},
@@ -172,10 +194,40 @@ export default function App() {
 			const next = {...prev};
 			const currentlyChecked = keys.every((k) => prev[k]?.length > 0);
 			keys.forEach((k) => {
-				next[k] = currentlyChecked ? [] : defaultCharacters[k];
+				if (k === 'latin') {
+					next.latin = currentlyChecked ? [] : buildScriptSelection('latin', setSelection.latin);
+				} else if (k === 'greek') {
+					next.greek = currentlyChecked ? [] : buildScriptSelection('greek', setSelection.greek);
+				} else {
+					next[k] = currentlyChecked ? [] : defaultCharacters[k];
+				}
 			});
 			return next;
 		});
+	};
+
+	const handleScriptSetToggle = <K extends keyof SetSelectionState & keyof typeof defaultCharacters>(
+		script: K,
+		setKey: keyof SetSelectionState[K],
+	) => {
+		setSetSelection((prev) => {
+			const scriptSelection = prev[script];
+			const nextScriptSelection = {...scriptSelection, [setKey]: !scriptSelection[setKey]};
+			const next = {...prev, [script]: nextScriptSelection};
+			setSelectedCharacters((prevChars) => ({
+				...prevChars,
+				[script]: prevChars[script].length === 0 ? [] : buildScriptSelection(script, nextScriptSelection as SetSelectionState[K]),
+			}));
+			return next;
+		});
+	};
+
+	const handleLatinSetToggle = (setKey: keyof SetSelectionState['latin']) => {
+		handleScriptSetToggle('latin', setKey);
+	};
+
+	const handleGreekSetToggle = (setKey: keyof SetSelectionState['greek']) => {
+		handleScriptSetToggle('greek', setKey);
 	};
 
 	const sequences = useMemo(() => {
@@ -184,17 +236,20 @@ export default function App() {
 			.map((char) => ({...char, name: buildName(char)}));
 		const templateSequences = Object.values(selectedCharacters).flat()
 			.filter((char) => char.template
-				&& char.template.length === 3
+				&& char.template.length >= 3
 				&& [LCL, LSL, GCL, GSL, CCL, CSL].includes(char.template[0])
 				&& char.template[1].length === 1)
 			.map((char) => {
-				const mark = diacriticMarks.find((mark) => mark.name === char.template![2].toLowerCase());
-				if (!mark) {
+				const diacriticNames = char.template!.slice(2).map((part) => part.toLowerCase());
+				const diacriticMarksForChar = diacriticNames.map((name) => diacriticMarks.find((mark) => mark.name === name));
+				if (diacriticMarksForChar.some((mark) => !mark)) {
 					return char;
 				}
+				const diacriticKeys = diacriticMarksForChar.map((mark) => mark!.key).join('');
+				const baseLetter = char.template![0] === LSL ? char.template![1].toLowerCase() : char.template![1];
 				return {
 					...char,
-					seq: mark.key + (char.template![0] === LSL ? char.template![1].toLowerCase() : char.template![1]),
+					seq: diacriticKeys + baseLetter,
 					name: buildName(char),
 				};
 			});
@@ -306,6 +361,29 @@ export default function App() {
 						{selectedCharacters.latin.length > 0 && (
 							<Fragment>
 								<h3>Latin alphabet</h3>
+								<div className='filters' style={{marginBottom: '1rem'}}>
+									<Checkbox
+										id='latin-base'
+										isChecked={setSelection.latin.base}
+										label='Basic Latin'
+										description='Base Latin letters commonly used in modern European languages.'
+										onChange={() => handleLatinSetToggle('base')}
+									/>
+									<Checkbox
+										id='latin-ext'
+										isChecked={setSelection.latin.ext}
+										label='Extended Latin'
+										description='Additional Latin letters for extended orthographies.'
+										onChange={() => handleLatinSetToggle('ext')}
+									/>
+									<Checkbox
+										id='latin-historic'
+										isChecked={setSelection.latin.historic}
+										label='Historic Latin'
+										description='Historic or less commonly used Latin letters.'
+										onChange={() => handleLatinSetToggle('historic')}
+									/>
+								</div>
 								<Table entries={selectedCharacters.latin}/>
 							</Fragment>
 						)}
@@ -314,6 +392,29 @@ export default function App() {
 						{selectedCharacters.greek.length > 0 && (
 							<Fragment>
 								<h3>Greek alphabet</h3>
+								<div className='filters' style={{marginBottom: '1rem'}}>
+									<Checkbox
+										id='greek-basic'
+										isChecked={setSelection.greek.basic}
+										label='Basic Greek'
+										description='Basic Greek letters.'
+										onChange={() => handleGreekSetToggle('basic')}
+									/>
+									<Checkbox
+										id='greek-base'
+										isChecked={setSelection.greek.base}
+										label='Modern Greek extensions'
+										description='Additional letters used in modern Greek orthography.'
+										onChange={() => handleGreekSetToggle('base')}
+									/>
+									<Checkbox
+										id='greek-historic'
+										isChecked={setSelection.greek.historic}
+										label='Historic / polytonic Greek'
+										description='Polytonic and historic Greek letter forms.'
+										onChange={() => handleGreekSetToggle('historic')}
+									/>
+								</div>
 								<Table entries={selectedCharacters.greek}/>
 							</Fragment>
 						)}
@@ -333,18 +434,14 @@ export default function App() {
 						{symbolsGroups.map((g) => {
 							const id = `symbol-${g.label.toLowerCase().replace(/\s+/g, '-')}`;
 							return (
-								<div key={g.label} style={{marginBottom: '0.5rem'}}>
-									<input
-										id={id}
-										type='checkbox'
-										defaultChecked={isGroupChecked(g.keys)}
-										onChange={() => toggleGroup(g.keys)}
-									/>
-									<label htmlFor={id} style={{cursor: 'pointer'}}>
-										{g.label}
-									</label>
-									<div className='description'>{g.description}</div>
-								</div>
+								<Checkbox
+									key={g.label}
+									id={id}
+									isChecked={isGroupChecked(g.keys)}
+									label={g.label}
+									description={g.description}
+									onChange={() => toggleGroup(g.keys)}
+								/>
 							);
 						})}
 					</div>

@@ -4,7 +4,6 @@ import eslintPluginReact from 'eslint-plugin-react';
 import tsParser from '@typescript-eslint/parser';
 
 export default [
-	// Ignore generated or backup files
 	{
 		ignores: [
 			'**/.debris/**',
@@ -13,11 +12,10 @@ export default [
 		],
 	},
 
-	// XO base for browser and React (flat configs)
 	...xoBrowser,
 	...xoReact,
 
-	// Your overrides on top of XO
+	// Overrides on top of XO
 	{
 		plugins: {
 			react: eslintPluginReact,
@@ -26,8 +24,10 @@ export default [
 			'arrow-parens': ['off'], // use @stylistic/arrow-parens
 			camelcase: 'off',
 			'capitalized-comments': 'off',
+			complexity: ['warn', {max: 25}],
 			curly: ['error', 'multi-line'],
 			'max-lines': 'off',
+			'max-params': 'off',
 			'object-shorthand': ['error', 'properties'],
 			'padding-line-between-statements': 'off',
 			'@stylistic/padding-line-between-statements': 'off',
