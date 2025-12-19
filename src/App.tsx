@@ -135,14 +135,8 @@ export default function App() {
 	const [modalContent, setModalContent] = useState('');
 	const [diacriticMarks, setDiacriticMarks] = useState<DiacriticMark[]>(defaultDiacriticMarks);
 	const [setSelection, setSetSelection] = useState<SetSelectionState>(initialSetSelection);
+	const [customSequences, setCustomSequences] = useState<{key: string; seq: string}[]>([]);
 
-	const handleDiacriticKeyChange = useCallback((index: number, newKey: string) => {
-		setDiacriticMarks((prev) => {
-			const updated = [...prev];
-			updated[index] = {...updated[index], key: newKey};
-			return updated;
-		});
-	}, []);
 	const defaultCharacters = Object.fromEntries(Object.entries(characters).map(([key, entries]) => [
 		key,
 		entries.filter((entry) => {
@@ -185,6 +179,24 @@ export default function App() {
 		{label: 'Miscellaneous', keys: ['misc'], description: 'Various symbols that do not fit other categories.'},
 		{label: 'Format', keys: ['format'], description: 'Invisible formatting and control characters.'},
 	];
+
+	const handleDiacriticKeyChange = useCallback((index: number, newKey: string) => {
+		setDiacriticMarks((prev) => {
+			const updated = [...prev];
+			updated[index] = {...updated[index], key: newKey};
+			return updated;
+		});
+	}, []);
+
+	const handleSequenceChange = useCallback((cpKey: string, seq: string) => {
+		setCustomSequences((prev) => {
+			const withoutCurrent = prev.filter((cs) => cs.key !== cpKey);
+			if (!seq) {
+				return withoutCurrent;
+			}
+			return [...withoutCurrent, {key: cpKey, seq}];
+		});
+	}, []);
 
 	const isGroupChecked = (keys: (keyof typeof defaultCharacters)[]) => keys.every((k) => selectedCharacters[k]?.length > 0);
 	const hasAnyInGroup = (keys: (keyof typeof defaultCharacters)[]) => keys.some((k) => selectedCharacters[k]?.length > 0);
@@ -231,9 +243,17 @@ export default function App() {
 	};
 
 	const sequences = useMemo(() => {
+		const customMap = new Map(customSequences.map((cs) => [cs.key, cs.seq]));
+		const applyCustomSeq = (char: NameEntry) => {
+			const key = String(char.cp);
+			const customSeq = customMap.get(key);
+			if (!customSeq) return {...char, name: buildName(char)};
+			return {...char, seq: customSeq, name: buildName(char)};
+		};
+
 		const seqSequences = Object.values(selectedCharacters).flat()
 			.filter((char) => char.seq)
-			.map((char) => ({...char, name: buildName(char)}));
+			.map(applyCustomSeq);
 		const templateSequences = Object.values(selectedCharacters).flat()
 			.filter((char) => char.template
 				&& char.template.length >= 3
@@ -243,18 +263,17 @@ export default function App() {
 				const diacriticNames = char.template!.slice(2).map((part) => part.toLowerCase());
 				const diacriticMarksForChar = diacriticNames.map((name) => diacriticMarks.find((mark) => mark.name === name));
 				if (diacriticMarksForChar.some((mark) => !mark)) {
-					return char;
+					return applyCustomSeq(char);
 				}
 				const diacriticKeys = diacriticMarksForChar.map((mark) => mark!.key).join('');
 				const baseLetter = char.template![0] === LSL ? char.template![1].toLowerCase() : char.template![1];
-				return {
+				return applyCustomSeq({
 					...char,
 					seq: diacriticKeys + baseLetter,
-					name: buildName(char),
-				};
+				});
 			});
 		return [...seqSequences, ...templateSequences];
-	}, [diacriticMarks, selectedCharacters]);
+	}, [customSequences, diacriticMarks, selectedCharacters]);
 	console.log('sequences', sequences.filter((s) => !s.seq));
 
 	const formatSequence = (sequence: NameEntry) => {
@@ -353,7 +372,11 @@ export default function App() {
 						{selectedCharacters.combining.length > 0 && (
 							<Fragment>
 								<h3>Combining diacritical marks</h3>
-								<Table entries={selectedCharacters.combining}/>
+								<Table
+									entries={selectedCharacters.combining}
+									customSequences={customSequences}
+									onSequenceChange={handleSequenceChange}
+								/>
 							</Fragment>
 						)}
 					</section>
@@ -384,7 +407,11 @@ export default function App() {
 										onChange={() => handleLatinSetToggle('historic')}
 									/>
 								</div>
-								<Table entries={selectedCharacters.latin}/>
+								<Table
+									entries={selectedCharacters.latin}
+									customSequences={customSequences}
+									onSequenceChange={handleSequenceChange}
+								/>
 							</Fragment>
 						)}
 					</section>
@@ -415,7 +442,11 @@ export default function App() {
 										onChange={() => handleGreekSetToggle('historic')}
 									/>
 								</div>
-								<Table entries={selectedCharacters.greek}/>
+								<Table
+									entries={selectedCharacters.greek}
+									customSequences={customSequences}
+									onSequenceChange={handleSequenceChange}
+								/>
 							</Fragment>
 						)}
 					</section>
@@ -423,7 +454,11 @@ export default function App() {
 						{selectedCharacters.cyrillic.length > 0 && (
 							<Fragment>
 								<h3>Cyrillic alphabet</h3>
-								<Table entries={selectedCharacters.cyrillic}/>
+								<Table
+									entries={selectedCharacters.cyrillic}
+									customSequences={customSequences}
+									onSequenceChange={handleSequenceChange}
+								/>
 							</Fragment>
 						)}
 					</section>
@@ -451,11 +486,19 @@ export default function App() {
 								<h3>Punctuation</h3>
 								<section>
 									<h4>Separators</h4>
-									<Table entries={selectedCharacters.punctuation_separators}/>
+									<Table
+										entries={selectedCharacters.punctuation_separators}
+										customSequences={customSequences}
+										onSequenceChange={handleSequenceChange}
+									/>
 								</section>
 								<section>
 									<h4>General</h4>
-									<Table entries={selectedCharacters.punctuation}/>
+									<Table
+										entries={selectedCharacters.punctuation}
+										customSequences={customSequences}
+										onSequenceChange={handleSequenceChange}
+									/>
 								</section>
 							</Fragment>
 						)}
@@ -466,11 +509,19 @@ export default function App() {
 								<h3>Mathematical symbols</h3>
 								<section>
 									<h4>Operators</h4>
-									<Table entries={selectedCharacters.math_operators}/>
+									<Table
+										entries={selectedCharacters.math_operators}
+										customSequences={customSequences}
+										onSequenceChange={handleSequenceChange}
+									/>
 								</section>
 								<section>
 									<h4>Numbers</h4>
-									<Table entries={selectedCharacters.math_number}/>
+									<Table
+										entries={selectedCharacters.math_number}
+										customSequences={customSequences}
+										onSequenceChange={handleSequenceChange}
+									/>
 								</section>
 							</Fragment>
 						)}
@@ -479,7 +530,11 @@ export default function App() {
 						{selectedCharacters.currency.length > 0 && (
 							<Fragment>
 								<h3>Currency</h3>
-								<Table entries={selectedCharacters.currency}/>
+								<Table
+									entries={selectedCharacters.currency}
+									customSequences={customSequences}
+									onSequenceChange={handleSequenceChange}
+								/>
 							</Fragment>
 						)}
 					</section>
@@ -487,7 +542,11 @@ export default function App() {
 						{selectedCharacters.misc.length > 0 && (
 							<Fragment>
 								<h3>Miscellaneous</h3>
-								<Table entries={selectedCharacters.misc}/>
+								<Table
+									entries={selectedCharacters.misc}
+									customSequences={customSequences}
+									onSequenceChange={handleSequenceChange}
+								/>
 							</Fragment>
 						)}
 					</section>
@@ -495,7 +554,11 @@ export default function App() {
 						{selectedCharacters.format.length > 0 && (
 							<Fragment>
 								<h3>Format</h3>
-								<Table entries={selectedCharacters.format}/>
+								<Table
+									entries={selectedCharacters.format}
+									customSequences={customSequences}
+									onSequenceChange={handleSequenceChange}
+								/>
 							</Fragment>
 						)}
 					</section>

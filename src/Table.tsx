@@ -14,7 +14,13 @@ function codePointChar(cp: number): string {
 	}
 }
 
-export default function Table({entries}: {readonly entries: NameEntry[]}) {
+interface TableProps {
+	readonly entries: NameEntry[],
+	readonly customSequences: {key: string; seq: string}[],
+	readonly onSequenceChange: (_cpKey: string, _sequence: string) => void,
+}
+
+export default function Table({entries, customSequences, onSequenceChange}: TableProps) {
 	const [isExpanded, setIsExpanded] = useState(false);
 	const [contentHeight, setContentHeight] = useState(0);
 	const contentRef = useRef<HTMLDivElement>(null);
@@ -59,29 +65,25 @@ export default function Table({entries}: {readonly entries: NameEntry[]}) {
 						</tr>
 					</thead>
 					<tbody>
-						{entries.map((e) => (
-							<tr key={e.cp}>
-								<td className='mono'>{formatCodePoint(e.cp)}</td>
-								<td className='char'>{codePointChar(e.cp)}</td>
-								<td>
-									{e.seq && (
-										<div className='key-sequence'>
-											<div className='key-cap'>⎄</div>
-											{Array.from(e.seq).map((ch, i) => (
-												<div
-													// eslint-disable-next-line react/no-array-index-key
-													key={`${ch}-${i}`}
-													className='key-cap'
-												>
-													{ch}
-												</div>
-											))}
-										</div>
-									)}
-								</td>
-								<td>{buildName(e)}</td>
-							</tr>
-						))}
+						{entries.map((e) => {
+							const key = String(e.cp);
+							const customSeq = customSequences.find((cs) => cs.key === key)?.seq ?? e.seq ?? '';
+							return (
+								<tr key={e.cp}>
+									<td className='mono'>{formatCodePoint(e.cp)}</td>
+									<td className='char'>{codePointChar(e.cp)}</td>
+									<td>
+										<input
+											type='text'
+											value={customSeq}
+											className='key-input'
+											onChange={(ev) => onSequenceChange(key, ev.target.value)}
+										/>
+									</td>
+									<td>{buildName(e)}</td>
+								</tr>
+							);
+						})}
 					</tbody>
 				</table>
 			</div>

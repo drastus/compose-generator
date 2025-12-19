@@ -137,11 +137,20 @@ th {
 	background-color: var(--bg-primary);
 }
 .key-input {
-	width: 40px;
+	min-width: 60px;
+	max-width: 100px;
 	text-align: center;
 	padding: 4px 8px;
-	border: 1px solid #ccc;
-	border-radius: 4px;
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	background-color: var(--bg-secondary);
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+	font-size: 0.85em;
+	letter-spacing: 0.5em;
+}
+
+input[type='checkbox'] {
+	cursor: pointer;
 }
 
 .page-footer {
