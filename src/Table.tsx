@@ -1,5 +1,5 @@
 import {useEffect, useRef, useState} from 'react';
-import type {NameEntry} from './names';
+import type {NameEntry} from './types';
 import {buildName} from './utils/buildName';
 
 function formatCodePoint(cp: number): string {
@@ -61,7 +61,7 @@ export default function Table({entries, customSequences, onSequenceChange}: Tabl
 							<th>Code point</th>
 							<th>Char</th>
 							<th>Sequence</th>
-							<th>Name</th>
+							<th style={{width: '50%'}}>Name</th>
 						</tr>
 					</thead>
 					<tbody>

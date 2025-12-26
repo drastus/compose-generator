@@ -27,6 +27,7 @@ export default [
 			complexity: ['warn', {max: 25}],
 			curly: ['error', 'multi-line'],
 			'max-lines': 'off',
+			'max-nested-callbacks': 'off',
 			'max-params': 'off',
 			'object-shorthand': ['error', 'properties'],
 			'padding-line-between-statements': 'off',

@@ -1,6 +1,7 @@
 import {Fragment, ReactNode, useState, useCallback, useMemo} from 'react';
 import {createPortal} from 'react-dom';
-import {characters, LCL, LSL, GCL, GSL, CCL, CSL, NameEntry} from './names';
+import {characters} from './names';
+import {NameEntry} from './types';
 import Checkbox from './Checkbox';
 import Table from './Table';
 import {buildName} from './utils/buildName';
@@ -149,14 +150,14 @@ function applySequencesToCharacters(
 			} else if (
 				entry.template
 				&& entry.template.length >= 3
-				&& [LCL, LSL, GCL, GSL, CCL, CSL].includes(entry.template[0])
+				&& entry.template[0].endsWith('LETTER')
 				&& entry.template[1].length === 1
 			) {
 				const diacriticNames = entry.template.slice(2).map((part: string) => part.toLowerCase());
 				const diacriticMarksForChar = diacriticNames.map((name: string) => diacriticMarksParam.find((mark) => mark.name === name));
 				if (!diacriticMarksForChar.some((mark) => !mark)) {
 					const diacriticKeys = diacriticMarksForChar.map((mark: DiacriticMark | undefined) => mark!.key).join('');
-					const baseLetter = entry.template[0] === LSL ? entry.template[1].toLowerCase() : entry.template[1];
+					const baseLetter = entry.template[0].endsWith('SMALL LETTER') ? entry.template[1].toLowerCase() : entry.template[1];
 					seq = diacriticKeys + baseLetter;
 				}
 			}
@@ -175,6 +176,7 @@ function applySequencesToCharacters(
 export default function App() {
 	const [showModal, setShowModal] = useState(false);
 	const [modalContent, setModalContent] = useState('');
+	const [availableCharacters, setAvailableCharacters] = useState<Record<string, NameEntry[]>>(characters);
 	const [diacriticMarks, setDiacriticMarks] = useState<DiacriticMark[]>(defaultDiacriticMarks);
 	const [setSelection, setSetSelection] = useState<SetSelectionState>(initialSetSelection);
 	const [customSequences, setCustomSequences] = useState<{key: string; seq: string}[]>([]);
@@ -193,8 +195,7 @@ export default function App() {
 			return entry.set === 'base';
 		}),
 	]));
-
-	const [selectedCharacters, setSelectedCharacters] = useState<typeof defaultCharacters>({...defaultCharacters, cyrillic: []});
+	const [selectedCharacters, setSelectedCharacters] = useState(defaultCharacters);
 
 	const buildScriptSelection = <K extends keyof SetSelectionState & keyof typeof characters>(
 		script: K,
@@ -207,14 +208,14 @@ export default function App() {
 		return true;
 	});
 
-	const scriptsGroups: {label: string; keys: (keyof typeof defaultCharacters)[]; description: string}[] = [
+	const scriptsGroups: {label: string; keys: string[]; description: string}[] = [
 		{label: 'Modifier letters', keys: ['modifier'], description: 'Spacing modifier letters used for phonetic/diacritic purposes.'},
 		{label: 'Combining diacritical marks', keys: ['combining'], description: 'Non-spacing combining marks to modify preceding characters.'},
 		{label: 'Latin alphabet', keys: ['latin'], description: 'Basic and extended Latin letters commonly used in European languages.'},
 		{label: 'Greek alphabet', keys: ['greek'], description: 'Greek letters including basic forms.'},
 		{label: 'Cyrillic alphabet', keys: ['cyrillic'], description: 'Cyrillic letters used by Slavic and other languages.'},
 	];
-	const symbolsGroups: {label: string; keys: (keyof typeof defaultCharacters)[]; description: string}[] = [
+	const symbolsGroups: {label: string; keys: string[]; description: string}[] = [
 		{label: 'Punctuation', keys: ['punctuation_separators', 'punctuation'], description: 'Common punctuation including separators (space-like) and general marks.'},
 		{label: 'Mathematical symbols', keys: ['math_operators', 'math_number'], description: 'Operators and number-related math symbols.'},
 		{label: 'Currency', keys: ['currency'], description: 'Currency signs such as €, £, ¥.'},
@@ -246,13 +247,15 @@ export default function App() {
 	const hasAnyInGroup = useMemo(() => (
 		(keys: (keyof typeof defaultCharacters)[]) => keys.some((k) => selectedCharacters[k]?.length > 0)
 	), [selectedCharacters]);
+	console.log('isGroupChecked cyrillic', isGroupChecked(['cyrillic']));
 
 	const selectedCharactersWithSequences = useMemo(
 		() => applySequencesToCharacters(selectedCharacters as Record<string, NameEntry[]>, customSequences, diacriticMarks),
 		[selectedCharacters, customSequences, diacriticMarks],
 	);
 
-	const toggleGroup = (keys: (keyof typeof defaultCharacters)[]) => {
+	const handleGroupToggle = (keys: (keyof typeof defaultCharacters)[]) => {
+		console.log('handleGroupToggle', keys);
 		setSelectedCharacters((prev) => {
 			const next = {...prev};
 			const currentlyChecked = keys.every((k) => prev[k]?.length > 0);
@@ -262,7 +265,20 @@ export default function App() {
 				} else if (k === 'greek') {
 					next.greek = currentlyChecked ? [] : buildScriptSelection('greek', setSelection.greek);
 				} else {
-					next[k] = currentlyChecked ? [] : defaultCharacters[k];
+					if (!defaultCharacters[k]) {
+						import(`./names-${k}.ts`).then((mod) => {
+							setAvailableCharacters((current) => ({
+								...current,
+								[k]: mod.characters[k] ?? [],
+							}));
+							setSelectedCharacters((current) => ({
+								...current,
+								[k]: currentlyChecked ? [] : (mod.characters[k] ?? []).filter((entry: NameEntry) => entry.set === 'base'),
+							}));
+						});
+						return;
+					}
+					next[k] = currentlyChecked ? [] : (defaultCharacters[k] ?? []);
 				}
 			});
 			return next;
@@ -279,7 +295,7 @@ export default function App() {
 			const next = {...prev, [script]: nextScriptSelection};
 			setSelectedCharacters((prevChars) => ({
 				...prevChars,
-				[script]: prevChars[script].length === 0 ? [] : buildScriptSelection(script, nextScriptSelection as SetSelectionState[K]),
+				[script]: prevChars[script]?.length === 0 ? [] : buildScriptSelection(script, nextScriptSelection as SetSelectionState[K]),
 			}));
 			return next;
 		});
@@ -344,7 +360,7 @@ export default function App() {
 										id={id}
 										type='checkbox'
 										checked={isGroupChecked(g.keys)}
-										onChange={() => toggleGroup(g.keys)}
+										onChange={() => handleGroupToggle(g.keys)}
 									/>
 									<label htmlFor={id} style={{cursor: 'pointer'}}>
 										{g.label}
@@ -467,7 +483,7 @@ export default function App() {
 						)}
 					</section>
 					<section>
-						{selectedCharacters.cyrillic.length > 0 && (
+						{selectedCharacters.cyrillic?.length > 0 && (
 							<Fragment>
 								<h3>Cyrillic alphabet</h3>
 								<Table
@@ -491,7 +507,7 @@ export default function App() {
 									isChecked={isGroupChecked(g.keys)}
 									label={g.label}
 									description={g.description}
-									onChange={() => toggleGroup(g.keys)}
+									onChange={() => handleGroupToggle(g.keys)}
 								/>
 							);
 						})}
