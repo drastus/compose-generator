@@ -29,7 +29,7 @@ html, body, #root {
 
 body {
 	margin: 0;
-	font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+	font-family: ui-sans-serif, system-ui;
 	color: var(--text-primary);
 	background: var(--bg-primary);
 }
@@ -116,7 +116,7 @@ th {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+	font-family: ui-monospace;
 	font-size: 0.85em;
 }
 
@@ -144,7 +144,7 @@ th {
 	border: 1px solid var(--border);
 	border-radius: 6px;
 	background-color: var(--bg-secondary);
-	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+	font-family: ui-monospace;
 	font-size: 0.85em;
 	letter-spacing: 0.5em;
 }
@@ -210,6 +210,18 @@ input[type='checkbox'] {
 	font-family: monospace;
 	font-size: 14px;
 	line-height: 1.5;
+}
+
+.modal-add-sequence-table {
+	max-height: 50vh;
+	overflow-y: auto;
+	margin-bottom: 1rem;
+}
+
+.modal-add-sequence-footer {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.5rem;
 }
 
 /* Footer styles */

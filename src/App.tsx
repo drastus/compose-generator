@@ -1,62 +1,13 @@
-import {Fragment, ReactNode, useState, useCallback, useMemo} from 'react';
-import {createPortal} from 'react-dom';
+import {Fragment, useState, useCallback, useMemo} from 'react';
 import {characters} from './names';
 import {NameEntry} from './types';
+import CharactersContainer from './CharactersContainer';
 import Checkbox from './Checkbox';
-import Table from './Table';
+import Footer from './Footer';
+import Modal from './Modal';
+import CharactersTable from './CharactersTable';
 import {buildName} from './utils/buildName';
 import './index.css';
-
-function Modal({isOpen, onClose, children}: {readonly isOpen: boolean; readonly onClose: () => void; readonly children: ReactNode}) {
-	if (!isOpen) return null;
-
-	return createPortal(
-		<div className='modal-overlay' onClick={onClose}>
-			<div className='modal-content' onClick={(e) => e.stopPropagation()}>
-				<div className='modal-header'>
-					<h3 style={{margin: 0}}>Generated Compose sequences</h3>
-					<button
-						type='button'
-						className='modal-close-button'
-						onClick={onClose}
-					>
-						×
-					</button>
-				</div>
-				<pre className='modal-body'>
-					{children}
-				</pre>
-			</div>
-		</div>,
-		document.body,
-	);
-}
-
-function Footer({selectedCount, onGenerate, onPreview}: {readonly selectedCount: number; readonly onGenerate: () => void; readonly onPreview: () => void}) {
-	return (
-		<footer className='page-footer'>
-			<div className='footer-selected-count'>
-				{selectedCount} {selectedCount === 1 ? 'character' : 'characters'} selected
-			</div>
-			<div className='footer-actions'>
-				<button
-					type='button'
-					className='generate-button secondary'
-					onClick={onPreview}
-				>
-					Preview
-				</button>
-				<button
-					type='button'
-					className='generate-button'
-					onClick={onGenerate}
-				>
-					Generate
-				</button>
-			</div>
-		</footer>
-	);
-}
 
 interface DiacriticMark {
 	name: string,
@@ -176,6 +127,8 @@ function applySequencesToCharacters(
 export default function App() {
 	const [showModal, setShowModal] = useState(false);
 	const [modalContent, setModalContent] = useState('');
+	const [modalMode, setModalMode] = useState<'preview' | 'addSequence' | null>(null);
+	const [modalGroups, setModalGroups] = useState<string[]>([]);
 	const [availableCharacters, setAvailableCharacters] = useState<Record<string, NameEntry[]>>(characters);
 	const [diacriticMarks, setDiacriticMarks] = useState<DiacriticMark[]>(defaultDiacriticMarks);
 	const [setSelection, setSetSelection] = useState<SetSelectionState>(initialSetSelection);
@@ -249,6 +202,54 @@ export default function App() {
 	), [selectedCharacters]);
 	console.log('isGroupChecked cyrillic', isGroupChecked(['cyrillic']));
 
+	const handleAddSequence = (groups: string[]) => {
+		setModalMode('addSequence');
+		setModalGroups(groups);
+		setShowModal(true);
+	};
+
+	const modalEntries = useMemo(
+		() => {
+			if (modalMode !== 'addSequence') return [] as NameEntry[];
+			const result: NameEntry[] = [];
+			modalGroups.forEach((groupKey) => {
+				const all = availableCharacters[groupKey] ?? [];
+				const selectedSet = new Set((selectedCharacters[groupKey] ?? []).map((e) => e.cp));
+				all.forEach((entry) => {
+					if (!selectedSet.has(entry.cp)) {
+						result.push(entry);
+					}
+				});
+			});
+			return result;
+		},
+		[modalMode, modalGroups, availableCharacters, selectedCharacters],
+	);
+
+	const handleApplySequences = useCallback(() => {
+		setSelectedCharacters((prev) => {
+			const next = {...prev};
+			modalGroups.forEach((groupKey) => {
+				const all = availableCharacters[groupKey] ?? [];
+				if (!all.length) return;
+				const existingSet = new Set((next[groupKey] ?? []).map((e) => e.cp));
+				const toAdd = all.filter((entry) => {
+					if (existingSet.has(entry.cp)) return false;
+					const key = String(entry.cp);
+					const seq = customSequences.find((cs) => cs.key === key)?.seq ?? '';
+					return Boolean(seq);
+				});
+				if (toAdd.length > 0) {
+					next[groupKey] = [...(next[groupKey] ?? []), ...toAdd];
+				}
+			});
+			return next;
+		});
+		setShowModal(false);
+		setModalMode(null);
+		setModalGroups([]);
+	}, [availableCharacters, customSequences, modalGroups]);
+
 	const selectedCharactersWithSequences = useMemo(
 		() => applySequencesToCharacters(selectedCharacters as Record<string, NameEntry[]>, customSequences, diacriticMarks),
 		[selectedCharacters, customSequences, diacriticMarks],
@@ -312,7 +313,7 @@ export default function App() {
 		const char = String.fromCodePoint(sequence.cp);
 		const codePoint = sequence.cp.toString(16).toUpperCase().padStart(4, '0');
 
-		return `<Multi_key> ${keys}	: "${char}"	U${codePoint} # ${sequence.name}`;
+		return `<Multi_key> ${keys} \t: "${char}"\tU${codePoint} # ${sequence.name}`;
 	};
 
 	const getGeneratedContent = useCallback(
@@ -339,6 +340,7 @@ export default function App() {
 	};
 
 	const handlePreview = () => {
+		setModalMode('preview');
 		setModalContent(getGeneratedContent());
 		setShowModal(true);
 	};
@@ -370,7 +372,6 @@ export default function App() {
 							);
 						})}
 					</div>
-
 					<section>
 						<h3>Diacritic Marks</h3>
 						<table className='diacritic-table'>
@@ -403,19 +404,37 @@ export default function App() {
 					<section>
 						{selectedCharacters.combining.length > 0 && (
 							<Fragment>
-								<h3>Combining diacritical marks</h3>
-								<Table
-									entries={selectedCharactersWithSequences.combining}
-									customSequences={customSequences}
-									onSequenceChange={handleSequenceChange}
-								/>
+								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
+									<h3>Combining diacritical marks</h3>
+									<button
+										type='button'
+										onClick={() => handleAddSequence(['combining'])}
+									>
+										Add sequence
+									</button>
+								</div>
+								<CharactersContainer charactersNumber={selectedCharacters.combining.length}>
+									<CharactersTable
+										entries={selectedCharactersWithSequences.combining}
+										customSequences={customSequences}
+										onSequenceChange={handleSequenceChange}
+									/>
+								</CharactersContainer>
 							</Fragment>
 						)}
 					</section>
 					<section>
 						{selectedCharacters.latin.length > 0 && (
 							<Fragment>
-								<h3>Latin alphabet</h3>
+								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
+									<h3>Latin alphabet</h3>
+									<button
+										type='button'
+										onClick={() => handleAddSequence(['latin'])}
+									>
+										Add sequence
+									</button>
+								</div>
 								<div className='filters' style={{marginBottom: '1rem'}}>
 									<Checkbox
 										id='latin-base'
@@ -439,18 +458,28 @@ export default function App() {
 										onChange={() => handleScriptSetToggle('latin', 'historic')}
 									/>
 								</div>
-								<Table
-									entries={selectedCharactersWithSequences.latin}
-									customSequences={customSequences}
-									onSequenceChange={handleSequenceChange}
-								/>
+								<CharactersContainer charactersNumber={selectedCharacters.latin.length}>
+									<CharactersTable
+										entries={selectedCharactersWithSequences.latin}
+										customSequences={customSequences}
+										onSequenceChange={handleSequenceChange}
+									/>
+								</CharactersContainer>
 							</Fragment>
 						)}
 					</section>
 					<section>
 						{selectedCharacters.greek.length > 0 && (
 							<Fragment>
-								<h3>Greek alphabet</h3>
+								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
+									<h3>Greek alphabet</h3>
+									<button
+										type='button'
+										onClick={() => handleAddSequence(['greek'])}
+									>
+										Add sequence
+									</button>
+								</div>
 								<div className='filters' style={{marginBottom: '1rem'}}>
 									<Checkbox
 										id='greek-basic'
@@ -474,23 +503,35 @@ export default function App() {
 										onChange={() => handleScriptSetToggle('greek', 'historic')}
 									/>
 								</div>
-								<Table
-									entries={selectedCharactersWithSequences.greek}
-									customSequences={customSequences}
-									onSequenceChange={handleSequenceChange}
-								/>
+								<CharactersContainer charactersNumber={selectedCharacters.greek.length}>
+									<CharactersTable
+										entries={selectedCharactersWithSequences.greek}
+										customSequences={customSequences}
+										onSequenceChange={handleSequenceChange}
+									/>
+								</CharactersContainer>
 							</Fragment>
 						)}
 					</section>
 					<section>
 						{selectedCharacters.cyrillic?.length > 0 && (
 							<Fragment>
-								<h3>Cyrillic alphabet</h3>
-								<Table
-									entries={selectedCharactersWithSequences.cyrillic}
-									customSequences={customSequences}
-									onSequenceChange={handleSequenceChange}
-								/>
+								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
+									<h3>Cyrillic alphabet</h3>
+									<button
+										type='button'
+										onClick={() => handleAddSequence(['cyrillic'])}
+									>
+										Add sequence
+									</button>
+								</div>
+								<CharactersContainer charactersNumber={selectedCharacters.cyrillic.length}>
+									<CharactersTable
+										entries={selectedCharactersWithSequences.cyrillic}
+										customSequences={customSequences}
+										onSequenceChange={handleSequenceChange}
+									/>
+								</CharactersContainer>
 							</Fragment>
 						)}
 					</section>
@@ -515,22 +556,34 @@ export default function App() {
 					<section>
 						{hasAnyInGroup(['punctuation_separators', 'punctuation']) && (
 							<Fragment>
-								<h3>Punctuation</h3>
+								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
+									<h3>Punctuation</h3>
+									<button
+										type='button'
+										onClick={() => handleAddSequence(['punctuation_separators', 'punctuation'])}
+									>
+										Add sequence
+									</button>
+								</div>
 								<section>
 									<h4>Separators</h4>
-									<Table
-										entries={selectedCharactersWithSequences.punctuation_separators}
-										customSequences={customSequences}
-										onSequenceChange={handleSequenceChange}
-									/>
+									<CharactersContainer charactersNumber={selectedCharacters.punctuation_separators.length}>
+										<CharactersTable
+											entries={selectedCharactersWithSequences.punctuation_separators}
+											customSequences={customSequences}
+											onSequenceChange={handleSequenceChange}
+										/>
+									</CharactersContainer>
 								</section>
 								<section>
 									<h4>General</h4>
-									<Table
-										entries={selectedCharactersWithSequences.punctuation}
-										customSequences={customSequences}
-										onSequenceChange={handleSequenceChange}
-									/>
+									<CharactersContainer charactersNumber={selectedCharacters.punctuation.length}>
+										<CharactersTable
+											entries={selectedCharactersWithSequences.punctuation}
+											customSequences={customSequences}
+											onSequenceChange={handleSequenceChange}
+										/>
+									</CharactersContainer>
 								</section>
 							</Fragment>
 						)}
@@ -538,22 +591,34 @@ export default function App() {
 					<section>
 						{hasAnyInGroup(['math_operators', 'math_number']) && (
 							<Fragment>
-								<h3>Mathematical symbols</h3>
+								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
+									<h3>Mathematical symbols</h3>
+									<button
+										type='button'
+										onClick={() => handleAddSequence(['math_operators', 'math_number'])}
+									>
+										Add sequence
+									</button>
+								</div>
 								<section>
 									<h4>Operators</h4>
-									<Table
-										entries={selectedCharactersWithSequences.math_operators}
-										customSequences={customSequences}
-										onSequenceChange={handleSequenceChange}
-									/>
+									<CharactersContainer charactersNumber={selectedCharacters.math_operators.length}>
+										<CharactersTable
+											entries={selectedCharactersWithSequences.math_operators}
+											customSequences={customSequences}
+											onSequenceChange={handleSequenceChange}
+										/>
+									</CharactersContainer>
 								</section>
 								<section>
 									<h4>Numbers</h4>
-									<Table
-										entries={selectedCharactersWithSequences.math_number}
-										customSequences={customSequences}
-										onSequenceChange={handleSequenceChange}
-									/>
+									<CharactersContainer charactersNumber={selectedCharacters.math_number.length}>
+										<CharactersTable
+											entries={selectedCharactersWithSequences.math_number}
+											customSequences={customSequences}
+											onSequenceChange={handleSequenceChange}
+										/>
+									</CharactersContainer>
 								</section>
 							</Fragment>
 						)}
@@ -561,44 +626,120 @@ export default function App() {
 					<section>
 						{selectedCharacters.currency.length > 0 && (
 							<Fragment>
-								<h3>Currency</h3>
-								<Table
-									entries={selectedCharactersWithSequences.currency}
-									customSequences={customSequences}
-									onSequenceChange={handleSequenceChange}
-								/>
+								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
+									<h3>Currency</h3>
+									<button
+										type='button'
+										onClick={() => handleAddSequence(['currency'])}
+									>
+										Add sequence
+									</button>
+								</div>
+								<CharactersContainer charactersNumber={selectedCharacters.currency.length}>
+									<CharactersTable
+										entries={selectedCharactersWithSequences.currency}
+										customSequences={customSequences}
+										onSequenceChange={handleSequenceChange}
+									/>
+								</CharactersContainer>
 							</Fragment>
 						)}
 					</section>
 					<section>
 						{selectedCharacters.misc.length > 0 && (
 							<Fragment>
-								<h3>Miscellaneous</h3>
-								<Table
-									entries={selectedCharactersWithSequences.misc}
-									customSequences={customSequences}
-									onSequenceChange={handleSequenceChange}
-								/>
+								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
+									<h3>Miscellaneous</h3>
+									<button
+										type='button'
+										onClick={() => handleAddSequence(['misc'])}
+									>
+										Add sequence
+									</button>
+								</div>
+								<CharactersContainer charactersNumber={selectedCharacters.misc.length}>
+									<CharactersTable
+										entries={selectedCharactersWithSequences.misc}
+										customSequences={customSequences}
+										onSequenceChange={handleSequenceChange}
+									/>
+								</CharactersContainer>
 							</Fragment>
 						)}
 					</section>
 					<section>
 						{selectedCharacters.format.length > 0 && (
 							<Fragment>
-								<h3>Format</h3>
-								<Table
-									entries={selectedCharactersWithSequences.format}
-									customSequences={customSequences}
-									onSequenceChange={handleSequenceChange}
-								/>
+								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
+									<h3>Format</h3>
+									<button
+										type='button'
+										onClick={() => handleAddSequence(['format'])}
+									>
+										Add sequence
+									</button>
+								</div>
+								<CharactersContainer charactersNumber={selectedCharacters.format.length}>
+									<CharactersTable
+										entries={selectedCharactersWithSequences.format}
+										customSequences={customSequences}
+										onSequenceChange={handleSequenceChange}
+									/>
+								</CharactersContainer>
 							</Fragment>
 						)}
 					</section>
 				</section>
 			</main>
-			<Footer selectedCount={selectedCount} onGenerate={handleGenerate} onPreview={handlePreview}/>
-			<Modal isOpen={showModal} onClose={() => setShowModal(false)}>
-				{modalContent}
+			<Footer
+				selectedCount={selectedCount}
+				onGenerate={handleGenerate}
+				onPreview={handlePreview}
+			/>
+			<Modal
+				isOpen={showModal}
+				title={modalMode === 'addSequence' ? 'Add sequences' : 'Generated Compose sequences'}
+				onClose={() => {
+					setShowModal(false);
+					setModalMode(null);
+					setModalGroups([]);
+				}}
+			>
+				{modalMode === 'addSequence'
+					? (
+						<Fragment>
+							<div className='modal-add-sequence-table'>
+								<CharactersTable
+									entries={modalEntries}
+									customSequences={customSequences}
+									onSequenceChange={handleSequenceChange}
+								/>
+							</div>
+							<div className='modal-add-sequence-footer'>
+								<button
+									type='button'
+									onClick={() => {
+										setShowModal(false);
+										setModalMode(null);
+										setModalGroups([]);
+									}}
+								>
+									Cancel
+								</button>
+								<button
+									type='button'
+									onClick={handleApplySequences}
+								>
+									Apply
+								</button>
+							</div>
+						</Fragment>
+					)
+					: (
+						<pre>
+							{modalContent}
+						</pre>
+					)}
 			</Modal>
 		</Fragment>
 	);
