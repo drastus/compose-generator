@@ -17,9 +17,10 @@ interface CharactersTableProps {
 	readonly entries: NameEntry[],
 	readonly customSequences: {key: string; seq: string}[],
 	readonly onSequenceChange: (_cpKey: string, _sequence: string) => void,
+	readonly onRemoveSequence?: (_cpKey: string) => void,
 }
 
-export default function CharactersTable({entries, customSequences, onSequenceChange}: CharactersTableProps) {
+export default function CharactersTable({entries, customSequences, onSequenceChange, onRemoveSequence}: CharactersTableProps) {
 	return (
 		<table>
 			<thead>
@@ -28,12 +29,14 @@ export default function CharactersTable({entries, customSequences, onSequenceCha
 					<th>Char</th>
 					<th>Sequence</th>
 					<th style={{width: '50%'}}>Name</th>
+					<th>Remove</th>
 				</tr>
 			</thead>
 			<tbody>
 				{entries.map((e) => {
 					const key = String(e.cp);
 					const customSeq = customSequences.find((cs) => cs.key === key)?.seq ?? e.seq ?? '';
+					const hasSequence = Boolean(customSeq);
 					return (
 						<tr key={e.cp}>
 							<td className='mono'>{formatCodePoint(e.cp)}</td>
@@ -47,6 +50,16 @@ export default function CharactersTable({entries, customSequences, onSequenceCha
 								/>
 							</td>
 							<td>{buildName(e)}</td>
+							<td>
+								{hasSequence && onRemoveSequence && (
+									<button
+										type='button'
+										onClick={() => onRemoveSequence(key)}
+									>
+										×
+									</button>
+								)}
+							</td>
 						</tr>
 					);
 				})}

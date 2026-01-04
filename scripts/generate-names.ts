@@ -440,7 +440,7 @@ function generateFileContent(
 			const cpHex = '0x' + cp.toString(16).toUpperCase().padStart(4, '0');
 			const set = getSetForCodePoint(cp, key);
 			const seq = sequences.get(cp);
-			const seqPart = seq ? `, seq: '${escapeTSString(seq)}'` : '';
+			const seqPart = seq ? `, defaultSeq: '${escapeTSString(seq)}'` : '';
 
 			const handledLatinCapital = addLetterEntry(lines, cpHex, set, seqPart, name, 'LATIN', 'CAPITAL', 'LCL', LATIN_DIACRITICS_PATTERN);
 			const handledLatinSmall = !handledLatinCapital && addLetterEntry(lines, cpHex, set, seqPart, name, 'LATIN', 'SMALL', 'LSL', LATIN_DIACRITICS_PATTERN);

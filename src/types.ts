@@ -1,1 +1,14 @@
-export type NameEntry = {cp: number; name?: string, end?: string, template?: string[], set?: string, seq?: string};
+export type NameEntry = {
+	cp: number,
+	name?: string,
+	end?: string,
+	template?: string[],
+	set?: string,
+	defaultSeq?: string,
+};
+
+export type CharWithSeq = {
+	cp: number,
+	name: string,
+	seq?: string,
+};

@@ -1,6 +1,6 @@
 import {Fragment, useState, useCallback, useMemo} from 'react';
 import {characters} from './names';
-import {NameEntry} from './types';
+import {CharWithSeq, NameEntry} from './types';
 import CharactersContainer from './CharactersContainer';
 import Checkbox from './Checkbox';
 import Footer from './Footer';
@@ -86,9 +86,9 @@ function applySequencesToCharacters(
 	selectedCharactersParam: Record<string, NameEntry[]>,
 	customSequencesParam: {key: string; seq: string}[],
 	diacriticMarksParam: DiacriticMark[],
-): Record<string, NameEntry[]> {
+): Record<string, CharWithSeq[]> {
 	const customMap = new Map(customSequencesParam.map((cs) => [cs.key, cs.seq]));
-	const result: Record<string, NameEntry[]> = {};
+	const result: Record<string, CharWithSeq[]> = {};
 
 	for (const [groupKey, entries] of Object.entries(selectedCharactersParam)) {
 		const updatedEntries = entries.map((entry) => {
@@ -96,8 +96,8 @@ function applySequencesToCharacters(
 			const customSeq = customMap.get(String(entry.cp));
 			if (customSeq) {
 				seq = customSeq;
-			} else if (entry.seq) {
-				seq = entry.seq;
+			} else if (entry.defaultSeq) {
+				seq = entry.defaultSeq;
 			} else if (
 				entry.template
 				&& entry.template.length >= 3
@@ -113,7 +113,7 @@ function applySequencesToCharacters(
 				}
 			}
 			return {
-				...entry,
+				cp: entry.cp,
 				name: buildName(entry),
 				seq,
 			};
@@ -124,7 +124,7 @@ function applySequencesToCharacters(
 	return result;
 }
 
-export default function App() {
+function App() {
 	const [showModal, setShowModal] = useState(false);
 	const [modalContent, setModalContent] = useState('');
 	const [modalMode, setModalMode] = useState<'preview' | 'addSequence' | null>(null);
@@ -194,6 +194,18 @@ export default function App() {
 		});
 	}, []);
 
+	const handleRemoveSequence = useCallback((cpKey: string) => {
+		setSelectedCharacters((prev) => {
+			const cp = Number(cpKey);
+			const next: typeof prev = {} as typeof prev;
+			for (const [groupKey, entries] of Object.entries(prev)) {
+				next[groupKey as keyof typeof prev] = entries.filter((entry) => entry.cp !== cp);
+			}
+			return next;
+		});
+		setCustomSequences((prev) => prev.filter((cs) => cs.key !== cpKey));
+	}, []);
+
 	const isGroupChecked = useMemo(() => (
 		(keys: (keyof typeof defaultCharacters)[]) => keys.every((k) => selectedCharacters[k]?.length > 0)
 	), [selectedCharacters]);
@@ -224,6 +236,20 @@ export default function App() {
 			return result;
 		},
 		[modalMode, modalGroups, availableCharacters, selectedCharacters],
+	);
+
+	const hasPendingSequences = useMemo(
+		() => {
+			if (modalMode !== 'addSequence') return false;
+			if (!modalEntries.length) return false;
+			const modalSet = new Set(modalEntries.map((e) => e.cp));
+			return customSequences.some((cs) => {
+				if (!cs.seq) return false;
+				const cp = Number(cs.key);
+				return modalSet.has(cp);
+			});
+		},
+		[modalMode, modalEntries, customSequences],
 	);
 
 	const handleApplySequences = useCallback(() => {
@@ -302,7 +328,7 @@ export default function App() {
 		});
 	};
 
-	const formatSequence = (sequence: NameEntry) => {
+	const formatSequence = (sequence: CharWithSeq) => {
 		const getKeyName = (key: string) => keySymNames[key] || key;
 
 		const keys = sequence.seq!
@@ -418,6 +444,7 @@ export default function App() {
 										entries={selectedCharactersWithSequences.combining}
 										customSequences={customSequences}
 										onSequenceChange={handleSequenceChange}
+										onRemoveSequence={handleRemoveSequence}
 									/>
 								</CharactersContainer>
 							</Fragment>
@@ -463,6 +490,7 @@ export default function App() {
 										entries={selectedCharactersWithSequences.latin}
 										customSequences={customSequences}
 										onSequenceChange={handleSequenceChange}
+										onRemoveSequence={handleRemoveSequence}
 									/>
 								</CharactersContainer>
 							</Fragment>
@@ -508,6 +536,7 @@ export default function App() {
 										entries={selectedCharactersWithSequences.greek}
 										customSequences={customSequences}
 										onSequenceChange={handleSequenceChange}
+										onRemoveSequence={handleRemoveSequence}
 									/>
 								</CharactersContainer>
 							</Fragment>
@@ -530,6 +559,7 @@ export default function App() {
 										entries={selectedCharactersWithSequences.cyrillic}
 										customSequences={customSequences}
 										onSequenceChange={handleSequenceChange}
+										onRemoveSequence={handleRemoveSequence}
 									/>
 								</CharactersContainer>
 							</Fragment>
@@ -572,6 +602,7 @@ export default function App() {
 											entries={selectedCharactersWithSequences.punctuation_separators}
 											customSequences={customSequences}
 											onSequenceChange={handleSequenceChange}
+											onRemoveSequence={handleRemoveSequence}
 										/>
 									</CharactersContainer>
 								</section>
@@ -582,6 +613,7 @@ export default function App() {
 											entries={selectedCharactersWithSequences.punctuation}
 											customSequences={customSequences}
 											onSequenceChange={handleSequenceChange}
+											onRemoveSequence={handleRemoveSequence}
 										/>
 									</CharactersContainer>
 								</section>
@@ -607,6 +639,7 @@ export default function App() {
 											entries={selectedCharactersWithSequences.math_operators}
 											customSequences={customSequences}
 											onSequenceChange={handleSequenceChange}
+											onRemoveSequence={handleRemoveSequence}
 										/>
 									</CharactersContainer>
 								</section>
@@ -617,6 +650,7 @@ export default function App() {
 											entries={selectedCharactersWithSequences.math_number}
 											customSequences={customSequences}
 											onSequenceChange={handleSequenceChange}
+											onRemoveSequence={handleRemoveSequence}
 										/>
 									</CharactersContainer>
 								</section>
@@ -640,6 +674,7 @@ export default function App() {
 										entries={selectedCharactersWithSequences.currency}
 										customSequences={customSequences}
 										onSequenceChange={handleSequenceChange}
+										onRemoveSequence={handleRemoveSequence}
 									/>
 								</CharactersContainer>
 							</Fragment>
@@ -662,6 +697,7 @@ export default function App() {
 										entries={selectedCharactersWithSequences.misc}
 										customSequences={customSequences}
 										onSequenceChange={handleSequenceChange}
+										onRemoveSequence={handleRemoveSequence}
 									/>
 								</CharactersContainer>
 							</Fragment>
@@ -684,6 +720,7 @@ export default function App() {
 										entries={selectedCharactersWithSequences.format}
 										customSequences={customSequences}
 										onSequenceChange={handleSequenceChange}
+										onRemoveSequence={handleRemoveSequence}
 									/>
 								</CharactersContainer>
 							</Fragment>
@@ -728,6 +765,7 @@ export default function App() {
 								</button>
 								<button
 									type='button'
+									disabled={!hasPendingSequences}
 									onClick={handleApplySequences}
 								>
 									Apply
@@ -744,3 +782,5 @@ export default function App() {
 		</Fragment>
 	);
 }
+
+export default App;
