@@ -1,12 +1,13 @@
 import {Fragment, useState, useCallback, useMemo} from 'react';
+import {buildName} from './utils/buildName';
 import {characters} from './names';
 import {CharWithSeq, NameEntry} from './types';
+import AddingModal from './AddingModal';
 import CharactersContainer from './CharactersContainer';
+import CharactersTable from './CharactersTable';
 import Checkbox from './Checkbox';
 import Footer from './Footer';
 import Modal from './Modal';
-import CharactersTable from './CharactersTable';
-import {buildName} from './utils/buildName';
 import './index.css';
 
 interface DiacriticMark {
@@ -214,43 +215,17 @@ function App() {
 	), [selectedCharacters]);
 	console.log('isGroupChecked cyrillic', isGroupChecked(['cyrillic']));
 
-	const handleAddSequence = (groups: string[]) => {
+	const handleAddSequence = useCallback((groups: string[]) => {
 		setModalMode('addSequence');
 		setModalGroups(groups);
 		setShowModal(true);
-	};
+	}, []);
 
-	const modalEntries = useMemo(
-		() => {
-			if (modalMode !== 'addSequence') return [] as NameEntry[];
-			const result: NameEntry[] = [];
-			modalGroups.forEach((groupKey) => {
-				const all = availableCharacters[groupKey] ?? [];
-				const selectedSet = new Set((selectedCharacters[groupKey] ?? []).map((e) => e.cp));
-				all.forEach((entry) => {
-					if (!selectedSet.has(entry.cp)) {
-						result.push(entry);
-					}
-				});
-			});
-			return result;
-		},
-		[modalMode, modalGroups, availableCharacters, selectedCharacters],
-	);
-
-	const hasPendingSequences = useMemo(
-		() => {
-			if (modalMode !== 'addSequence') return false;
-			if (!modalEntries.length) return false;
-			const modalSet = new Set(modalEntries.map((e) => e.cp));
-			return customSequences.some((cs) => {
-				if (!cs.seq) return false;
-				const cp = Number(cs.key);
-				return modalSet.has(cp);
-			});
-		},
-		[modalMode, modalEntries, customSequences],
-	);
+	const closeModal = useCallback(() => {
+		setShowModal(false);
+		setModalMode(null);
+		setModalGroups([]);
+	}, []);
 
 	const handleApplySequences = useCallback(() => {
 		setSelectedCharacters((prev) => {
@@ -373,6 +348,12 @@ function App() {
 
 	const selectedCount = Object.values(selectedCharactersWithSequences).flat().length;
 
+	const commonTableAttributes = useMemo(() => ({
+		customSequences,
+		onSequenceChange: handleSequenceChange,
+		onRemoveSequence: handleRemoveSequence,
+	}), [customSequences, handleRemoveSequence, handleSequenceChange]);
+
 	return (
 		<Fragment>
 			<main className='container' style={{paddingBottom: '80px'}}>
@@ -428,6 +409,27 @@ function App() {
 						</table>
 					</section>
 					<section>
+						{selectedCharacters.modifier.length > 0 && (
+							<Fragment>
+								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
+									<h3>Modifier letters</h3>
+									<button
+										type='button'
+										onClick={() => handleAddSequence(['modifier'])}
+									>
+										Add sequence
+									</button>
+								</div>
+								<CharactersContainer charactersNumber={selectedCharacters.modifier.length}>
+									<CharactersTable
+										entries={selectedCharactersWithSequences.modifier}
+										{...commonTableAttributes}
+									/>
+								</CharactersContainer>
+							</Fragment>
+						)}
+					</section>
+					<section>
 						{selectedCharacters.combining.length > 0 && (
 							<Fragment>
 								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
@@ -442,9 +444,7 @@ function App() {
 								<CharactersContainer charactersNumber={selectedCharacters.combining.length}>
 									<CharactersTable
 										entries={selectedCharactersWithSequences.combining}
-										customSequences={customSequences}
-										onSequenceChange={handleSequenceChange}
-										onRemoveSequence={handleRemoveSequence}
+										{...commonTableAttributes}
 									/>
 								</CharactersContainer>
 							</Fragment>
@@ -488,9 +488,7 @@ function App() {
 								<CharactersContainer charactersNumber={selectedCharacters.latin.length}>
 									<CharactersTable
 										entries={selectedCharactersWithSequences.latin}
-										customSequences={customSequences}
-										onSequenceChange={handleSequenceChange}
-										onRemoveSequence={handleRemoveSequence}
+										{...commonTableAttributes}
 									/>
 								</CharactersContainer>
 							</Fragment>
@@ -534,9 +532,7 @@ function App() {
 								<CharactersContainer charactersNumber={selectedCharacters.greek.length}>
 									<CharactersTable
 										entries={selectedCharactersWithSequences.greek}
-										customSequences={customSequences}
-										onSequenceChange={handleSequenceChange}
-										onRemoveSequence={handleRemoveSequence}
+										{...commonTableAttributes}
 									/>
 								</CharactersContainer>
 							</Fragment>
@@ -557,9 +553,7 @@ function App() {
 								<CharactersContainer charactersNumber={selectedCharacters.cyrillic.length}>
 									<CharactersTable
 										entries={selectedCharactersWithSequences.cyrillic}
-										customSequences={customSequences}
-										onSequenceChange={handleSequenceChange}
-										onRemoveSequence={handleRemoveSequence}
+										{...commonTableAttributes}
 									/>
 								</CharactersContainer>
 							</Fragment>
@@ -600,9 +594,7 @@ function App() {
 									<CharactersContainer charactersNumber={selectedCharacters.punctuation_separators.length}>
 										<CharactersTable
 											entries={selectedCharactersWithSequences.punctuation_separators}
-											customSequences={customSequences}
-											onSequenceChange={handleSequenceChange}
-											onRemoveSequence={handleRemoveSequence}
+											{...commonTableAttributes}
 										/>
 									</CharactersContainer>
 								</section>
@@ -611,9 +603,7 @@ function App() {
 									<CharactersContainer charactersNumber={selectedCharacters.punctuation.length}>
 										<CharactersTable
 											entries={selectedCharactersWithSequences.punctuation}
-											customSequences={customSequences}
-											onSequenceChange={handleSequenceChange}
-											onRemoveSequence={handleRemoveSequence}
+											{...commonTableAttributes}
 										/>
 									</CharactersContainer>
 								</section>
@@ -637,9 +627,7 @@ function App() {
 									<CharactersContainer charactersNumber={selectedCharacters.math_operators.length}>
 										<CharactersTable
 											entries={selectedCharactersWithSequences.math_operators}
-											customSequences={customSequences}
-											onSequenceChange={handleSequenceChange}
-											onRemoveSequence={handleRemoveSequence}
+											{...commonTableAttributes}
 										/>
 									</CharactersContainer>
 								</section>
@@ -648,9 +636,7 @@ function App() {
 									<CharactersContainer charactersNumber={selectedCharacters.math_number.length}>
 										<CharactersTable
 											entries={selectedCharactersWithSequences.math_number}
-											customSequences={customSequences}
-											onSequenceChange={handleSequenceChange}
-											onRemoveSequence={handleRemoveSequence}
+											{...commonTableAttributes}
 										/>
 									</CharactersContainer>
 								</section>
@@ -672,9 +658,7 @@ function App() {
 								<CharactersContainer charactersNumber={selectedCharacters.currency.length}>
 									<CharactersTable
 										entries={selectedCharactersWithSequences.currency}
-										customSequences={customSequences}
-										onSequenceChange={handleSequenceChange}
-										onRemoveSequence={handleRemoveSequence}
+										{...commonTableAttributes}
 									/>
 								</CharactersContainer>
 							</Fragment>
@@ -695,9 +679,7 @@ function App() {
 								<CharactersContainer charactersNumber={selectedCharacters.misc.length}>
 									<CharactersTable
 										entries={selectedCharactersWithSequences.misc}
-										customSequences={customSequences}
-										onSequenceChange={handleSequenceChange}
-										onRemoveSequence={handleRemoveSequence}
+										{...commonTableAttributes}
 									/>
 								</CharactersContainer>
 							</Fragment>
@@ -718,9 +700,7 @@ function App() {
 								<CharactersContainer charactersNumber={selectedCharacters.format.length}>
 									<CharactersTable
 										entries={selectedCharactersWithSequences.format}
-										customSequences={customSequences}
-										onSequenceChange={handleSequenceChange}
-										onRemoveSequence={handleRemoveSequence}
+										{...commonTableAttributes}
 									/>
 								</CharactersContainer>
 							</Fragment>
@@ -736,42 +716,19 @@ function App() {
 			<Modal
 				isOpen={showModal}
 				title={modalMode === 'addSequence' ? 'Add sequences' : 'Generated Compose sequences'}
-				onClose={() => {
-					setShowModal(false);
-					setModalMode(null);
-					setModalGroups([]);
-				}}
+				onClose={closeModal}
 			>
 				{modalMode === 'addSequence'
 					? (
-						<Fragment>
-							<div className='modal-add-sequence-table'>
-								<CharactersTable
-									entries={modalEntries}
-									customSequences={customSequences}
-									onSequenceChange={handleSequenceChange}
-								/>
-							</div>
-							<div className='modal-add-sequence-footer'>
-								<button
-									type='button'
-									onClick={() => {
-										setShowModal(false);
-										setModalMode(null);
-										setModalGroups([]);
-									}}
-								>
-									Cancel
-								</button>
-								<button
-									type='button'
-									disabled={!hasPendingSequences}
-									onClick={handleApplySequences}
-								>
-									Apply
-								</button>
-							</div>
-						</Fragment>
+						<AddingModal
+							availableCharacters={availableCharacters}
+							selectedCharacters={selectedCharacters}
+							modalGroups={modalGroups}
+							customSequences={customSequences}
+							handleApplySequences={handleApplySequences}
+							handleSequenceChange={handleSequenceChange}
+							closeModal={closeModal}
+						/>
 					)
 					: (
 						<pre>
