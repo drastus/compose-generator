@@ -387,6 +387,8 @@ function generateFileContent(
 		}
 		lines.push('');
 		lines.push('export const ML = \'MODIFIER LETTER\';');
+		lines.push('export const DIA = \'\';');
+		lines.push('export const COMB = \'COMBINING\';');
 		lines.push('export const LCL = \'LATIN CAPITAL LETTER\';');
 		lines.push('export const LSL = \'LATIN SMALL LETTER\';');
 		lines.push('export const GCL = \'GREEK CAPITAL LETTER\';');
@@ -471,6 +473,26 @@ function generateFileContent(
 				const end = name.substring('MODIFIER LETTER '.length);
 				const endingEsc = escapeTSString(end);
 				lines.push(`\t{cp: ${cpHex}, end: '${endingEsc}', template: [ML]${set ? `, set: '${set}'` : ''}${seqPart}},`);
+			} else if (name.startsWith('COMBINING ')) {
+				const end = name.substring('COMBINING '.length);
+				const match = end.match(`^(${LATIN_DIACRITICS_PATTERN}|${GREEK_DIACRITICS_PATTERN})( ACCENT)?$`);
+				if (match) {
+					const diacriticName = match[1].replace(' ', '_');
+					lines.push(`\t{cp: ${cpHex}, template: [COMB, ${diacriticName}]${set ? `, set: '${set}'` : ''}${seqPart}},`);
+				} else {
+					const endingEsc = escapeTSString(end);
+					lines.push(`\t{cp: ${cpHex}, end: '${endingEsc}', template: [COMB]${set ? `, set: '${set}'` : ''}${seqPart}},`);
+				}
+			} else if (key === 'modifier') {
+				const match = name.match(`^(${LATIN_DIACRITICS_PATTERN}|${GREEK_DIACRITICS_PATTERN})( ACCENT)?$`);
+				if (match) {
+					const diacriticName = match[1].replace(' ', '_');
+					const accentString = match[2] ? '\'ACCENT\'' : '';
+					lines.push(`\t{cp: ${cpHex}, template: [DIA, ${diacriticName}${accentString ? `, ${accentString}` : ''}]${set ? `, set: '${set}'` : ''}${seqPart}},`);
+				} else {
+					const nameEsc = escapeTSString(name);
+					lines.push(`\t{cp: ${cpHex}, name: '${nameEsc}'${set ? `, set: '${set}'` : ''}${seqPart}},`);
+				}
 			} else {
 				const nameEsc = escapeTSString(name);
 				lines.push(`\t{cp: ${cpHex}, name: '${nameEsc}'${set ? `, set: '${set}'` : ''}${seqPart}},`);

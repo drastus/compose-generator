@@ -1,6 +1,6 @@
 import {Fragment, useState, useCallback, useMemo} from 'react';
 import {buildName} from './utils/buildName';
-import {characters} from './names';
+import {characters, COMB, DIA} from './names';
 import {CharWithSeq, NameEntry} from './types';
 import AddingModal from './AddingModal';
 import CharactersContainer from './CharactersContainer';
@@ -100,17 +100,29 @@ function applySequencesToCharacters(
 			} else if (entry.defaultSeq) {
 				seq = entry.defaultSeq;
 			} else if (
-				entry.template
-				&& entry.template.length >= 3
-				&& entry.template[0].endsWith('LETTER')
-				&& entry.template[1].length === 1
+				entry.template && ((
+					entry.template.length >= 3
+					&& entry.template[0].endsWith('LETTER')
+					&& entry.template[1].length === 1
+				) || (
+					[DIA, COMB].includes(entry.template[0])
+				))
 			) {
-				const diacriticNames = entry.template.slice(2).map((part: string) => part.toLowerCase());
-				const diacriticMarksForChar = diacriticNames.map((name: string) => diacriticMarksParam.find((mark) => mark.name === name));
-				if (!diacriticMarksForChar.some((mark) => !mark)) {
+				const diacriticNames = entry.template.slice([DIA, COMB].includes(entry.template[0]) ? 1 : 2)
+					.filter((name: string) => name !== 'ACCENT')
+					.map((part: string) => part.toLowerCase().replace('_', ' '));
+				const diacriticMarksForChar = diacriticNames
+					.map((name: string) => diacriticMarksParam.find((mark) => mark.name === name));
+				if (!diacriticMarksForChar.some((mark) => !mark)) { // all diacritics found
 					const diacriticKeys = diacriticMarksForChar.map((mark: DiacriticMark | undefined) => mark!.key).join('');
-					const baseLetter = entry.template[0].endsWith('SMALL LETTER') ? entry.template[1].toLowerCase() : entry.template[1];
-					seq = diacriticKeys + baseLetter;
+					let prefix = '';
+					if (entry.template[0] === DIA) prefix = 'd';
+					if (entry.template[0] === COMB) prefix = '&';
+					let baseLetter = prefix ? '' : entry.template[1];
+					if (entry.template[0].endsWith('SMALL LETTER')) {
+						baseLetter = baseLetter.toLowerCase();
+					}
+					seq = prefix + diacriticKeys + baseLetter;
 				}
 			}
 			return {
@@ -213,7 +225,6 @@ function App() {
 	const hasAnyInGroup = useMemo(() => (
 		(keys: (keyof typeof defaultCharacters)[]) => keys.some((k) => selectedCharacters[k]?.length > 0)
 	), [selectedCharacters]);
-	console.log('isGroupChecked cyrillic', isGroupChecked(['cyrillic']));
 
 	const handleAddSequence = useCallback((groups: string[]) => {
 		setModalMode('addSequence');
