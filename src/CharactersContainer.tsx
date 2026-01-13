@@ -2,10 +2,11 @@ import {useEffect, useRef, useState, ReactNode} from 'react';
 
 interface CharactersContainerProps {
 	readonly charactersNumber: number,
+	readonly onAddSequence: () => void,
 	readonly children: ReactNode,
 }
 
-export default function CharactersContainer({charactersNumber, children}: CharactersContainerProps) {
+export default function CharactersContainer({charactersNumber, onAddSequence, children}: CharactersContainerProps) {
 	const [isExpanded, setIsExpanded] = useState(false);
 	const [contentHeight, setContentHeight] = useState(0);
 	const contentRef = useRef<HTMLDivElement>(null);
@@ -31,6 +32,19 @@ export default function CharactersContainer({charactersNumber, children}: Charac
 					▶
 				</span>
 				<span>{charactersNumber} character{charactersNumber === 1 ? '' : 's'}</span>
+				<button
+					type='button'
+					style={{
+						marginLeft: 'auto',
+						display: 'block',
+						opacity: isExpanded ? 1 : 0,
+						pointerEvents: isExpanded ? 'auto' : 'none',
+						transition: 'opacity 0.5s ease-in-out',
+					}}
+					onClick={onAddSequence}
+				>
+					Add sequence
+				</button>
 			</div>
 			<div
 				ref={contentRef}

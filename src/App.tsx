@@ -424,14 +424,11 @@ function App() {
 							<Fragment>
 								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
 									<h3>Modifier letters</h3>
-									<button
-										type='button'
-										onClick={() => handleAddSequence(['modifier'])}
-									>
-										Add sequence
-									</button>
 								</div>
-								<CharactersContainer charactersNumber={selectedCharacters.modifier.length}>
+								<CharactersContainer
+									charactersNumber={selectedCharacters.modifier.length}
+									onAddSequence={() => handleAddSequence(['modifier'])}
+								>
 									<CharactersTable
 										entries={selectedCharactersWithSequences.modifier}
 										{...commonTableAttributes}
@@ -445,14 +442,11 @@ function App() {
 							<Fragment>
 								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
 									<h3>Combining diacritical marks</h3>
-									<button
-										type='button'
-										onClick={() => handleAddSequence(['combining'])}
-									>
-										Add sequence
-									</button>
 								</div>
-								<CharactersContainer charactersNumber={selectedCharacters.combining.length}>
+								<CharactersContainer
+									charactersNumber={selectedCharacters.combining.length}
+									onAddSequence={() => handleAddSequence(['combining'])}
+								>
 									<CharactersTable
 										entries={selectedCharactersWithSequences.combining}
 										{...commonTableAttributes}
@@ -466,12 +460,6 @@ function App() {
 							<Fragment>
 								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
 									<h3>Latin alphabet</h3>
-									<button
-										type='button'
-										onClick={() => handleAddSequence(['latin'])}
-									>
-										Add sequence
-									</button>
 								</div>
 								<div className='filters' style={{marginBottom: '1rem'}}>
 									<Checkbox
@@ -496,7 +484,10 @@ function App() {
 										onChange={() => handleScriptSetToggle('latin', 'historic')}
 									/>
 								</div>
-								<CharactersContainer charactersNumber={selectedCharacters.latin.length}>
+								<CharactersContainer
+									charactersNumber={selectedCharacters.latin.length}
+									onAddSequence={() => handleAddSequence(['latin'])}
+								>
 									<CharactersTable
 										entries={selectedCharactersWithSequences.latin}
 										{...commonTableAttributes}
@@ -510,12 +501,6 @@ function App() {
 							<Fragment>
 								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
 									<h3>Greek alphabet</h3>
-									<button
-										type='button'
-										onClick={() => handleAddSequence(['greek'])}
-									>
-										Add sequence
-									</button>
 								</div>
 								<div className='filters' style={{marginBottom: '1rem'}}>
 									<Checkbox
@@ -540,7 +525,10 @@ function App() {
 										onChange={() => handleScriptSetToggle('greek', 'historic')}
 									/>
 								</div>
-								<CharactersContainer charactersNumber={selectedCharacters.greek.length}>
+								<CharactersContainer
+									charactersNumber={selectedCharacters.greek.length}
+									onAddSequence={() => handleAddSequence(['greek'])}
+								>
 									<CharactersTable
 										entries={selectedCharactersWithSequences.greek}
 										{...commonTableAttributes}
@@ -554,14 +542,11 @@ function App() {
 							<Fragment>
 								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
 									<h3>Cyrillic alphabet</h3>
-									<button
-										type='button'
-										onClick={() => handleAddSequence(['cyrillic'])}
-									>
-										Add sequence
-									</button>
 								</div>
-								<CharactersContainer charactersNumber={selectedCharacters.cyrillic.length}>
+								<CharactersContainer
+									charactersNumber={selectedCharacters.cyrillic.length}
+									onAddSequence={() => handleAddSequence(['cyrillic'])}
+								>
 									<CharactersTable
 										entries={selectedCharactersWithSequences.cyrillic}
 										{...commonTableAttributes}
@@ -593,16 +578,13 @@ function App() {
 							<Fragment>
 								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
 									<h3>Punctuation</h3>
-									<button
-										type='button'
-										onClick={() => handleAddSequence(['punctuation_separators', 'punctuation'])}
-									>
-										Add sequence
-									</button>
 								</div>
 								<section>
 									<h4>Separators</h4>
-									<CharactersContainer charactersNumber={selectedCharacters.punctuation_separators.length}>
+									<CharactersContainer
+										charactersNumber={selectedCharacters.punctuation_separators.length}
+										onAddSequence={() => handleAddSequence(['punctuation_separators'])}
+									>
 										<CharactersTable
 											entries={selectedCharactersWithSequences.punctuation_separators}
 											{...commonTableAttributes}
@@ -611,7 +593,10 @@ function App() {
 								</section>
 								<section>
 									<h4>General</h4>
-									<CharactersContainer charactersNumber={selectedCharacters.punctuation.length}>
+									<CharactersContainer
+										charactersNumber={selectedCharacters.punctuation.length}
+										onAddSequence={() => handleAddSequence(['punctuation'])}
+									>
 										<CharactersTable
 											entries={selectedCharactersWithSequences.punctuation}
 											{...commonTableAttributes}
@@ -626,16 +611,13 @@ function App() {
 							<Fragment>
 								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
 									<h3>Mathematical symbols</h3>
-									<button
-										type='button'
-										onClick={() => handleAddSequence(['math_operators', 'math_number'])}
-									>
-										Add sequence
-									</button>
 								</div>
 								<section>
 									<h4>Operators</h4>
-									<CharactersContainer charactersNumber={selectedCharacters.math_operators.length}>
+									<CharactersContainer
+										charactersNumber={selectedCharacters.math_operators.length}
+										onAddSequence={() => handleAddSequence(['math_operators'])}
+									>
 										<CharactersTable
 											entries={selectedCharactersWithSequences.math_operators}
 											{...commonTableAttributes}
@@ -644,7 +626,10 @@ function App() {
 								</section>
 								<section>
 									<h4>Numbers</h4>
-									<CharactersContainer charactersNumber={selectedCharacters.math_number.length}>
+									<CharactersContainer
+										charactersNumber={selectedCharacters.math_number.length}
+										onAddSequence={() => handleAddSequence(['math_number'])}
+									>
 										<CharactersTable
 											entries={selectedCharactersWithSequences.math_number}
 											{...commonTableAttributes}
@@ -659,14 +644,11 @@ function App() {
 							<Fragment>
 								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
 									<h3>Currency</h3>
-									<button
-										type='button'
-										onClick={() => handleAddSequence(['currency'])}
-									>
-										Add sequence
-									</button>
 								</div>
-								<CharactersContainer charactersNumber={selectedCharacters.currency.length}>
+								<CharactersContainer
+									charactersNumber={selectedCharacters.currency.length}
+									onAddSequence={() => handleAddSequence(['currency'])}
+								>
 									<CharactersTable
 										entries={selectedCharactersWithSequences.currency}
 										{...commonTableAttributes}
@@ -680,14 +662,11 @@ function App() {
 							<Fragment>
 								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
 									<h3>Miscellaneous</h3>
-									<button
-										type='button'
-										onClick={() => handleAddSequence(['misc'])}
-									>
-										Add sequence
-									</button>
 								</div>
-								<CharactersContainer charactersNumber={selectedCharacters.misc.length}>
+								<CharactersContainer
+									charactersNumber={selectedCharacters.misc.length}
+									onAddSequence={() => handleAddSequence(['misc'])}
+								>
 									<CharactersTable
 										entries={selectedCharactersWithSequences.misc}
 										{...commonTableAttributes}
@@ -701,14 +680,11 @@ function App() {
 							<Fragment>
 								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
 									<h3>Format</h3>
-									<button
-										type='button'
-										onClick={() => handleAddSequence(['format'])}
-									>
-										Add sequence
-									</button>
 								</div>
-								<CharactersContainer charactersNumber={selectedCharacters.format.length}>
+								<CharactersContainer
+									charactersNumber={selectedCharacters.format.length}
+									onAddSequence={() => handleAddSequence(['format'])}
+								>
 									<CharactersTable
 										entries={selectedCharactersWithSequences.format}
 										{...commonTableAttributes}
