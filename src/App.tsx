@@ -1,6 +1,7 @@
 import {Fragment, useState, useCallback, useMemo} from 'react';
 import {buildName} from './utils/buildName';
-import {characters, COMB, DIA} from './names';
+import {COMB, DIA, MBF, MBS, MDS, MF, MSSBI, MSSB, MSSI, MSS, MBI, MB, MI, MM, MS} from './constants';
+import {characters} from './names';
 import {CharWithSeq, NameEntry} from './types';
 import AddingModal from './AddingModal';
 import CharactersContainer from './CharactersContainer';
@@ -39,6 +40,24 @@ const defaultDiacriticMarks: DiacriticMark[] = [
 	{name: 'double acute', mark: '˝', key: '"'},
 	{name: 'comma below', mark: '̦', key: ','},
 ];
+
+const scriptPrefixes = {
+	[DIA]: 'd',
+	[COMB]: '&',
+	[MBS]: 's*',
+	[MS]: 's',
+	[MBF]: 'f*',
+	[MF]: 'f',
+	[MDS]: '2',
+	[MSSBI]: '0*/',
+	[MSSB]: '0*',
+	[MSSI]: '0/',
+	[MSS]: '0',
+	[MBI]: 'm*/',
+	[MB]: 'm*',
+	[MI]: 'm/',
+	[MM]: 'm',
+};
 
 const initialSetSelection = {
 	latin: {base: true, ext: true, historic: false},
@@ -103,12 +122,12 @@ function applySequencesToCharacters(
 				entry.template && ((
 					entry.template.length >= 3
 					&& entry.template[0].endsWith('LETTER')
-					&& entry.template[1].length === 1
+					&& entry.template[2].length === 1
 				) || (
-					[DIA, COMB].includes(entry.template[0])
+					Object.keys(scriptPrefixes).includes(entry.template[0])
 				))
 			) {
-				const diacriticNames = entry.template.slice([DIA, COMB].includes(entry.template[0]) ? 1 : 2)
+				const diacriticNames = entry.template.slice([DIA, COMB].includes(entry.template[0]) ? 1 : 3)
 					.filter((name: string) => name !== 'ACCENT')
 					.map((part: string) => part.toLowerCase().replace('_', ' '));
 				const diacriticMarksForChar = diacriticNames
@@ -116,10 +135,11 @@ function applySequencesToCharacters(
 				if (!diacriticMarksForChar.some((mark) => !mark)) { // all diacritics found
 					const diacriticKeys = diacriticMarksForChar.map((mark: DiacriticMark | undefined) => mark!.key).join('');
 					let prefix = '';
-					if (entry.template[0] === DIA) prefix = 'd';
-					if (entry.template[0] === COMB) prefix = '&';
-					let baseLetter = prefix ? '' : entry.template[1];
-					if (entry.template[0].endsWith('SMALL LETTER')) {
+					if (Object.keys(scriptPrefixes).includes(entry.template[0])) {
+						prefix = scriptPrefixes[entry.template[0] as keyof typeof scriptPrefixes];
+					}
+					let baseLetter = [DIA, COMB].includes(entry.template[0]) ? '' : entry.template[2];
+					if (entry.template[1] === 'SMALL') {
 						baseLetter = baseLetter.toLowerCase();
 					}
 					seq = prefix + diacriticKeys + baseLetter;
@@ -162,6 +182,7 @@ function App() {
 		}),
 	]));
 	const [selectedCharacters, setSelectedCharacters] = useState(defaultCharacters);
+	console.log('defaultCharacters', defaultCharacters);
 
 	const buildScriptSelection = <K extends keyof SetSelectionState & keyof typeof characters>(
 		script: K,
@@ -183,7 +204,7 @@ function App() {
 	];
 	const symbolsGroups: {label: string; keys: string[]; description: string}[] = [
 		{label: 'Punctuation', keys: ['punctuation_separators', 'punctuation'], description: 'Common punctuation including separators (space-like) and general marks.'},
-		{label: 'Mathematical symbols', keys: ['math_operators', 'math_number'], description: 'Operators and number-related math symbols.'},
+		{label: 'Mathematical symbols', keys: ['math_operators', 'math_number', 'math_alphanumeric_symbols'], description: 'Operators and number-related math symbols.'},
 		{label: 'Currency', keys: ['currency'], description: 'Currency signs such as €, £, ¥.'},
 		{label: 'Miscellaneous', keys: ['misc'], description: 'Various symbols that do not fit other categories.'},
 		{label: 'Format', keys: ['format'], description: 'Invisible formatting and control characters.'},
@@ -607,7 +628,7 @@ function App() {
 						)}
 					</section>
 					<section>
-						{hasAnyInGroup(['math_operators', 'math_number']) && (
+						{hasAnyInGroup(['math_operators', 'math_number', 'math_alphanumeric_symbols']) && (
 							<Fragment>
 								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
 									<h3>Mathematical symbols</h3>
@@ -632,6 +653,18 @@ function App() {
 									>
 										<CharactersTable
 											entries={selectedCharactersWithSequences.math_number}
+											{...commonTableAttributes}
+										/>
+									</CharactersContainer>
+								</section>
+								<section>
+									<h4>Alphanumeric symbols</h4>
+									<CharactersContainer
+										charactersNumber={selectedCharacters.math_alphanumeric_symbols.length}
+										onAddSequence={() => handleAddSequence(['math_alphanumeric_symbols'])}
+									>
+										<CharactersTable
+											entries={selectedCharactersWithSequences.math_alphanumeric_symbols}
 											{...commonTableAttributes}
 										/>
 									</CharactersContainer>

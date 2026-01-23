@@ -56,7 +56,6 @@ section + section { margin-top: 24px; }
 	padding: 8px;
 	border: 1px solid #ddd;
 	border-radius: 4px;
-	margin-bottom: 8px;
 	display: flex;
 	align-items: center;
 	gap: 8px;

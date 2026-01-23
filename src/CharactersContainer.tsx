@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState, ReactNode} from 'react';
+import {useEffect, useRef, useState, MouseEvent, ReactNode} from 'react';
 
 interface CharactersContainerProps {
 	readonly charactersNumber: number,
@@ -41,7 +41,10 @@ export default function CharactersContainer({charactersNumber, onAddSequence, ch
 						pointerEvents: isExpanded ? 'auto' : 'none',
 						transition: 'opacity 0.5s ease-in-out',
 					}}
-					onClick={onAddSequence}
+					onClick={(event: MouseEvent) => {
+						event.stopPropagation();
+						onAddSequence();
+					}}
 				>
 					Add sequence
 				</button>
