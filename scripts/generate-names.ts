@@ -413,15 +413,21 @@ const sets = {
 	},
 };
 
-function getSetForCodePoint(cp: number, category: string): string | undefined {
+function getSetsForCodePoint(cp: number, category: string): string[] {
 	const categorySets = sets[category as keyof typeof sets];
-	if (categorySets && typeof categorySets === 'object') {
-		for (const [setName, ranges] of Object.entries(categorySets)) {
-			if (Array.isArray(ranges) && ranges.some(([start, end]) => cp >= start && (end ? cp <= end : cp <= start))) {
-				return setName;
-			}
+	if (!categorySets || typeof categorySets !== 'object') {
+		return [];
+	}
+	const result: string[] = [];
+	for (const [setName, ranges] of Object.entries(categorySets)) {
+		if (
+			Array.isArray(ranges)
+			&& ranges.some(([start, end]) => cp >= start && cp <= (end ?? start))
+		) {
+			result.push(setName);
 		}
 	}
+	return result;
 }
 
 function generateFileContent(
@@ -450,10 +456,12 @@ import {CL} from './constants';
 `);
 	}
 
+	const setsPart = (sets: string[]) => sets.length > 0 ? `, set: [${sets.map((s) => `'${s}'`).join(', ')}]` : '';
+
 	const addLetterEntry = (
 		linesArr: string[],
 		cpHex: string,
-		set: string | undefined,
+		sets: string[],
 		seqPart: string,
 		name: string,
 		script: 'LATIN' | 'GREEK',
@@ -468,23 +476,22 @@ import {CL} from './constants';
 		if (caseMatch) {
 			caseIdent = caseMatch === 'CAPITAL' ? 'C' : 'S';
 		}
-		const setPart = set ? `, set: '${set}'` : '';
 		if (diacritic1) {
 			const d1 = diacritic1.replace(/ /g, '_');
 			const d2 = diacritic2 ? diacritic2.replace(/ /g, '_') : undefined;
 			const d3 = diacritic3 ? diacritic3.replace(/ /g, '_') : undefined;
 			if (d3) {
-				linesArr.push(`\t{cp: ${cpHex}, template: [${templateIdent}, ${caseIdent}, '${letter}', ${d1}, ${d2}, ${d3}]${setPart}${seqPart}},`);
+				linesArr.push(`\t{cp: ${cpHex}, template: [${templateIdent}, ${caseIdent}, '${letter}', ${d1}, ${d2}, ${d3}]${setsPart(sets)}${seqPart}},`);
 			} else if (d2) {
-				linesArr.push(`\t{cp: ${cpHex}, template: [${templateIdent}, ${caseIdent}, '${letter}', ${d1}, ${d2}]${setPart}${seqPart}},`);
+				linesArr.push(`\t{cp: ${cpHex}, template: [${templateIdent}, ${caseIdent}, '${letter}', ${d1}, ${d2}]${setsPart(sets)}${seqPart}},`);
 			} else {
-				linesArr.push(`\t{cp: ${cpHex}, template: [${templateIdent}, ${caseIdent}, '${letter}', ${d1}]${setPart}${seqPart}},`);
+				linesArr.push(`\t{cp: ${cpHex}, template: [${templateIdent}, ${caseIdent}, '${letter}', ${d1}]${setsPart(sets)}${seqPart}},`);
 			}
 		} else if (script === 'LATIN' && /^[A-Z]$/.test(letter)) {
-			linesArr.push(`\t{cp: ${cpHex}, template: [${templateIdent}, ${caseIdent}, '${letter}']${setPart}${seqPart}},`);
+			linesArr.push(`\t{cp: ${cpHex}, template: [${templateIdent}, ${caseIdent}, '${letter}']${setsPart(sets)}${seqPart}},`);
 		} else {
 			const endingEsc = escapeTSString(letter);
-			linesArr.push(`\t{cp: ${cpHex}, end: '${endingEsc}', template: [${templateIdent}, ${caseIdent}]${setPart}${seqPart}},`);
+			linesArr.push(`\t{cp: ${cpHex}, end: '${endingEsc}', template: [${templateIdent}, ${caseIdent}]${setsPart(sets)}${seqPart}},`);
 		}
 		return true;
 	};
@@ -495,13 +502,13 @@ import {CL} from './constants';
 		lines.push(`const ${key}: NameEntry[] = [`);
 		for (const {cp, name} of entries) {
 			const cpHex = '0x' + cp.toString(16).toUpperCase().padStart(4, '0');
-			const set = getSetForCodePoint(cp, key);
+			const sets = getSetsForCodePoint(cp, key);
 			const seq = sequences.get(cp);
 			const seqPart = seq ? `, defaultSeq: '${escapeTSString(seq)}'` : '';
 			let handled = false;
 
-			handled ||= addLetterEntry(lines, cpHex, set, seqPart, name, 'LATIN', LATIN_DIACRITICS_PATTERN);
-			handled ||= addLetterEntry(lines, cpHex, set, seqPart, name, 'GREEK', GREEK_DIACRITICS_PATTERN);
+			handled ||= addLetterEntry(lines, cpHex, sets, seqPart, name, 'LATIN', LATIN_DIACRITICS_PATTERN);
+			handled ||= addLetterEntry(lines, cpHex, sets, seqPart, name, 'GREEK', GREEK_DIACRITICS_PATTERN);
 
 			if (handled) {
 				continue;
@@ -511,30 +518,30 @@ import {CL} from './constants';
 				const [, caseLabel] = name.match(/CYRILLIC (CAPITAL|SMALL) LETTER /) as [string, 'CAPITAL' | 'SMALL'];
 				const end = name.substring(`CYRILLIC ${caseLabel} LETTER `.length);
 				const endingEsc = escapeTSString(end);
-				lines.push(`\t{cp: ${cpHex}, template: [CL, ${caseLabel === 'CAPITAL' ? 'C' : 'S'}, '${endingEsc}']${set ? `, set: '${set}'` : ''}${seqPart}},`);
+				lines.push(`\t{cp: ${cpHex}, template: [CL, ${caseLabel === 'CAPITAL' ? 'C' : 'S'}, '${endingEsc}']${setsPart(sets)}${seqPart}},`);
 			} else if (name.startsWith('MODIFIER LETTER ')) {
 				const end = name.substring('MODIFIER LETTER '.length);
 				const endingEsc = escapeTSString(end);
-				lines.push(`\t{cp: ${cpHex}, template: [ML, '${endingEsc}']${set ? `, set: '${set}'` : ''}${seqPart}},`);
+				lines.push(`\t{cp: ${cpHex}, template: [ML, '${endingEsc}']${setsPart(sets)}${seqPart}},`);
 			} else if (name.startsWith('COMBINING ')) {
 				const end = name.substring('COMBINING '.length);
 				const match = end.match(`^(${LATIN_DIACRITICS_PATTERN}|${GREEK_DIACRITICS_PATTERN})( ACCENT)?$`);
 				if (match) {
 					const diacriticName = match[1].replace(' ', '_');
-					lines.push(`\t{cp: ${cpHex}, template: [COMB, ${diacriticName}]${set ? `, set: '${set}'` : ''}${seqPart}},`);
+					lines.push(`\t{cp: ${cpHex}, template: [COMB, ${diacriticName}]${setsPart(sets)}${seqPart}},`);
 				} else {
 					const endingEsc = escapeTSString(end);
-					lines.push(`\t{cp: ${cpHex}, end: '${endingEsc}', template: [COMB]${set ? `, set: '${set}'` : ''}${seqPart}},`);
+					lines.push(`\t{cp: ${cpHex}, end: '${endingEsc}', template: [COMB]${setsPart(sets)}${seqPart}},`);
 				}
 			} else if (key === 'modifier') {
 				const match = name.match(`^(${LATIN_DIACRITICS_PATTERN}|${GREEK_DIACRITICS_PATTERN})( ACCENT)?$`);
 				if (match) {
 					const diacriticName = match[1].replace(' ', '_');
 					const accentString = match[2] ? '\'ACCENT\'' : '';
-					lines.push(`\t{cp: ${cpHex}, template: [DIA, ${diacriticName}${accentString ? `, ${accentString}` : ''}]${set ? `, set: '${set}'` : ''}${seqPart}},`);
+					lines.push(`\t{cp: ${cpHex}, template: [DIA, ${diacriticName}${accentString ? `, ${accentString}` : ''}]${setsPart(sets)}${seqPart}},`);
 				} else {
 					const nameEsc = escapeTSString(name);
-					lines.push(`\t{cp: ${cpHex}, name: '${nameEsc}'${set ? `, set: '${set}'` : ''}${seqPart}},`);
+					lines.push(`\t{cp: ${cpHex}, name: '${nameEsc}'${setsPart(sets)}${seqPart}},`);
 				}
 			} else {
 				const nameEsc = escapeTSString(name);
@@ -546,7 +553,8 @@ import {CL} from './constants';
 							caseIdent = caseLabel === 'CAPITAL' ? 'C' : 'S';
 						}
 						const end = nameEsc.slice(value.length + (caseLabel ? caseLabel.length + 1 : 0) + 1);
-						lines.push(`\t{cp: ${cpHex}, template: [${key}, ${caseIdent}, '${end}']${set ? `, set: '${set}'` : ''}${seqPart}},`);
+						sets.push(key.toLowerCase());
+						lines.push(`\t{cp: ${cpHex}, template: [${key}, ${caseIdent}, '${end}']${setsPart(sets)}${seqPart}},`);
 						handled = true;
 					}
 				});
@@ -554,11 +562,12 @@ import {CL} from './constants';
 					const scatteredSymbol = scatteredMathematicalAlphanumericSymbols.find((s) => s.cp === cp);
 					if (scatteredSymbol) {
 						const template = `[${scatteredSymbol.template[0]}, ${scatteredSymbol.template[1]}, '${scatteredSymbol.template[2]}']`;
-						lines.push(`\t{cp: ${cpHex}, name: '${nameEsc}', template: ${template}${set ? `, set: '${set}'` : ''}${seqPart}},`);
+						sets.push(scatteredSymbol.template[0].toLowerCase());
+						lines.push(`\t{cp: ${cpHex}, name: '${nameEsc}', template: ${template}${setsPart(sets)}${seqPart}},`);
 						handled = true;
 					}
 				}
-				if (!handled) lines.push(`\t{cp: ${cpHex}, name: '${nameEsc}'${set ? `, set: '${set}'` : ''}${seqPart}},`);
+				if (!handled) lines.push(`\t{cp: ${cpHex}, name: '${nameEsc}'${setsPart(sets)}${seqPart}},`);
 			}
 		}
 		lines.push('];\n');
@@ -606,12 +615,13 @@ function main() {
 			if (!info) continue;
 			const category = classify(blockName, info.cat, cp);
 			if (!category) continue;
-			(built[category] ||= []).push({cp, name: info.name});
+			built[category] ||= [];
+			built[category].push({cp, name: info.name});
 		}
 	}
 
-	const allCategories = Object.keys(built).sort();
-	const coreCategories = new Set([
+	const allCategories = Object.keys(built);
+	const coreCategories = [
 		'modifier',
 		'combining',
 		'latin',
@@ -624,10 +634,9 @@ function main() {
 		'currency',
 		'misc',
 		'format',
-	]);
+	];
 
-	const coreCategoryList = allCategories.filter((c) => coreCategories.has(c));
-	const extraCategories = allCategories.filter((c) => !coreCategories.has(c));
+	const extraCategories = allCategories.filter((c) => !coreCategories.includes(c));
 
 	const srcDir = path.join(projectRoot, 'src');
 	if (!fs.existsSync(srcDir)) {
@@ -635,7 +644,7 @@ function main() {
 	}
 
 	// Write core categories into src/names.ts
-	const mainContent = generateFileContent(coreCategoryList, built, sequences);
+	const mainContent = generateFileContent(coreCategories, built, sequences);
 	fs.writeFileSync(path.join(srcDir, 'names.ts'), mainContent, 'utf8');
 
 	// Write remaining categories into separate src/names-<category>.ts files

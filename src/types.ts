@@ -3,7 +3,7 @@ export type NameEntry = {
 	name?: string,
 	end?: string,
 	template?: string[],
-	set?: string,
+	set?: string[],
 	defaultSeq?: string,
 };
 

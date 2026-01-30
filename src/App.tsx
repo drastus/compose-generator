@@ -1,4 +1,4 @@
-import {Fragment, useState, useCallback, useMemo} from 'react';
+import {Fragment, useState, useCallback, useMemo, useEffect} from 'react';
 import {buildName} from './utils/buildName';
 import {COMB, DIA, MBF, MBS, MDS, MF, MSSBI, MSSB, MSSI, MSS, MBI, MB, MI, MM, MS} from './constants';
 import {characters} from './names';
@@ -59,12 +59,29 @@ const scriptPrefixes = {
 	[MM]: 'm',
 };
 
-const initialSetSelection = {
+type SetSelectionState = Record<string, Record<string, boolean | undefined>>;
+
+const initialSetSelection: SetSelectionState = {
 	latin: {base: true, ext: true, historic: false},
 	greek: {basic: true, base: false, historic: false},
+	cyrillic: {base: true},
+	math_alphanumeric_symbols: {
+		base: true,
+		mbs: false,
+		ms: false,
+		mbf: false,
+		mf: false,
+		mds: undefined,
+		mssbi: false,
+		mssb: false,
+		mssi: false,
+		mss: false,
+		mbi: false,
+		mb: false,
+		mi: false,
+		mm: false,
+	},
 };
-
-type SetSelectionState = typeof initialSetSelection;
 
 const keySymNames: Record<string, string> = {
 	' ': 'space',
@@ -170,27 +187,36 @@ function App() {
 	const defaultCharacters = Object.fromEntries(Object.entries(characters).map(([key, entries]) => [
 		key,
 		entries.filter((entry) => {
+			if (!entry.set || entry.set.length === 0) return false;
 			if (key === 'latin') {
 				const selection = initialSetSelection.latin;
-				return entry.set ? selection[entry.set as keyof typeof selection] ?? false : false;
+				return entry.set.some((s) => selection[s as keyof typeof selection] ?? false);
 			}
 			if (key === 'greek') {
 				const selection = initialSetSelection.greek;
-				return entry.set ? selection[entry.set as keyof typeof selection] ?? false : false;
+				return entry.set.some((s) => selection[s as keyof typeof selection] ?? false);
 			}
-			return entry.set === 'base';
+			return entry.set.includes('base');
 		}),
 	]));
 	const [selectedCharacters, setSelectedCharacters] = useState(defaultCharacters);
 	console.log('defaultCharacters', defaultCharacters);
 
-	const buildScriptSelection = <K extends keyof SetSelectionState & keyof typeof characters>(
-		script: K,
+	const buildSetSelection = <K extends keyof SetSelectionState & keyof typeof characters>(
+		group: K,
 		selection: SetSelectionState[K],
-	) => characters[script].filter((entry) => {
-		if (!entry.set) return false;
-		if (entry.set in selection) {
-			return selection[entry.set as keyof typeof selection];
+	) => characters[group].filter((entry) => {
+		if (!entry.set || entry.set.length === 0) return false;
+		let hasConfiguredSet = false;
+		for (const s of entry.set) {
+			const value = selection[s as keyof typeof selection];
+			if (value !== undefined) {
+				hasConfiguredSet = true;
+				if (value === true) return true;
+			}
+		}
+		if (hasConfiguredSet) {
+			return false;
 		}
 		return true;
 	});
@@ -295,9 +321,9 @@ function App() {
 			const currentlyChecked = keys.every((k) => prev[k]?.length > 0);
 			keys.forEach((k) => {
 				if (k === 'latin') {
-					next.latin = currentlyChecked ? [] : buildScriptSelection('latin', setSelection.latin);
+					next.latin = currentlyChecked ? [] : buildSetSelection('latin', setSelection.latin);
 				} else if (k === 'greek') {
-					next.greek = currentlyChecked ? [] : buildScriptSelection('greek', setSelection.greek);
+					next.greek = currentlyChecked ? [] : buildSetSelection('greek', setSelection.greek);
 				} else {
 					if (!defaultCharacters[k]) {
 						import(`./names-${k}.ts`).then((mod) => {
@@ -307,7 +333,7 @@ function App() {
 							}));
 							setSelectedCharacters((current) => ({
 								...current,
-								[k]: currentlyChecked ? [] : (mod.characters[k] ?? []).filter((entry: NameEntry) => entry.set === 'base'),
+								[k]: currentlyChecked ? [] : (mod.characters[k] ?? []).filter((entry: NameEntry) => entry.set?.includes('base')),
 							}));
 						});
 						return;
@@ -319,21 +345,54 @@ function App() {
 		});
 	};
 
-	const handleScriptSetToggle = <K extends keyof SetSelectionState & keyof typeof defaultCharacters>(
-		script: K,
+	const handleSetSelectionToggle = <K extends keyof SetSelectionState & keyof typeof defaultCharacters>(
+		group: K,
 		setKey: keyof SetSelectionState[K],
 	) => {
 		setSetSelection((prev) => {
-			const scriptSelection = prev[script];
-			const nextScriptSelection = {...scriptSelection, [setKey]: !scriptSelection[setKey]};
-			const next = {...prev, [script]: nextScriptSelection};
+			const setSelection = prev[group];
+			const current = setSelection[setKey];
+			const nextValue = current === false;
+			const nextSetSelection = {...setSelection, [setKey]: nextValue};
+			const next = {...prev, [group]: nextSetSelection};
 			setSelectedCharacters((prevChars) => ({
 				...prevChars,
-				[script]: prevChars[script]?.length === 0 ? [] : buildScriptSelection(script, nextScriptSelection as SetSelectionState[K]),
+				[group]: prevChars[group]?.length === 0 ? [] : buildSetSelection(group, nextSetSelection as SetSelectionState[K]),
 			}));
 			return next;
 		});
 	};
+
+	useEffect(() => {
+		setSetSelection((prev) => {
+			const next = {...prev};
+			(['latin', 'greek'] as const).forEach((script) => {
+				const scriptEntries = characters[script];
+				const selected = selectedCharacters[script] ?? [];
+				const selectedSet = new Set(selected.map((e) => e.cp));
+				const scriptSelection = prev[script];
+				const nextScriptSelection = {...scriptSelection};
+				(Object.keys(scriptSelection) as (keyof typeof scriptSelection)[]).forEach((setKey) => {
+					const allEntries = scriptEntries.filter((e) => (e.set ?? []).includes(setKey));
+					const total = allEntries.length;
+					if (total === 0) {
+						nextScriptSelection[setKey] = false;
+						return;
+					}
+					const selectedCount = allEntries.filter((e) => selectedSet.has(e.cp)).length;
+					if (selectedCount === 0) {
+						nextScriptSelection[setKey] = false;
+					} else if (selectedCount === total) {
+						nextScriptSelection[setKey] = true;
+					} else {
+						nextScriptSelection[setKey] = undefined;
+					}
+				});
+				next[script] = nextScriptSelection;
+			});
+			return next;
+		});
+	}, [selectedCharacters]);
 
 	const formatSequence = (sequence: CharWithSeq) => {
 		const getKeyName = (key: string) => keySymNames[key] || key;
@@ -392,7 +451,7 @@ function App() {
 				<h1>Compose Generator</h1>
 				<section>
 					<h2>Scripts</h2>
-					<div className='filters' style={{marginBottom: '1rem'}}>
+					<div className='filters'>
 						{scriptsGroups.map((g) => {
 							const id = `script-${g.label.toLowerCase().replace(/\s+/g, '-')}`;
 							return (
@@ -482,33 +541,36 @@ function App() {
 								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
 									<h3>Latin alphabet</h3>
 								</div>
-								<div className='filters' style={{marginBottom: '1rem'}}>
-									<Checkbox
-										id='latin-base'
-										isChecked={setSelection.latin.base}
-										label='Basic Latin'
-										description='Base Latin letters commonly used in modern European languages.'
-										onChange={() => handleScriptSetToggle('latin', 'base')}
-									/>
-									<Checkbox
-										id='latin-ext'
-										isChecked={setSelection.latin.ext}
-										label='Extended Latin'
-										description='Additional Latin letters for extended orthographies.'
-										onChange={() => handleScriptSetToggle('latin', 'ext')}
-									/>
-									<Checkbox
-										id='latin-historic'
-										isChecked={setSelection.latin.historic}
-										label='Historic Latin'
-										description='Historic or less commonly used Latin letters.'
-										onChange={() => handleScriptSetToggle('latin', 'historic')}
-									/>
-								</div>
 								<CharactersContainer
 									charactersNumber={selectedCharacters.latin.length}
 									onAddSequence={() => handleAddSequence(['latin'])}
 								>
+									<div className='filters'>
+										<Checkbox
+											id='latin-base'
+											isChecked={setSelection.latin.base === true}
+											isIndeterminate={setSelection.latin.base === undefined}
+											label='Basic Latin'
+											description='Base Latin letters commonly used in modern European languages.'
+											onChange={() => handleSetSelectionToggle('latin', 'base')}
+										/>
+										<Checkbox
+											id='latin-ext'
+											isChecked={setSelection.latin.ext === true}
+											isIndeterminate={setSelection.latin.ext === undefined}
+											label='Extended Latin'
+											description='Additional Latin letters for extended orthographies.'
+											onChange={() => handleSetSelectionToggle('latin', 'ext')}
+										/>
+										<Checkbox
+											id='latin-historic'
+											isChecked={setSelection.latin.historic === true}
+											isIndeterminate={setSelection.latin.historic === undefined}
+											label='Historic Latin'
+											description='Historic or less commonly used Latin letters.'
+											onChange={() => handleSetSelectionToggle('latin', 'historic')}
+										/>
+									</div>
 									<CharactersTable
 										entries={selectedCharactersWithSequences.latin}
 										{...commonTableAttributes}
@@ -523,33 +585,36 @@ function App() {
 								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
 									<h3>Greek alphabet</h3>
 								</div>
-								<div className='filters' style={{marginBottom: '1rem'}}>
-									<Checkbox
-										id='greek-basic'
-										isChecked={setSelection.greek.basic}
-										label='Basic Greek'
-										description='Basic Greek letters.'
-										onChange={() => handleScriptSetToggle('greek', 'basic')}
-									/>
-									<Checkbox
-										id='greek-base'
-										isChecked={setSelection.greek.base}
-										label='Modern Greek extensions'
-										description='Additional letters used in modern Greek orthography.'
-										onChange={() => handleScriptSetToggle('greek', 'base')}
-									/>
-									<Checkbox
-										id='greek-historic'
-										isChecked={setSelection.greek.historic}
-										label='Historic / polytonic Greek'
-										description='Polytonic and historic Greek letter forms.'
-										onChange={() => handleScriptSetToggle('greek', 'historic')}
-									/>
-								</div>
 								<CharactersContainer
 									charactersNumber={selectedCharacters.greek.length}
 									onAddSequence={() => handleAddSequence(['greek'])}
 								>
+									<div className='filters'>
+										<Checkbox
+											id='greek-basic'
+											isChecked={setSelection.greek.basic === true}
+											isIndeterminate={setSelection.greek.basic === undefined}
+											label='Basic Greek'
+											description='Basic Greek letters.'
+											onChange={() => handleSetSelectionToggle('greek', 'basic')}
+										/>
+										<Checkbox
+											id='greek-base'
+											isChecked={setSelection.greek.base === true}
+											isIndeterminate={setSelection.greek.base === undefined}
+											label='Modern Greek extensions'
+											description='Additional letters used in modern Greek orthography.'
+											onChange={() => handleSetSelectionToggle('greek', 'base')}
+										/>
+										<Checkbox
+											id='greek-historic'
+											isChecked={setSelection.greek.historic === true}
+											isIndeterminate={setSelection.greek.historic === undefined}
+											label='Historic / polytonic Greek'
+											description='Polytonic and historic Greek letter forms.'
+											onChange={() => handleSetSelectionToggle('greek', 'historic')}
+										/>
+									</div>
 									<CharactersTable
 										entries={selectedCharactersWithSequences.greek}
 										{...commonTableAttributes}
@@ -568,6 +633,16 @@ function App() {
 									charactersNumber={selectedCharacters.cyrillic.length}
 									onAddSequence={() => handleAddSequence(['cyrillic'])}
 								>
+									<div className='filters'>
+										<Checkbox
+											id='cyrillic-base'
+											isChecked={setSelection.cyrillic.base === true}
+											isIndeterminate={setSelection.cyrillic.base === undefined}
+											label='Basic Cyrillic'
+											description='Base Cyrillic letters.'
+											onChange={() => handleSetSelectionToggle('cyrillic', 'base')}
+										/>
+									</div>
 									<CharactersTable
 										entries={selectedCharactersWithSequences.cyrillic}
 										{...commonTableAttributes}
@@ -579,7 +654,7 @@ function App() {
 				</section>
 				<section>
 					<h2>Symbols</h2>
-					<div className='filters' style={{marginBottom: '1rem'}}>
+					<div className='filters'>
 						{symbolsGroups.map((g) => {
 							const id = `symbol-${g.label.toLowerCase().replace(/\s+/g, '-')}`;
 							return (
@@ -663,6 +738,161 @@ function App() {
 										charactersNumber={selectedCharacters.math_alphanumeric_symbols.length}
 										onAddSequence={() => handleAddSequence(['math_alphanumeric_symbols'])}
 									>
+										<div className='filters'>
+											<Checkbox
+												id='math-alphanumeric-symbols-base'
+												isChecked={setSelection.math_alphanumeric_symbols.base === true}
+												isIndeterminate={setSelection.math_alphanumeric_symbols.base === undefined}
+												label='Basic'
+												description='Base alphanumeric symbols.'
+												onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'base')}
+											/>
+											<table>
+												<tr>
+													<td/>
+													<td>
+														<Checkbox
+															id='math-alphanumeric-symbols-bold'
+															isChecked={setSelection.math_alphanumeric_symbols.mb === true}
+															isIndeterminate={setSelection.math_alphanumeric_symbols.mb === undefined}
+															label='Bold'
+															description='Bold alphanumeric symbols.'
+															onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'mb')}
+														/>
+													</td>
+													<td>
+														<Checkbox
+															id='math-alphanumeric-symbols-italic'
+															isChecked={setSelection.math_alphanumeric_symbols.mi === true}
+															isIndeterminate={setSelection.math_alphanumeric_symbols.mi === undefined}
+															label='Italic'
+															description='Italic alphanumeric symbols.'
+															onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'mi')}
+														/>
+													</td>
+													<td>
+														<Checkbox
+															id='math-alphanumeric-symbols-bold-italic'
+															isChecked={setSelection.math_alphanumeric_symbols.mbi === true}
+															isIndeterminate={setSelection.math_alphanumeric_symbols.mbi === undefined}
+															label='Bold italic'
+															description='Bold italic alphanumeric symbols.'
+															onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'mbi')}
+														/>
+													</td>
+												</tr>
+												<tr>
+													<td>
+														<Checkbox
+															id='math-alphanumeric-symbols-sans-serif'
+															isChecked={setSelection.math_alphanumeric_symbols.mss === true}
+															isIndeterminate={setSelection.math_alphanumeric_symbols.mss === undefined}
+															label='Sans-serif'
+															description='Sans-serif alphanumeric symbols.'
+															onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'mss')}
+														/>
+													</td>
+													<td>
+														<Checkbox
+															id='math-alphanumeric-symbols-sans-serif-bold'
+															isChecked={setSelection.math_alphanumeric_symbols.mssb === true}
+															isIndeterminate={setSelection.math_alphanumeric_symbols.mssb === undefined}
+															label='Sans-serif bold'
+															description='Sans-serif bold alphanumeric symbols.'
+															onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'mssb')}
+														/>
+													</td>
+													<td>
+														<Checkbox
+															id='math-alphanumeric-symbols-sans-serif-italic'
+															isChecked={setSelection.math_alphanumeric_symbols.mssi === true}
+															isIndeterminate={setSelection.math_alphanumeric_symbols.mssi === undefined}
+															label='Sans-serif italic'
+															description='Sans-serif italic alphanumeric symbols.'
+															onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'mssi')}
+														/>
+													</td>
+													<td>
+														<Checkbox
+															id='math-alphanumeric-symbols-sans-serif-bold-italic'
+															isChecked={setSelection.math_alphanumeric_symbols.mssbi === true}
+															isIndeterminate={setSelection.math_alphanumeric_symbols.mssbi === undefined}
+															label='Sans-serif bold italic'
+															description='Sans-serif bold italic alphanumeric symbols.'
+															onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'mssbi')}
+														/>
+													</td>
+												</tr>
+												<tr>
+													<td>
+														<Checkbox
+															id='math-alphanumeric-symbols-script'
+															isChecked={setSelection.math_alphanumeric_symbols.ms === true}
+															isIndeterminate={setSelection.math_alphanumeric_symbols.ms === undefined}
+															label='Script'
+															description='Script alphanumeric symbols.'
+															onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'ms')}
+														/>
+													</td>
+													<td>
+														<Checkbox
+															id='math-alphanumeric-symbols-script-bold'
+															isChecked={setSelection.math_alphanumeric_symbols.mbs === true}
+															isIndeterminate={setSelection.math_alphanumeric_symbols.mbs === undefined}
+															label='Script bold'
+															description='Script bold alphanumeric symbols.'
+															onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'mbs')}
+														/>
+													</td>
+												</tr>
+												<tr>
+													<td>
+														<Checkbox
+															id='math-alphanumeric-symbols-fraktur'
+															isChecked={setSelection.math_alphanumeric_symbols.mf === true}
+															isIndeterminate={setSelection.math_alphanumeric_symbols.mf === undefined}
+															label='Fraktur'
+															description='Fraktur alphanumeric symbols.'
+															onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'mf')}
+														/>
+													</td>
+													<td>
+														<Checkbox
+															id='math-alphanumeric-symbols-fraktur-bold'
+															isChecked={setSelection.math_alphanumeric_symbols.mbf === true}
+															isIndeterminate={setSelection.math_alphanumeric_symbols.mbf === undefined}
+															label='Fraktur bold'
+															description='Fraktur bold alphanumeric symbols.'
+															onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'mbf')}
+														/>
+													</td>
+												</tr>
+												<tr>
+													<td>
+														<Checkbox
+															id='math-alphanumeric-symbols-monospace'
+															isChecked={setSelection.math_alphanumeric_symbols.mm === true}
+															isIndeterminate={setSelection.math_alphanumeric_symbols.mm === undefined}
+															label='Monospace'
+															description='Monospace alphanumeric symbols.'
+															onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'mm')}
+														/>
+													</td>
+												</tr>
+												<tr>
+													<td>
+														<Checkbox
+															id='math-alphanumeric-symbols-double-struck'
+															isChecked={setSelection.math_alphanumeric_symbols.mds === true}
+															isIndeterminate={setSelection.math_alphanumeric_symbols.mds === undefined}
+															label='Double-struck'
+															description='Double-struck alphanumeric symbols.'
+															onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'mds')}
+														/>
+													</td>
+												</tr>
+											</table>
+										</div>
 										<CharactersTable
 											entries={selectedCharactersWithSequences.math_alphanumeric_symbols}
 											{...commonTableAttributes}
