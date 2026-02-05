@@ -196,7 +196,7 @@ const scatteredMathematicalAlphanumericSymbols = [
 
 function classify(blockName: string, generalCat: string, cp: number): string | undefined {
 	// Mathematical alphanumeric symbols
-	if (blockName === 'Mathematical Alphanumeric Symbols' || scatteredMathematicalAlphanumericSymbols.find((s) => s.cp === cp)) {
+	if (blockName === 'Mathematical Alphanumeric Symbols' || scatteredMathematicalAlphanumericSymbols.some((s) => s.cp === cp)) {
 		return 'math_alphanumeric_symbols';
 	}
 	// Letters
@@ -224,6 +224,53 @@ function classify(blockName: string, generalCat: string, cp: number): string | u
 	// Format
 	if (generalCat === 'Cf') return 'format';
 	return undefined;
+}
+
+const orderingOverrides: Record<string, {cp: number; after: number}[]> = {
+	math_alphanumeric_symbols: [
+		{cp: 0x2102, after: 0x1D539},
+		{cp: 0x210A, after: 0x1D4BB},
+		{cp: 0x210B, after: 0x1D4A2},
+		{cp: 0x210C, after: 0x1D50A},
+		{cp: 0x210D, after: 0x1D53E},
+		{cp: 0x210E, after: 0x1D454},
+		{cp: 0x2110, after: 0x210B},
+		{cp: 0x2111, after: 0x210C},
+		{cp: 0x2112, after: 0x1D4A6},
+		{cp: 0x2115, after: 0x1D544},
+		{cp: 0x2119, after: 0x1D546},
+		{cp: 0x211A, after: 0x2119},
+		{cp: 0x211B, after: 0x1D4AC},
+		{cp: 0x211D, after: 0x211A},
+		{cp: 0x2124, after: 0x1D550},
+		{cp: 0x2128, after: 0x1D51C},
+		{cp: 0x212C, after: 0x1D49C},
+		{cp: 0x212D, after: 0x1D505},
+		{cp: 0x212F, after: 0x1D4B9},
+		{cp: 0x2130, after: 0x1D49F},
+		{cp: 0x2131, after: 0x2130},
+		{cp: 0x2133, after: 0x2112},
+		{cp: 0x2134, after: 0x1D4C3},
+	],
+};
+
+function applyOrderingOverrides(built: Record<string, {cp: number; name: string}[]>): void {
+	for (const [category, overrides] of Object.entries(orderingOverrides)) {
+		const entries = built[category];
+		if (!entries) continue;
+		for (const {cp, after} of overrides) {
+			const fromIndex = entries.findIndex((e) => e.cp === cp);
+			if (fromIndex === -1) continue;
+			const [entry] = entries.splice(fromIndex, 1);
+			const afterIndex = entries.findIndex((e) => e.cp === after);
+			if (afterIndex === -1) {
+				// If the reference codepoint is not present, reinsert at original position to avoid data loss
+				entries.splice(fromIndex, 0, entry);
+				continue;
+			}
+			entries.splice(afterIndex + 1, 0, entry);
+		}
+	}
 }
 
 const sets = {
@@ -619,6 +666,8 @@ function main() {
 			built[category].push({cp, name: info.name});
 		}
 	}
+
+	applyOrderingOverrides(built);
 
 	const allCategories = Object.keys(built);
 	const coreCategories = [
