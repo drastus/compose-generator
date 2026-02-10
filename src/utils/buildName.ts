@@ -1,4 +1,4 @@
-import {_, C, S} from '../constants';
+import {_, C, S, DIGIT_NAMES} from '../constants';
 import {NameEntry} from '../types';
 
 const caseLabels = new Set([_, C, S]);
@@ -16,6 +16,10 @@ export function buildName(entry: NameEntry): string {
 		template.forEach((part, i) => {
 			if (i === 2 && part !== 'ACCENT') nameParts.push('WITH');
 			else if (i > 2) nameParts.push('AND');
+			if (part.match(/^\d$/)) {
+				nameParts.push(`DIGIT ${DIGIT_NAMES[part as keyof typeof DIGIT_NAMES]}`);
+				return;
+			}
 			nameParts.push(part);
 		});
 	}

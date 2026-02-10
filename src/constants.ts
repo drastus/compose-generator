@@ -54,3 +54,16 @@ export const MBI = 'MATHEMATICAL BOLD ITALIC';
 export const MB = 'MATHEMATICAL BOLD';
 export const MI = 'MATHEMATICAL ITALIC';
 export const MM = 'MATHEMATICAL MONOSPACE';
+
+export const DIGIT_NAMES: Record<string, string> = {
+	0: 'ZERO',
+	1: 'ONE',
+	2: 'TWO',
+	3: 'THREE',
+	4: 'FOUR',
+	5: 'FIVE',
+	6: 'SIX',
+	7: 'SEVEN',
+	8: 'EIGHT',
+	9: 'NINE',
+};

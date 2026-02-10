@@ -7,6 +7,9 @@ import path from 'node:path';
 import process from 'node:process';
 import {fileURLToPath} from 'node:url';
 import {parse} from 'csv-parse/sync';
+import {DIGIT_NAMES} from '../src/constants';
+
+const DIGIT_NAMES_VALUES = Object.fromEntries(Object.entries(DIGIT_NAMES).map(([k, v]) => [v, k]));
 
 // Diacritic patterns for name generation
 const LATIN_DIACRITICS = [
@@ -430,7 +433,7 @@ const sets = {
 		],
 	},
 	math_alphanumeric_symbols: {
-		base: [
+		mds_base: [
 			[0x2102],
 			[0x210D],
 			[0x2115],
@@ -599,7 +602,11 @@ import {CL} from './constants';
 						if (caseLabel) {
 							caseIdent = caseLabel === 'CAPITAL' ? 'C' : 'S';
 						}
-						const end = nameEsc.slice(value.length + (caseLabel ? caseLabel.length + 1 : 0) + 1);
+						let end = nameEsc.slice(value.length + (caseLabel ? caseLabel.length + 1 : 0) + 1);
+						const digitMatch = end.match(`DIGIT (${Object.keys(DIGIT_NAMES_VALUES).join('|')})`);
+						if (digitMatch) {
+							end = DIGIT_NAMES_VALUES[digitMatch[1] as keyof typeof DIGIT_NAMES_VALUES];
+						}
 						sets.push(key.toLowerCase());
 						lines.push(`\t{cp: ${cpHex}, template: [${key}, ${caseIdent}, '${end}']${setsPart(sets)}${seqPart}},`);
 						handled = true;

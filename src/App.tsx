@@ -1,4 +1,4 @@
-import {Fragment, useState, useCallback, useMemo, useEffect} from 'react';
+import {Fragment, useState, useCallback, useMemo} from 'react';
 import {buildName} from './utils/buildName';
 import {COMB, DIA, MBF, MBS, MDS, MF, MSSBI, MSSB, MSSI, MSS, MBI, MB, MI, MM, MS} from './constants';
 import {characters} from './names';
@@ -66,12 +66,12 @@ const initialSetSelection: SetSelectionState = {
 	greek: {basic: true, base: false, historic: false},
 	cyrillic: {base: true},
 	math_alphanumeric_symbols: {
-		base: true,
 		mbs: false,
 		ms: false,
 		mbf: false,
 		mf: false,
 		mds: undefined,
+		mds_base: true,
 		mssbi: false,
 		mssb: false,
 		mssi: false,
@@ -174,6 +174,41 @@ function applySequencesToCharacters(
 	return result;
 }
 
+function computeSetSelection(
+	selectedCharactersParam: Record<string, NameEntry[]>,
+): SetSelectionState {
+	const next: SetSelectionState = {};
+
+	Object.keys(initialSetSelection).forEach((group) => {
+		const entries = characters[group] ?? [];
+		const selected = selectedCharactersParam[group] ?? [];
+		const selectedSet = new Set(selected.map((e) => e.cp));
+		const selection = initialSetSelection[group as keyof SetSelectionState];
+		const nextSelection: Record<string, boolean | undefined> = {...selection};
+
+		Object.keys(selection).forEach((setKey) => {
+			const allEntries = entries.filter((e) => (e.set ?? []).includes(setKey));
+			const total = allEntries.length;
+			if (total === 0) {
+				nextSelection[setKey] = false;
+				return;
+			}
+			const selectedCount = allEntries.filter((e) => selectedSet.has(e.cp)).length;
+			if (selectedCount === 0) {
+				nextSelection[setKey] = false;
+			} else if (selectedCount === total) {
+				nextSelection[setKey] = true;
+			} else {
+				nextSelection[setKey] = undefined;
+			}
+		});
+
+		next[group] = nextSelection;
+	});
+
+	return next;
+}
+
 function App() {
 	const [showModal, setShowModal] = useState(false);
 	const [modalContent, setModalContent] = useState('');
@@ -181,44 +216,50 @@ function App() {
 	const [modalGroups, setModalGroups] = useState<string[]>([]);
 	const [availableCharacters, setAvailableCharacters] = useState<Record<string, NameEntry[]>>(characters);
 	const [diacriticMarks, setDiacriticMarks] = useState<DiacriticMark[]>(defaultDiacriticMarks);
-	const [setSelection, setSetSelection] = useState<SetSelectionState>(initialSetSelection);
 	const [customSequences, setCustomSequences] = useState<{key: string; seq: string}[]>([]);
-
-	const defaultCharacters = Object.fromEntries(Object.entries(characters).map(([key, entries]) => [
+	const defaultCharacters: Record<string, NameEntry[]> = Object.fromEntries(Object.entries(characters).map(([key, entries]) => [
 		key,
 		entries.filter((entry) => {
 			if (!entry.set || entry.set.length === 0) return false;
 			if (key === 'latin') {
 				const selection = initialSetSelection.latin;
-				return entry.set.some((s) => selection[s as keyof typeof selection] ?? false);
+				return entry.set.some((s) => selection[s] ?? false);
 			}
 			if (key === 'greek') {
 				const selection = initialSetSelection.greek;
-				return entry.set.some((s) => selection[s as keyof typeof selection] ?? false);
+				return entry.set.some((s) => selection[s] ?? false);
+			}
+			if (key === 'math_alphanumeric_symbols') {
+				return entry.set.includes('mds_base');
 			}
 			return entry.set.includes('base');
 		}),
 	]));
 	const [selectedCharacters, setSelectedCharacters] = useState(defaultCharacters);
-	console.log('defaultCharacters', defaultCharacters);
+
+	const setSelection = useMemo(() => computeSetSelection(selectedCharacters), [selectedCharacters]);
 
 	const buildSetSelection = <K extends keyof SetSelectionState & keyof typeof characters>(
-		group: K,
+		category: K,
 		selection: SetSelectionState[K],
-	) => characters[group].filter((entry) => {
-		if (!entry.set || entry.set.length === 0) return false;
-		let hasConfiguredSet = false;
+	) => characters[category].filter((entry) => {
+		if (!entry.set || entry.set.length === 0) {
+			return selectedCharacters[category].find((c) => c.cp === entry.cp) !== undefined;
+		}
+		let indeterminate = false;
 		for (const s of entry.set) {
-			const value = selection[s as keyof typeof selection];
-			if (value !== undefined) {
-				hasConfiguredSet = true;
-				if (value === true) return true;
+			const value = selection[s];
+			if (value) {
+				return true;
+			}
+			if (value === undefined) {
+				indeterminate = true;
 			}
 		}
-		if (hasConfiguredSet) {
-			return false;
+		if (indeterminate) {
+			return selectedCharacters[category].find((c) => c.cp === entry.cp) !== undefined;
 		}
-		return true;
+		return false;
 	});
 
 	const scriptsGroups: {label: string; keys: string[]; description: string}[] = [
@@ -349,50 +390,67 @@ function App() {
 		group: K,
 		setKey: keyof SetSelectionState[K],
 	) => {
-		setSetSelection((prev) => {
-			const setSelection = prev[group];
-			const current = setSelection[setKey];
-			const nextValue = current === false;
-			const nextSetSelection = {...setSelection, [setKey]: nextValue};
-			const next = {...prev, [group]: nextSetSelection};
-			setSelectedCharacters((prevChars) => ({
+		const groupSelection = setSelection[group];
+		const current = groupSelection[setKey];
+		const isTurningOn = current === false;
+		const setKeyStr = String(setKey);
+		const [maybeParentKey] = setKeyStr.split('_');
+		const isChildSet = setKeyStr.includes('_') && maybeParentKey in groupSelection;
+		const isParentSet = Object.keys(groupSelection).some((key) => key.startsWith(`${setKeyStr}_`));
+
+		setSelectedCharacters((prevChars) => {
+			const prevGroupEntries = prevChars[group] ?? [];
+
+			if (isTurningOn) {
+				const allEntriesForSet = (characters[group] ?? []).filter((entry) => (entry.set ?? []).includes(setKey as string));
+				const existingSet = new Set(prevGroupEntries.map((e) => e.cp));
+				const toAdd = allEntriesForSet.filter((entry) => !existingSet.has(entry.cp));
+				return {
+					...prevChars,
+					[group]: [...prevGroupEntries, ...toAdd],
+				};
+			}
+
+			// Turning a set off:
+			// - For child sets (e.g. "mds_base" when "mds" exists), remove all characters
+			//   that belong to this child set, regardless of other sets.
+			// - For parent sets (e.g. "mds"), remove all characters that belong to the
+			//   parent set, regardless of child sets, so children become indeterminate.
+			// - For independent sets, remove only characters in this set that are not
+			//   also covered by any other still-active set.
+			let nextGroupEntries: NameEntry[];
+			if (isChildSet || isParentSet) {
+				// Strict removal for parent/child relationships.
+				nextGroupEntries = prevGroupEntries.filter((entry) => {
+					if (!entry.set || entry.set.length === 0) {
+						return true;
+					}
+					return !entry.set.includes(setKeyStr);
+				});
+			} else {
+				// Independent set: only remove if this is the *only* active set for the entry.
+				const stillActiveSetKeys = Object.keys(groupSelection).filter((key) => {
+					if (key === setKeyStr) return false;
+					return groupSelection[key as keyof typeof groupSelection] !== false;
+				});
+				nextGroupEntries = prevGroupEntries.filter((entry) => {
+					if (!entry.set || entry.set.length === 0) {
+						return true;
+					}
+					if (!entry.set.includes(setKeyStr)) {
+						return true;
+					}
+					// Keep the entry if it also belongs to any other still-active set.
+					return entry.set.some((s) => stillActiveSetKeys.includes(s));
+				});
+			}
+
+			return {
 				...prevChars,
-				[group]: prevChars[group]?.length === 0 ? [] : buildSetSelection(group, nextSetSelection as SetSelectionState[K]),
-			}));
-			return next;
+				[group]: nextGroupEntries,
+			};
 		});
 	};
-
-	useEffect(() => {
-		setSetSelection((prev) => {
-			const next = {...prev};
-			(['latin', 'greek'] as const).forEach((script) => {
-				const scriptEntries = characters[script];
-				const selected = selectedCharacters[script] ?? [];
-				const selectedSet = new Set(selected.map((e) => e.cp));
-				const scriptSelection = prev[script];
-				const nextScriptSelection = {...scriptSelection};
-				(Object.keys(scriptSelection) as (keyof typeof scriptSelection)[]).forEach((setKey) => {
-					const allEntries = scriptEntries.filter((e) => (e.set ?? []).includes(setKey));
-					const total = allEntries.length;
-					if (total === 0) {
-						nextScriptSelection[setKey] = false;
-						return;
-					}
-					const selectedCount = allEntries.filter((e) => selectedSet.has(e.cp)).length;
-					if (selectedCount === 0) {
-						nextScriptSelection[setKey] = false;
-					} else if (selectedCount === total) {
-						nextScriptSelection[setKey] = true;
-					} else {
-						nextScriptSelection[setKey] = undefined;
-					}
-				});
-				next[script] = nextScriptSelection;
-			});
-			return next;
-		});
-	}, [selectedCharacters]);
 
 	const formatSequence = (sequence: CharWithSeq) => {
 		const getKeyName = (key: string) => keySymNames[key] || key;
@@ -623,34 +681,32 @@ function App() {
 							</Fragment>
 						)}
 					</section>
-					<section>
-						{selectedCharacters.cyrillic?.length > 0 && (
-							<Fragment>
-								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
-									<h3>Cyrillic alphabet</h3>
-								</div>
-								<CharactersContainer
-									charactersNumber={selectedCharacters.cyrillic.length}
-									onAddSequence={() => handleAddSequence(['cyrillic'])}
-								>
-									<div className='filters'>
-										<Checkbox
-											id='cyrillic-base'
-											isChecked={setSelection.cyrillic.base === true}
-											isIndeterminate={setSelection.cyrillic.base === undefined}
-											label='Basic Cyrillic'
-											description='Base Cyrillic letters.'
-											onChange={() => handleSetSelectionToggle('cyrillic', 'base')}
-										/>
-									</div>
-									<CharactersTable
-										entries={selectedCharactersWithSequences.cyrillic}
-										{...commonTableAttributes}
+					{selectedCharacters.cyrillic?.length > 0 && (
+						<section>
+							<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
+								<h3>Cyrillic alphabet</h3>
+							</div>
+							<CharactersContainer
+								charactersNumber={selectedCharacters.cyrillic.length}
+								onAddSequence={() => handleAddSequence(['cyrillic'])}
+							>
+								<div className='filters'>
+									<Checkbox
+										id='cyrillic-base'
+										isChecked={setSelection.cyrillic.base === true}
+										isIndeterminate={setSelection.cyrillic.base === undefined}
+										label='Basic Cyrillic'
+										description='Base Cyrillic letters.'
+										onChange={() => handleSetSelectionToggle('cyrillic', 'base')}
 									/>
-								</CharactersContainer>
-							</Fragment>
-						)}
-					</section>
+								</div>
+								<CharactersTable
+									entries={selectedCharactersWithSequences.cyrillic}
+									{...commonTableAttributes}
+								/>
+							</CharactersContainer>
+						</section>
+					)}
 				</section>
 				<section>
 					<h2>Symbols</h2>
@@ -739,14 +795,6 @@ function App() {
 										onAddSequence={() => handleAddSequence(['math_alphanumeric_symbols'])}
 									>
 										<div className='filters'>
-											<Checkbox
-												id='math-alphanumeric-symbols-base'
-												isChecked={setSelection.math_alphanumeric_symbols.base === true}
-												isIndeterminate={setSelection.math_alphanumeric_symbols.base === undefined}
-												label='Basic'
-												description='Base alphanumeric symbols.'
-												onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'base')}
-											/>
 											<table>
 												<tr>
 													<td/>
@@ -888,6 +936,14 @@ function App() {
 															label='Double-struck'
 															description='Double-struck alphanumeric symbols.'
 															onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'mds')}
+														/>
+														<Checkbox
+															id='math-alphanumeric-symbols-double-struck-base'
+															isChecked={setSelection.math_alphanumeric_symbols.mds_base === true}
+															isIndeterminate={setSelection.math_alphanumeric_symbols.mds_base === undefined}
+															label='Base double-struck'
+															description='Number sets symbols.'
+															onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'mds_base')}
 														/>
 													</td>
 												</tr>
