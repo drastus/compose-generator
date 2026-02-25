@@ -76,7 +76,7 @@ function loadUnicodeData(unicodePath: string): Map<number, {name: string; cat: s
 	return map;
 }
 
-function loadSequences(sequencesPath: string): Map<number, string> {
+function loadSequences(sequencesPath: string): Map<number, {defaultSeq: string; altSeq?: string}> {
 	const content = fs.readFileSync(sequencesPath, 'utf8');
 	const records = parse(content, {
 		delimiter: '\t',
@@ -85,12 +85,17 @@ function loadSequences(sequencesPath: string): Map<number, string> {
 		quote: false,
 	});
 
-	const sequences = new Map<number, string>();
+	const sequences = new Map<number, {defaultSeq: string; altSeq?: string}>();
 	for (const [cpHex, , seq] of records) {
 		if (!cpHex) continue;
 		const cp = parseInt(cpHex.substring(2), 16);
 		if (seq) {
-			sequences.set(cp, seq);
+			const existing = sequences.get(cp);
+			if (existing) {
+				existing.altSeq ||= seq;
+			} else {
+				sequences.set(cp, {defaultSeq: seq});
+			}
 		}
 	}
 	return sequences;
@@ -483,7 +488,7 @@ function getSetsForCodePoint(cp: number, category: string): string[] {
 function generateFileContent(
 	categories: string[],
 	built: Record<string, {cp: number; name: string}[]>,
-	sequences: Map<number, string>,
+	sequences: Map<number, {defaultSeq: string; altSeq?: string}>,
 ): string {
 	const lines: string[] = [];
 
@@ -553,8 +558,14 @@ import {CL} from './constants';
 		for (const {cp, name} of entries) {
 			const cpHex = '0x' + cp.toString(16).toUpperCase().padStart(4, '0');
 			const sets = getSetsForCodePoint(cp, key);
-			const seq = sequences.get(cp);
-			const seqPart = seq ? `, defaultSeq: '${escapeTSString(seq)}'` : '';
+			const seqInfo = sequences.get(cp);
+			let seqPart = '';
+			if (seqInfo) {
+				seqPart = `, defaultSeq: '${escapeTSString(seqInfo.defaultSeq)}'`;
+				if (seqInfo.altSeq) {
+					seqPart += `, altSeq: '${escapeTSString(seqInfo.altSeq)}'`;
+				}
+			}
 			let handled = false;
 
 			handled ||= addLetterEntry(lines, cpHex, sets, seqPart, name, 'LATIN', LATIN_DIACRITICS_PATTERN);

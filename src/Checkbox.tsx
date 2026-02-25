@@ -12,7 +12,7 @@ function Checkbox({
 	readonly isChecked: boolean,
 	readonly isIndeterminate?: boolean,
 	readonly label: string,
-	readonly description: string,
+	readonly description?: string,
 	readonly onChange: () => void,
 }) {
 	const inputRef = useRef<HTMLInputElement | null>(null);
@@ -35,7 +35,7 @@ function Checkbox({
 			<label htmlFor={id} style={{paddingLeft: '0.5rem', cursor: 'pointer'}}>
 				{label}
 			</label>
-			<div className='description'>{description}</div>
+			{description && <div className='description'>{description}</div>}
 		</div>
 	);
 }

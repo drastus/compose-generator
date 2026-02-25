@@ -1,4 +1,4 @@
-import {Fragment, useState, useCallback, useMemo} from 'react';
+import {Fragment, useState, useCallback, useMemo, useRef, useEffect} from 'react';
 import {buildName} from './utils/buildName';
 import {COMB, DIA, MBF, MBS, MDS, MF, MSSBI, MSSB, MSSI, MSS, MBI, MB, MI, MM, MS} from './constants';
 import {characters} from './names';
@@ -59,6 +59,21 @@ const scriptPrefixes = {
 	[MM]: 'm',
 };
 
+const latinPrefixLetters = 'abcdefghijklmnopqrstuvwxyz'.split('');
+
+const casedPrefixOptions = latinPrefixLetters.map((letter) => {
+	const upper = letter.toUpperCase();
+	return {value: letter, label: `${letter} / ${upper}`};
+});
+
+const uncasedPrefixOptions = latinPrefixLetters.flatMap((letter) => {
+	const upper = letter.toUpperCase();
+	return [
+		{value: letter, label: letter},
+		{value: upper, label: upper},
+	];
+});
+
 type SetSelectionState = Record<string, Record<string, boolean | undefined>>;
 
 const initialSetSelection: SetSelectionState = {
@@ -82,6 +97,9 @@ const initialSetSelection: SetSelectionState = {
 		mm: false,
 	},
 };
+
+const greekCodePoints = new Set((characters.greek ?? []).map((entry) => entry.cp));
+const cyrillicCodePoints = new Set((characters.cyrillic ?? []).map((entry) => entry.cp));
 
 const keySymNames: Record<string, string> = {
 	' ': 'space',
@@ -119,60 +137,10 @@ const keySymNames: Record<string, string> = {
 	'~': 'asciitilde',
 };
 
-function applySequencesToCharacters(
-	selectedCharactersParam: Record<string, NameEntry[]>,
-	customSequencesParam: {key: string; seq: string}[],
-	diacriticMarksParam: DiacriticMark[],
-): Record<string, CharWithSeq[]> {
-	const customMap = new Map(customSequencesParam.map((cs) => [cs.key, cs.seq]));
-	const result: Record<string, CharWithSeq[]> = {};
-
-	for (const [groupKey, entries] of Object.entries(selectedCharactersParam)) {
-		const updatedEntries = entries.map((entry) => {
-			let seq: string | undefined;
-			const customSeq = customMap.get(String(entry.cp));
-			if (customSeq) {
-				seq = customSeq;
-			} else if (entry.defaultSeq) {
-				seq = entry.defaultSeq;
-			} else if (
-				entry.template && ((
-					entry.template.length >= 3
-					&& entry.template[0].endsWith('LETTER')
-					&& entry.template[2].length === 1
-				) || (
-					Object.keys(scriptPrefixes).includes(entry.template[0])
-				))
-			) {
-				const diacriticNames = entry.template.slice([DIA, COMB].includes(entry.template[0]) ? 1 : 3)
-					.filter((name: string) => name !== 'ACCENT')
-					.map((part: string) => part.toLowerCase().replace('_', ' '));
-				const diacriticMarksForChar = diacriticNames
-					.map((name: string) => diacriticMarksParam.find((mark) => mark.name === name));
-				if (!diacriticMarksForChar.some((mark) => !mark)) { // all diacritics found
-					const diacriticKeys = diacriticMarksForChar.map((mark: DiacriticMark | undefined) => mark!.key).join('');
-					let prefix = '';
-					if (Object.keys(scriptPrefixes).includes(entry.template[0])) {
-						prefix = scriptPrefixes[entry.template[0] as keyof typeof scriptPrefixes];
-					}
-					let baseLetter = [DIA, COMB].includes(entry.template[0]) ? '' : entry.template[2];
-					if (entry.template[1] === 'SMALL') {
-						baseLetter = baseLetter.toLowerCase();
-					}
-					seq = prefix + diacriticKeys + baseLetter;
-				}
-			}
-			return {
-				cp: entry.cp,
-				name: buildName(entry),
-				seq,
-			};
-		});
-		result[groupKey] = updatedEntries;
-	}
-
-	return result;
-}
+const defaultPrefixes = {
+	greek: {char: 'g', cased: true},
+	cyrillic: {char: 'c', cased: true},
+};
 
 function computeSetSelection(
 	selectedCharactersParam: Record<string, NameEntry[]>,
@@ -217,6 +185,8 @@ function App() {
 	const [availableCharacters, setAvailableCharacters] = useState<Record<string, NameEntry[]>>(characters);
 	const [diacriticMarks, setDiacriticMarks] = useState<DiacriticMark[]>(defaultDiacriticMarks);
 	const [customSequences, setCustomSequences] = useState<{key: string; seq: string}[]>([]);
+	const [prefixes, setPrefixes] = useState(defaultPrefixes);
+	const prevPrefixesRef = useRef(prefixes);
 	const defaultCharacters: Record<string, NameEntry[]> = Object.fromEntries(Object.entries(characters).map(([key, entries]) => [
 		key,
 		entries.filter((entry) => {
@@ -350,10 +320,152 @@ function App() {
 		setModalGroups([]);
 	}, [availableCharacters, customSequences, modalGroups]);
 
+	const applySequencesToCharacters = useCallback((
+		selectedCharactersParam: Record<string, NameEntry[]>,
+		customSequencesParam: {key: string; seq: string}[],
+		diacriticMarksParam: DiacriticMark[],
+	): Record<string, CharWithSeq[]> => {
+		const customMap = new Map(customSequencesParam.map((cs) => [cs.key, cs.seq]));
+		const result: Record<string, CharWithSeq[]> = {};
+
+		for (const [groupKey, entries] of Object.entries(selectedCharactersParam)) {
+			const updatedEntries = entries.map((entry) => {
+				let seq: string | undefined;
+				const customSeq = customMap.get(String(entry.cp));
+				if (customSeq) {
+					seq = customSeq;
+				} else if (entry.defaultSeq || entry.altSeq) {
+					let baseSeq = entry.defaultSeq;
+					if (['greek', 'cyrillic'].includes(groupKey)) {
+						baseSeq = prefixes[groupKey as keyof typeof prefixes].cased ? entry.defaultSeq : (entry.altSeq ?? entry.defaultSeq);
+					}
+					let newSeq = baseSeq ?? '';
+					if (['greek', 'cyrillic'].includes(groupKey) && newSeq.length > 0 && newSeq[0].toLowerCase() === defaultPrefixes[groupKey as keyof typeof defaultPrefixes].char) {
+						if (newSeq.startsWith(defaultPrefixes[groupKey as keyof typeof defaultPrefixes].char)) {
+							newSeq = prefixes[groupKey as keyof typeof prefixes].char + newSeq.slice(1);
+						} else {
+							newSeq = prefixes[groupKey as keyof typeof prefixes].cased
+								? prefixes[groupKey as keyof typeof prefixes].char.toUpperCase() + newSeq.slice(1)
+								: prefixes[groupKey as keyof typeof prefixes].char + '\\' + newSeq.slice(1);
+						}
+					}
+					seq = newSeq;
+				} else if (
+					entry.template && ((
+						entry.template.length >= 3
+						&& entry.template[0].endsWith('LETTER')
+						&& entry.template[2].length === 1
+					) || (
+						Object.keys(scriptPrefixes).includes(entry.template[0])
+					))
+				) {
+					const diacriticNames = entry.template.slice([DIA, COMB].includes(entry.template[0]) ? 1 : 3)
+						.filter((name: string) => name !== 'ACCENT')
+						.map((part: string) => part.toLowerCase().replace('_', ' '));
+					const diacriticMarksForChar = diacriticNames
+						.map((name: string) => diacriticMarksParam.find((mark) => mark.name === name));
+					if (!diacriticMarksForChar.some((mark) => !mark)) { // all diacritics found
+						const diacriticKeys = diacriticMarksForChar.map((mark: DiacriticMark | undefined) => mark!.key).join('');
+						let prefix = '';
+						if (Object.keys(scriptPrefixes).includes(entry.template[0])) {
+							prefix = scriptPrefixes[entry.template[0] as keyof typeof scriptPrefixes];
+						}
+						let baseLetter = [DIA, COMB].includes(entry.template[0]) ? '' : entry.template[2];
+						if (entry.template[1] === 'SMALL') {
+							baseLetter = baseLetter.toLowerCase();
+						}
+						seq = prefix + diacriticKeys + baseLetter;
+					}
+				}
+				return {
+					cp: entry.cp,
+					name: buildName(entry),
+					seq,
+				};
+			});
+			result[groupKey] = updatedEntries;
+		}
+
+		return result;
+	}, [prefixes]);
+
 	const selectedCharactersWithSequences = useMemo(
 		() => applySequencesToCharacters(selectedCharacters as Record<string, NameEntry[]>, customSequences, diacriticMarks),
-		[selectedCharacters, customSequences, diacriticMarks],
+		[selectedCharacters, customSequences, diacriticMarks, applySequencesToCharacters],
 	);
+
+	useEffect(() => {
+		const prev = prevPrefixesRef.current;
+		if (prev.greek.char === prefixes.greek.char && prev.cyrillic.char === prefixes.cyrillic.char) {
+			return;
+		}
+
+		setCustomSequences((prevCustom) => {
+			if (prevCustom.length === 0) return prevCustom;
+			let changed = false;
+			const updated = prevCustom.map((cs) => {
+				const cp = Number(cs.key);
+				let {seq} = cs;
+				if (!seq || Number.isNaN(cp)) return cs;
+
+				if (prev.greek.char !== prefixes.greek.char && greekCodePoints.has(cp)) {
+					const prevLower = prev.greek.char;
+					const prevUpper = prevLower.toUpperCase();
+					const prevWithSlash = `${prevLower}\\`;
+					let replaced = false;
+
+					if (seq.startsWith(prevLower)) {
+						// lower-case prefix -> always new lower-case char
+						seq = prefixes.greek.char + seq.slice(1);
+						replaced = true;
+					} else if (seq.startsWith(prevUpper)) {
+						// upper-case prefix -> respect current cased flag
+						seq = (prefixes.greek.cased ? prefixes.greek.char.toUpperCase() : `${prefixes.greek.char}\\`) + seq.slice(1);
+						replaced = true;
+					} else if (seq.startsWith(prevWithSlash)) {
+						// "char\\" prefix -> also respect current cased flag
+						const replacement = prefixes.greek.cased ? prefixes.greek.char.toUpperCase() : `${prefixes.greek.char}\\`;
+						seq = replacement + seq.slice(prevWithSlash.length);
+						replaced = true;
+					}
+
+					if (replaced) {
+						changed = true;
+						return {...cs, seq};
+					}
+				}
+
+				if (prev.cyrillic.char !== prefixes.cyrillic.char && cyrillicCodePoints.has(cp)) {
+					const prevLower = prev.cyrillic.char;
+					const prevUpper = prevLower.toUpperCase();
+					const prevWithSlash = `${prevLower}\\`;
+					let replaced = false;
+
+					if (seq.startsWith(prevLower)) {
+						seq = prefixes.cyrillic.char + seq.slice(1);
+						replaced = true;
+					} else if (seq.startsWith(prevUpper)) {
+						seq = (prefixes.cyrillic.cased ? prefixes.cyrillic.char.toUpperCase() : `${prefixes.cyrillic.char}\\`) + seq.slice(1);
+						replaced = true;
+					} else if (seq.startsWith(prevWithSlash)) {
+						const replacement = prefixes.cyrillic.cased ? prefixes.cyrillic.char.toUpperCase() : `${prefixes.cyrillic.char}\\`;
+						seq = replacement + seq.slice(prevWithSlash.length);
+						replaced = true;
+					}
+
+					if (replaced) {
+						changed = true;
+						return {...cs, seq};
+					}
+				}
+
+				return cs;
+			});
+			return changed ? updated : prevCustom;
+		});
+
+		prevPrefixesRef.current = prefixes;
+	}, [prefixes]);
 
 	const handleGroupToggle = (keys: (keyof typeof defaultCharacters)[]) => {
 		console.log('handleGroupToggle', keys);
@@ -673,6 +785,36 @@ function App() {
 											onChange={() => handleSetSelectionToggle('greek', 'historic')}
 										/>
 									</div>
+									<div className='filters'>
+										<label htmlFor='greek-prefix-select'>Prefix</label>
+										<select
+											id='greek-prefix-select'
+											value={prefixes.greek.char}
+											onChange={(e) => setPrefixes((prev) => ({
+												...prev,
+												greek: {...prev.greek, char: e.target.value},
+											}))}
+										>
+											{(prefixes.greek.cased ? casedPrefixOptions : uncasedPrefixOptions).map((option) => (
+												<option key={`greek-${option.value}`} value={option.value}>
+													{option.label}
+												</option>
+											))}
+										</select>
+										<Checkbox
+											id='greek-prefix-cased'
+											isChecked={prefixes.greek.cased}
+											label='Cased prefix'
+											onChange={() => setPrefixes((prev) => ({
+												...prev,
+												greek: {
+													...prev.greek,
+													cased: !prev.greek.cased,
+													char: prev.greek.cased ? prev.greek.char : prev.greek.char.toLowerCase(),
+												},
+											}))}
+										/>
+									</div>
 									<CharactersTable
 										entries={selectedCharactersWithSequences.greek}
 										{...commonTableAttributes}
@@ -698,6 +840,36 @@ function App() {
 										label='Basic Cyrillic'
 										description='Base Cyrillic letters.'
 										onChange={() => handleSetSelectionToggle('cyrillic', 'base')}
+									/>
+								</div>
+								<div className='filters'>
+									<label htmlFor='cyrillic-prefix-select'>Prefix</label>
+									<select
+										id='cyrillic-prefix-select'
+										value={prefixes.cyrillic.char}
+										onChange={(e) => setPrefixes((prev) => ({
+											...prev,
+											cyrillic: {...prev.cyrillic, char: e.target.value},
+										}))}
+									>
+										{(prefixes.cyrillic.cased ? casedPrefixOptions : uncasedPrefixOptions).map((option) => (
+											<option key={`cyrillic-${option.value}`} value={option.value}>
+												{option.label}
+											</option>
+										))}
+									</select>
+									<Checkbox
+										id='cyrillic-prefix-cased'
+										isChecked={prefixes.cyrillic.cased}
+										label='Cased prefix'
+										onChange={() => setPrefixes((prev) => ({
+											...prev,
+											cyrillic: {
+												...prev.cyrillic,
+												cased: !prev.cyrillic.cased,
+												char: prev.cyrillic.cased ? prev.cyrillic.char : prev.cyrillic.char.toLowerCase(),
+											},
+										}))}
 									/>
 								</div>
 								<CharactersTable

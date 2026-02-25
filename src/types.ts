@@ -5,6 +5,7 @@ export type NameEntry = {
 	template?: string[],
 	set?: string[],
 	defaultSeq?: string,
+	altSeq?: string,
 };
 
 export type CharWithSeq = {
