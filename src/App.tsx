@@ -40,6 +40,7 @@ const defaultDiacriticMarks: DiacriticMark[] = [
 	{name: 'double acute', mark: '˝', key: '"'},
 	{name: 'comma below', mark: '̦', key: ','},
 ];
+const defaultDiacriticMarkKeys = defaultDiacriticMarks.map((mark) => mark.key);
 
 const scriptPrefixes = {
 	[DIA]: 'd',
@@ -334,19 +335,25 @@ function App() {
 				const customSeq = customMap.get(String(entry.cp));
 				if (customSeq) {
 					seq = customSeq;
-				} else if (entry.defaultSeq || entry.altSeq) {
+				} else if (entry.defaultSeq) {
 					let baseSeq = entry.defaultSeq;
 					if (['greek', 'cyrillic'].includes(groupKey)) {
 						baseSeq = prefixes[groupKey as keyof typeof prefixes].cased ? entry.defaultSeq : (entry.altSeq ?? entry.defaultSeq);
 					}
 					let newSeq = baseSeq ?? '';
 					if (['greek', 'cyrillic'].includes(groupKey) && newSeq.length > 0 && newSeq[0].toLowerCase() === defaultPrefixes[groupKey as keyof typeof defaultPrefixes].char) {
+						let coreSeq = newSeq.slice(1);
+						if (coreSeq.length > 1 && defaultDiacriticMarkKeys.includes(coreSeq[0])) {
+							const diacriticMarkName = defaultDiacriticMarks.find((mark) => mark.key === coreSeq[0])!.name;
+							const diacriticMarkKey = diacriticMarks.find((mark) => mark.name === diacriticMarkName)!.key;
+							coreSeq = diacriticMarkKey + coreSeq.slice(1);
+						}
 						if (newSeq.startsWith(defaultPrefixes[groupKey as keyof typeof defaultPrefixes].char)) {
-							newSeq = prefixes[groupKey as keyof typeof prefixes].char + newSeq.slice(1);
+							newSeq = prefixes[groupKey as keyof typeof prefixes].char + coreSeq;
 						} else {
 							newSeq = prefixes[groupKey as keyof typeof prefixes].cased
-								? prefixes[groupKey as keyof typeof prefixes].char.toUpperCase() + newSeq.slice(1)
-								: prefixes[groupKey as keyof typeof prefixes].char + '\\' + newSeq.slice(1);
+								? prefixes[groupKey as keyof typeof prefixes].char.toUpperCase() + coreSeq
+								: prefixes[groupKey as keyof typeof prefixes].char + '\\' + coreSeq;
 						}
 					}
 					seq = newSeq;
@@ -387,7 +394,7 @@ function App() {
 		}
 
 		return result;
-	}, [prefixes]);
+	}, [diacriticMarks, prefixes]);
 
 	const selectedCharactersWithSequences = useMemo(
 		() => applySequencesToCharacters(selectedCharacters as Record<string, NameEntry[]>, customSequences, diacriticMarks),
