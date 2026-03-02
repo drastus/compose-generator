@@ -11,6 +11,21 @@ import Footer from './Footer';
 import Modal from './Modal';
 import './index.css';
 
+const scriptsGroups: {label: string; keys: string[]; description: string}[] = [
+	{label: 'Modifier letters', keys: ['modifier'], description: 'Spacing modifier letters used for phonetic/diacritic purposes.'},
+	{label: 'Combining diacritical marks', keys: ['combining'], description: 'Non-spacing combining marks to modify preceding characters.'},
+	{label: 'Latin alphabet', keys: ['latin'], description: 'Basic and extended Latin letters commonly used in European languages.'},
+	{label: 'Greek alphabet', keys: ['greek'], description: 'Greek letters including basic forms.'},
+	{label: 'Cyrillic alphabet', keys: ['cyrillic'], description: 'Cyrillic letters used by Slavic and other languages.'},
+];
+const symbolsGroups: {label: string; keys: string[]; description: string}[] = [
+	{label: 'Punctuation', keys: ['punctuation_separators', 'punctuation'], description: 'Common punctuation including separators (space-like) and general marks.'},
+	{label: 'Mathematical symbols', keys: ['math_operators', 'math_number', 'math_alphanumeric_symbols'], description: 'Operators and number-related math symbols.'},
+	{label: 'Currency', keys: ['currency'], description: 'Currency signs such as €, £, ¥.'},
+	{label: 'Miscellaneous', keys: ['misc'], description: 'Various symbols that do not fit other categories.'},
+	{label: 'Format', keys: ['format'], description: 'Invisible formatting and control characters.'},
+];
+
 interface DiacriticMark {
 	name: string,
 	mark: string,
@@ -143,41 +158,6 @@ const defaultPrefixes = {
 	cyrillic: {char: 'c', cased: true},
 };
 
-function computeSetSelection(
-	selectedCharactersParam: Record<string, NameEntry[]>,
-): SetSelectionState {
-	const next: SetSelectionState = {};
-
-	Object.keys(initialSetSelection).forEach((group) => {
-		const entries = characters[group] ?? [];
-		const selected = selectedCharactersParam[group] ?? [];
-		const selectedSet = new Set(selected.map((e) => e.cp));
-		const selection = initialSetSelection[group as keyof SetSelectionState];
-		const nextSelection: Record<string, boolean | undefined> = {...selection};
-
-		Object.keys(selection).forEach((setKey) => {
-			const allEntries = entries.filter((e) => (e.set ?? []).includes(setKey));
-			const total = allEntries.length;
-			if (total === 0) {
-				nextSelection[setKey] = false;
-				return;
-			}
-			const selectedCount = allEntries.filter((e) => selectedSet.has(e.cp)).length;
-			if (selectedCount === 0) {
-				nextSelection[setKey] = false;
-			} else if (selectedCount === total) {
-				nextSelection[setKey] = true;
-			} else {
-				nextSelection[setKey] = undefined;
-			}
-		});
-
-		next[group] = nextSelection;
-	});
-
-	return next;
-}
-
 function App() {
 	const [showModal, setShowModal] = useState(false);
 	const [modalContent, setModalContent] = useState('');
@@ -208,12 +188,47 @@ function App() {
 	]));
 	const [selectedCharacters, setSelectedCharacters] = useState(defaultCharacters);
 
-	const setSelection = useMemo(() => computeSetSelection(selectedCharacters), [selectedCharacters]);
+	const computeSetSelection = useCallback((
+		selectedCharactersParam: Record<string, NameEntry[]>,
+	): SetSelectionState => {
+		const next: SetSelectionState = {};
 
-	const buildSetSelection = <K extends keyof SetSelectionState & keyof typeof characters>(
+		Object.keys(initialSetSelection).forEach((group) => {
+			const entries = availableCharacters[group] ?? [];
+			const selected = selectedCharactersParam[group] ?? [];
+			const selectedSet = new Set(selected.map((e) => e.cp));
+			const selection = initialSetSelection[group as keyof SetSelectionState];
+			const nextSelection: Record<string, boolean | undefined> = {...selection};
+
+			Object.keys(selection).forEach((setKey) => {
+				const allEntries = entries.filter((e) => (e.set ?? []).includes(setKey));
+				const total = allEntries.length;
+				if (total === 0) {
+					nextSelection[setKey] = false;
+					return;
+				}
+				const selectedCount = allEntries.filter((e) => selectedSet.has(e.cp)).length;
+				if (selectedCount === 0) {
+					nextSelection[setKey] = false;
+				} else if (selectedCount === total) {
+					nextSelection[setKey] = true;
+				} else {
+					nextSelection[setKey] = undefined;
+				}
+			});
+
+			next[group] = nextSelection;
+		});
+
+		return next;
+	}, [availableCharacters]);
+
+	const setSelection = useMemo(() => computeSetSelection(selectedCharacters), [computeSetSelection, selectedCharacters]);
+
+	const buildSetSelection = useCallback(<K extends keyof SetSelectionState & keyof typeof characters>(
 		category: K,
 		selection: SetSelectionState[K],
-	) => characters[category].filter((entry) => {
+	) => availableCharacters[category].filter((entry) => {
 		if (!entry.set || entry.set.length === 0) {
 			return selectedCharacters[category].find((c) => c.cp === entry.cp) !== undefined;
 		}
@@ -231,22 +246,7 @@ function App() {
 			return selectedCharacters[category].find((c) => c.cp === entry.cp) !== undefined;
 		}
 		return false;
-	});
-
-	const scriptsGroups: {label: string; keys: string[]; description: string}[] = [
-		{label: 'Modifier letters', keys: ['modifier'], description: 'Spacing modifier letters used for phonetic/diacritic purposes.'},
-		{label: 'Combining diacritical marks', keys: ['combining'], description: 'Non-spacing combining marks to modify preceding characters.'},
-		{label: 'Latin alphabet', keys: ['latin'], description: 'Basic and extended Latin letters commonly used in European languages.'},
-		{label: 'Greek alphabet', keys: ['greek'], description: 'Greek letters including basic forms.'},
-		{label: 'Cyrillic alphabet', keys: ['cyrillic'], description: 'Cyrillic letters used by Slavic and other languages.'},
-	];
-	const symbolsGroups: {label: string; keys: string[]; description: string}[] = [
-		{label: 'Punctuation', keys: ['punctuation_separators', 'punctuation'], description: 'Common punctuation including separators (space-like) and general marks.'},
-		{label: 'Mathematical symbols', keys: ['math_operators', 'math_number', 'math_alphanumeric_symbols'], description: 'Operators and number-related math symbols.'},
-		{label: 'Currency', keys: ['currency'], description: 'Currency signs such as €, £, ¥.'},
-		{label: 'Miscellaneous', keys: ['misc'], description: 'Various symbols that do not fit other categories.'},
-		{label: 'Format', keys: ['format'], description: 'Invisible formatting and control characters.'},
-	];
+	}), [availableCharacters, selectedCharacters]);
 
 	const handleDiacriticKeyChange = useCallback((index: number, newKey: string) => {
 		setDiacriticMarks((prev) => {
