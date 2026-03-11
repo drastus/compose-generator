@@ -1,6 +1,37 @@
 import {Fragment, useState, useCallback, useMemo, useRef, useEffect} from 'react';
 import {buildName} from './utils/buildName';
-import {COMB, DIA, MBF, MBS, MDS, MF, MSSBI, MSSB, MSSI, MSS, MBI, MB, MI, MM, MS} from './constants';
+import {
+	ACUTE,
+	BREVE,
+	CIRCUMFLEX,
+	COMB,
+	DIA,
+	DIALYTIKA,
+	DIAERESIS,
+	GRAVE,
+	MBF,
+	MBS,
+	MDS,
+	MF,
+	MS,
+	MSSBI,
+	MSSB,
+	MSSI,
+	MSS,
+	MBI,
+	MB,
+	MI,
+	MM,
+	OXIA,
+	PERISPOMENI,
+	VARIA,
+	VRACHY,
+	TONOS,
+	DASIA,
+	PSILI,
+	YPOGEGRAMMENI,
+	PROSGEGRAMMENI,
+} from './constants';
 import {characters} from './names';
 import {CharWithSeq, NameEntry} from './types';
 import AddingModal from './AddingModal';
@@ -39,21 +70,22 @@ const defaultDiacriticMarks: DiacriticMark[] = [
 	{name: 'tilde', mark: '~', key: '~'},
 	{name: 'diaeresis', mark: '¨', key: ':'},
 	{name: 'ring above', mark: '˚', key: '0'},
-	{name: 'cedilla', mark: '¸', key: '5'},
+	{name: 'cedilla', mark: '¸', key: ';'},
 	{name: 'stroke', mark: '̷', key: '/'},
-	{name: 'ogonek', mark: '˛', key: ';'},
+	{name: 'ogonek', mark: '˛', key: '6'},
 	{name: 'breve', mark: '˘', key: '('},
 	{name: 'dot above', mark: '˙', key: '.'},
 	{name: 'macron', mark: '¯', key: '-'},
 	{name: 'caron', mark: 'ˇ', key: '<'},
 	{name: 'dot below', mark: '̣', key: '!'},
 	{name: 'hook above', mark: '̉', key: '?'},
-	{name: 'hook', mark: '̡', key: '6'},
+	{name: 'hook', mark: '̡', key: '3'},
 	{name: 'horn', mark: '̛', key: '9'},
 	{name: 'inverted breve', mark: '̑', key: ')'},
 	{name: 'double grave', mark: '̏', key: '``'},
 	{name: 'double acute', mark: '˝', key: '"'},
 	{name: 'comma below', mark: '̦', key: ','},
+	{name: 'ypogegrammeni', mark: 'ͅ', key: '_i'},
 ];
 const defaultDiacriticMarkKeys = defaultDiacriticMarks.map((mark) => mark.key);
 
@@ -197,7 +229,7 @@ function App() {
 			const entries = availableCharacters[group] ?? [];
 			const selected = selectedCharactersParam[group] ?? [];
 			const selectedSet = new Set(selected.map((e) => e.cp));
-			const selection = initialSetSelection[group as keyof SetSelectionState];
+			const selection = initialSetSelection[group];
 			const nextSelection: Record<string, boolean | undefined> = {...selection};
 
 			Object.keys(selection).forEach((setKey) => {
@@ -271,7 +303,7 @@ function App() {
 			const cp = Number(cpKey);
 			const next: typeof prev = {} as typeof prev;
 			for (const [groupKey, entries] of Object.entries(prev)) {
-				next[groupKey as keyof typeof prev] = entries.filter((entry) => entry.cp !== cp);
+				next[groupKey] = entries.filter((entry) => entry.cp !== cp);
 			}
 			return next;
 		});
@@ -361,27 +393,57 @@ function App() {
 					entry.template && ((
 						entry.template.length >= 3
 						&& entry.template[0].endsWith('LETTER')
-						&& entry.template[2].length === 1
+						&& (entry.template[2].length === 1 || entry.template[0] === 'GREEK LETTER')
 					) || (
 						Object.keys(scriptPrefixes).includes(entry.template[0])
 					))
 				) {
-					const diacriticNames = entry.template.slice([DIA, COMB].includes(entry.template[0]) ? 1 : 3)
-						.filter((name: string) => name !== 'ACCENT')
-						.map((part: string) => part.toLowerCase().replace('_', ' '));
+					const diacriticParts = entry.template.slice([DIA, COMB].includes(entry.template[0]) ? 1 : 3)
+						.filter((name: string) => name !== 'ACCENT');
+					const diacriticNames = diacriticParts.map((part: string) => {
+						if (part === DASIA) return 'ogonek';
+						if (part === PSILI) return 'horn';
+						if (part === DIALYTIKA || part === DIAERESIS) return 'diaeresis';
+						if (part === VARIA || part === GRAVE) return 'grave';
+						if (part === OXIA || part === TONOS || part === ACUTE) return 'acute';
+						if (part === PERISPOMENI || part === CIRCUMFLEX) return 'circumflex';
+						if (part === VRACHY || part === BREVE) return 'breve';
+						if (part === YPOGEGRAMMENI || part === PROSGEGRAMMENI) return 'ypogegrammeni';
+						return part.toLowerCase().replace('_', ' ');
+					});
 					const diacriticMarksForChar = diacriticNames
 						.map((name: string) => diacriticMarksParam.find((mark) => mark.name === name));
 					if (!diacriticMarksForChar.some((mark) => !mark)) { // all diacritics found
 						const diacriticKeys = diacriticMarksForChar.map((mark: DiacriticMark | undefined) => mark!.key).join('');
-						let prefix = '';
-						if (Object.keys(scriptPrefixes).includes(entry.template[0])) {
-							prefix = scriptPrefixes[entry.template[0] as keyof typeof scriptPrefixes];
+						if (groupKey === 'greek' && entry.template[0] === 'GREEK LETTER') {
+							const baseLetterName = entry.template[2];
+							const baseEntry = characters.greek.find((e) =>
+								e.template?.[0] === 'GREEK LETTER'
+								&& e.template[1] === entry.template![1]
+								&& (e.end === baseLetterName || e.template[2] === baseLetterName)
+								&& e.defaultSeq?.toLowerCase().startsWith(defaultPrefixes.greek.char));
+							if (baseEntry?.defaultSeq) {
+								const firstChar = baseEntry.defaultSeq[0];
+								const isCapital = firstChar === firstChar.toUpperCase();
+								const coreSeq = prefixes[groupKey].cased
+									? baseEntry.defaultSeq.slice(1)
+									: baseEntry.altSeq?.slice(1) ?? baseEntry.defaultSeq.slice(1);
+								const prefix = prefixes[groupKey].cased && isCapital
+									? prefixes[groupKey].char.toUpperCase()
+									: prefixes[groupKey].char;
+								seq = prefix + diacriticKeys + coreSeq;
+							}
+						} else {
+							let prefix = '';
+							if (Object.keys(scriptPrefixes).includes(entry.template[0])) {
+								prefix = scriptPrefixes[entry.template[0] as keyof typeof scriptPrefixes];
+							}
+							let baseLetter = [DIA, COMB].includes(entry.template[0]) ? '' : entry.template[2];
+							if (entry.template[1] === 'SMALL') {
+								baseLetter = baseLetter.toLowerCase();
+							}
+							seq = prefix + diacriticKeys + baseLetter;
 						}
-						let baseLetter = [DIA, COMB].includes(entry.template[0]) ? '' : entry.template[2];
-						if (entry.template[1] === 'SMALL') {
-							baseLetter = baseLetter.toLowerCase();
-						}
-						seq = prefix + diacriticKeys + baseLetter;
 					}
 				}
 				return {
@@ -397,7 +459,7 @@ function App() {
 	}, [diacriticMarks, prefixes]);
 
 	const selectedCharactersWithSequences = useMemo(
-		() => applySequencesToCharacters(selectedCharacters as Record<string, NameEntry[]>, customSequences, diacriticMarks),
+		() => applySequencesToCharacters(selectedCharacters, customSequences, diacriticMarks),
 		[selectedCharacters, customSequences, diacriticMarks, applySequencesToCharacters],
 	);
 
@@ -658,7 +720,7 @@ function App() {
 								</tr>
 							</thead>
 							<tbody>
-								{diacriticMarks.map((mark, index) => (
+								{diacriticMarks.filter((mark) => mark.name !== 'ypogegrammeni' || setSelection.greek.historic !== false).map((mark, index) => (
 									<tr key={mark.name}>
 										<td>{mark.name}</td>
 										<td>{mark.mark}</td>

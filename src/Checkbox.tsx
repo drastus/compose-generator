@@ -32,7 +32,7 @@ function Checkbox({
 				checked={isChecked}
 				onChange={onChange}
 			/>
-			<label htmlFor={id} style={{paddingLeft: '0.5rem', cursor: 'pointer'}}>
+			<label htmlFor={id} style={{cursor: 'pointer'}}>
 				{label}
 			</label>
 			{description && <div className='description'>{description}</div>}
