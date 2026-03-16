@@ -31,6 +31,7 @@ import {
 	PSILI,
 	YPOGEGRAMMENI,
 	PROSGEGRAMMENI,
+	GREEK_LETTERS,
 } from './constants';
 import {characters} from './names';
 import {CharWithSeq, NameEntry} from './types';
@@ -88,6 +89,20 @@ const defaultDiacriticMarks: DiacriticMark[] = [
 	{name: 'ypogegrammeni', mark: 'ͅ', key: '_i'},
 ];
 const defaultDiacriticMarkKeys = defaultDiacriticMarks.map((mark) => mark.key);
+
+const mapDiacriticParts = (parts: string[]) => (
+	parts.map((part) => {
+		if (part === DASIA) return 'ogonek';
+		if (part === PSILI) return 'horn';
+		if (part === DIALYTIKA || part === DIAERESIS) return 'diaeresis';
+		if (part === VARIA || part === GRAVE) return 'grave';
+		if (part === OXIA || part === TONOS || part === ACUTE) return 'acute';
+		if (part === PERISPOMENI || part === CIRCUMFLEX) return 'circumflex';
+		if (part === VRACHY || part === BREVE) return 'breve';
+		if (part === YPOGEGRAMMENI || part === PROSGEGRAMMENI) return 'ypogegrammeni';
+		return part.toLowerCase().replace('_', ' ');
+	})
+);
 
 const scriptPrefixes = {
 	[DIA]: 'd',
@@ -392,7 +407,7 @@ function App() {
 				} else if (
 					entry.template && ((
 						entry.template.length >= 3
-						&& entry.template[0].endsWith('LETTER')
+						&& (entry.template[0].endsWith('LETTER') || entry.template[0].startsWith('MATHEMATICAL'))
 						&& (entry.template[2].length === 1 || entry.template[0] === 'GREEK LETTER')
 					) || (
 						Object.keys(scriptPrefixes).includes(entry.template[0])
@@ -400,38 +415,34 @@ function App() {
 				) {
 					const diacriticParts = entry.template.slice([DIA, COMB].includes(entry.template[0]) ? 1 : 3)
 						.filter((name: string) => name !== 'ACCENT');
-					const diacriticNames = diacriticParts.map((part: string) => {
-						if (part === DASIA) return 'ogonek';
-						if (part === PSILI) return 'horn';
-						if (part === DIALYTIKA || part === DIAERESIS) return 'diaeresis';
-						if (part === VARIA || part === GRAVE) return 'grave';
-						if (part === OXIA || part === TONOS || part === ACUTE) return 'acute';
-						if (part === PERISPOMENI || part === CIRCUMFLEX) return 'circumflex';
-						if (part === VRACHY || part === BREVE) return 'breve';
-						if (part === YPOGEGRAMMENI || part === PROSGEGRAMMENI) return 'ypogegrammeni';
-						return part.toLowerCase().replace('_', ' ');
-					});
+					const diacriticNames = mapDiacriticParts(diacriticParts);
 					const diacriticMarksForChar = diacriticNames
 						.map((name: string) => diacriticMarksParam.find((mark) => mark.name === name));
 					if (!diacriticMarksForChar.some((mark) => !mark)) { // all diacritics found
 						const diacriticKeys = diacriticMarksForChar.map((mark: DiacriticMark | undefined) => mark!.key).join('');
-						if (groupKey === 'greek' && entry.template[0] === 'GREEK LETTER') {
+						if (
+							(groupKey === 'greek' && entry.template[0] === 'GREEK LETTER')
+							|| (groupKey === 'math_alphanumeric_symbols' && GREEK_LETTERS.includes(entry.template[2].split(' ')[0]))
+						) {
 							const baseLetterName = entry.template[2];
 							const baseEntry = characters.greek.find((e) =>
-								e.template?.[0] === 'GREEK LETTER'
-								&& e.template[1] === entry.template![1]
-								&& (e.end === baseLetterName || e.template[2] === baseLetterName)
+								(
+									(e.template?.[0] === 'GREEK LETTER' && e.template[1] === entry.template![1] && (e.end === baseLetterName || e.template?.[2] === baseLetterName))
+									|| (e.name?.startsWith('GREEK') && entry.template?.[2] && e.name.endsWith(entry.template[2]))
+								)
 								&& e.defaultSeq?.toLowerCase().startsWith(defaultPrefixes.greek.char));
-							if (baseEntry?.defaultSeq) {
+							const baseGroupKey = groupKey === 'math_alphanumeric_symbols' ? 'greek' : groupKey;
+							const preprefix = groupKey === 'math_alphanumeric_symbols' ? scriptPrefixes[entry.template[0] as keyof typeof scriptPrefixes] : '';
+							if (baseEntry?.defaultSeq && baseGroupKey === 'greek') {
 								const firstChar = baseEntry.defaultSeq[0];
 								const isCapital = firstChar === firstChar.toUpperCase();
-								const coreSeq = prefixes[groupKey].cased
+								const coreSeq = prefixes[baseGroupKey].cased
 									? baseEntry.defaultSeq.slice(1)
 									: baseEntry.altSeq?.slice(1) ?? baseEntry.defaultSeq.slice(1);
-								const prefix = prefixes[groupKey].cased && isCapital
-									? prefixes[groupKey].char.toUpperCase()
-									: prefixes[groupKey].char;
-								seq = prefix + diacriticKeys + coreSeq;
+								const prefix = prefixes[baseGroupKey].cased && isCapital
+									? prefixes[baseGroupKey].char.toUpperCase()
+									: prefixes[baseGroupKey].char;
+								seq = preprefix + prefix + diacriticKeys + coreSeq;
 							}
 						} else {
 							let prefix = '';

@@ -93,4 +93,4 @@ export const GREEK_LETTERS = [
 	'CHI',
 	'PSI',
 	'OMEGA',
-] as const;
+];
