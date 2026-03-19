@@ -32,6 +32,7 @@ import {
 	YPOGEGRAMMENI,
 	PROSGEGRAMMENI,
 	GREEK_LETTERS,
+	C,
 } from './constants';
 import {characters} from './names';
 import {CharWithSeq, NameEntry} from './types';
@@ -344,6 +345,36 @@ function App() {
 		setModalGroups([]);
 	}, []);
 
+	/* excluding Latin latters and digits */
+	const getMathAlphanumericSymbolBase = (entry: NameEntry) => {
+		const baseLetterName = entry.template![2];
+		if (baseLetterName === 'PARTIAL DIFFERENTIAL') return characters.math_operators.find((e) => e.cp === 0x2202);
+		if (baseLetterName === 'NABLA') return characters.math_operators.find((e) => e.cp === 0x2207);
+		if (baseLetterName === 'DOTLESS I') return characters.latin.find((e) => e.cp === 0x0131);
+		if (baseLetterName === 'DOTLESS J') return characters.latin.find((e) => e.cp === 0x0237);
+		if (baseLetterName === 'DIGAMMA' && entry.template?.[1] === C) return characters.greek.find((e) => e.cp === 0x03DC);
+		if (GREEK_LETTERS.includes(baseLetterName) || baseLetterName === 'FINAL SIGMA' || baseLetterName === 'DIGAMMA') {
+			return characters.greek.find((e) =>
+				e.template?.[0] === 'GREEK LETTER'
+				&& e.template[1] === entry.template![1]
+				&& (e.end === baseLetterName || e.template[2] === baseLetterName)
+				&& e.defaultSeq?.toLowerCase().startsWith(defaultPrefixes.greek.char));
+		}
+		return characters.greek.find((e) => e.name?.endsWith(baseLetterName));
+	};
+
+	const getGreekSeq = useCallback((baseEntry: NameEntry, diacriticKeys: string, preprefix = '') => {
+		const firstChar = baseEntry.defaultSeq![0];
+		const isCapital = firstChar === firstChar.toUpperCase();
+		const coreSeq = prefixes.greek.cased
+			? baseEntry.defaultSeq!.slice(1)
+			: baseEntry.altSeq?.slice(1) ?? baseEntry.defaultSeq!.slice(1);
+		const prefix = prefixes.greek.cased && isCapital
+			? prefixes.greek.char.toUpperCase()
+			: prefixes.greek.char;
+		return preprefix + prefix + diacriticKeys + coreSeq;
+	}, [prefixes.greek.cased, prefixes.greek.char]);
+
 	const handleApplySequences = useCallback(() => {
 		setSelectedCharacters((prev) => {
 			const next = {...prev};
@@ -420,29 +451,23 @@ function App() {
 						.map((name: string) => diacriticMarksParam.find((mark) => mark.name === name));
 					if (!diacriticMarksForChar.some((mark) => !mark)) { // all diacritics found
 						const diacriticKeys = diacriticMarksForChar.map((mark: DiacriticMark | undefined) => mark!.key).join('');
-						if (
-							(groupKey === 'greek' && entry.template[0] === 'GREEK LETTER')
-							|| (groupKey === 'math_alphanumeric_symbols' && GREEK_LETTERS.includes(entry.template[2].split(' ')[0]))
-						) {
+						if ((groupKey === 'greek' && entry.template[0] === 'GREEK LETTER')) {
 							const baseLetterName = entry.template[2];
 							const baseEntry = characters.greek.find((e) =>
-								(
-									(e.template?.[0] === 'GREEK LETTER' && e.template[1] === entry.template![1] && (e.end === baseLetterName || e.template?.[2] === baseLetterName))
-									|| (e.name?.startsWith('GREEK') && entry.template?.[2] && e.name.endsWith(entry.template[2]))
-								)
+								e.template?.[0] === 'GREEK LETTER'
+								&& e.template[1] === entry.template![1]
+								&& (e.end === baseLetterName || e.template[2] === baseLetterName)
 								&& e.defaultSeq?.toLowerCase().startsWith(defaultPrefixes.greek.char));
-							const baseGroupKey = groupKey === 'math_alphanumeric_symbols' ? 'greek' : groupKey;
-							const preprefix = groupKey === 'math_alphanumeric_symbols' ? scriptPrefixes[entry.template[0] as keyof typeof scriptPrefixes] : '';
-							if (baseEntry?.defaultSeq && baseGroupKey === 'greek') {
-								const firstChar = baseEntry.defaultSeq[0];
-								const isCapital = firstChar === firstChar.toUpperCase();
-								const coreSeq = prefixes[baseGroupKey].cased
-									? baseEntry.defaultSeq.slice(1)
-									: baseEntry.altSeq?.slice(1) ?? baseEntry.defaultSeq.slice(1);
-								const prefix = prefixes[baseGroupKey].cased && isCapital
-									? prefixes[baseGroupKey].char.toUpperCase()
-									: prefixes[baseGroupKey].char;
-								seq = preprefix + prefix + diacriticKeys + coreSeq;
+							if (baseEntry?.defaultSeq) {
+								seq = getGreekSeq(baseEntry, diacriticKeys);
+							}
+						} else if (groupKey === 'math_alphanumeric_symbols' && entry.template[2].length > 1) {
+							const baseEntry = getMathAlphanumericSymbolBase(entry);
+							if (baseEntry) {
+								const preprefix = scriptPrefixes[entry.template[0] as keyof typeof scriptPrefixes];
+								seq = GREEK_LETTERS.includes(entry.template[2].split(' ')[0])
+									? getGreekSeq(baseEntry, diacriticKeys, preprefix)
+									: preprefix + baseEntry.defaultSeq;
 							}
 						} else {
 							let prefix = '';
@@ -467,7 +492,7 @@ function App() {
 		}
 
 		return result;
-	}, [diacriticMarks, prefixes]);
+	}, [diacriticMarks, getGreekSeq, prefixes]);
 
 	const selectedCharactersWithSequences = useMemo(
 		() => applySequencesToCharacters(selectedCharacters, customSequences, diacriticMarks),
