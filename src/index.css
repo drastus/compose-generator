@@ -257,3 +257,68 @@ button {
 	cursor: pointer;
 	font-weight: 500;
 }
+
+/* Conflict styles */
+.conflict-input {
+	border-color: #dc2626 !important;
+	background-color: #fee2e2 !important;
+}
+
+@media (prefers-color-scheme: dark) {
+	.conflict-input {
+		background-color: #450a0a !important;
+		border-color: #dc2626 !important;
+	}
+}
+
+.conflict-tooltip {
+	position: relative;
+	display: inline-block;
+}
+
+.conflict-tooltip .conflict-tooltip-text {
+	visibility: hidden;
+	background-color: #1f2937;
+	color: #fff;
+	text-align: left;
+	border-radius: 6px;
+	padding: 8px 12px;
+	position: absolute;
+	z-index: 1000;
+	bottom: 125%;
+	left: 50%;
+	transform: translateX(-50%);
+	white-space: normal;
+	opacity: 0;
+	transition: opacity 0.3s;
+	font-size: 12px;
+	width: 360px;
+}
+
+.conflict-tooltip .conflict-tooltip-text::after {
+	content: "";
+	position: absolute;
+	top: 100%;
+	left: 50%;
+	margin-left: -5px;
+	border-width: 5px;
+	border-style: solid;
+	border-color: #1f2937 transparent transparent transparent;
+}
+
+.conflict-tooltip:hover .conflict-tooltip-text {
+	visibility: visible;
+	opacity: 1;
+}
+
+/* Footer conflict count styles */
+.footer-conflict-count {
+	color: #dc2626;
+	font-weight: 500;
+}
+
+@media (prefers-color-scheme: dark) {
+	.footer-conflict-count {
+		color: #ef4444;
+	}
+}

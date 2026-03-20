@@ -12,4 +12,5 @@ export type CharWithSeq = {
 	cp: number,
 	name: string,
 	seq?: string,
+	conflicts?: number[],
 };

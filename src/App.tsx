@@ -3,36 +3,36 @@ import {buildName} from './utils/buildName';
 import {
 	ACUTE,
 	BREVE,
+	C,
 	CIRCUMFLEX,
 	COMB,
+	DASIA,
 	DIA,
-	DIALYTIKA,
 	DIAERESIS,
+	DIALYTIKA,
 	GRAVE,
+	GREEK_LETTERS,
+	MB,
 	MBF,
+	MBI,
 	MBS,
 	MDS,
 	MF,
-	MS,
-	MSSBI,
-	MSSB,
-	MSSI,
-	MSS,
-	MBI,
-	MB,
 	MI,
 	MM,
+	MS,
+	MSS,
+	MSSB,
+	MSSBI,
+	MSSI,
 	OXIA,
 	PERISPOMENI,
+	PROSGEGRAMMENI,
+	PSILI,
+	TONOS,
 	VARIA,
 	VRACHY,
-	TONOS,
-	DASIA,
-	PSILI,
 	YPOGEGRAMMENI,
-	PROSGEGRAMMENI,
-	GREEK_LETTERS,
-	C,
 } from './constants';
 import {characters} from './names';
 import {CharWithSeq, NameEntry} from './types';
@@ -399,6 +399,60 @@ function App() {
 		setModalGroups([]);
 	}, [availableCharacters, customSequences, modalGroups]);
 
+	const detectConflicts = useCallback((allCharsWithSeq: CharWithSeq[]): Map<number, number[]> => {
+		const conflicts = new Map<number, number[]>();
+		const seqMap = new Map<string, number[]>();
+
+		// Group characters by sequence
+		for (const char of allCharsWithSeq) {
+			if (!char.seq) continue;
+			const existing = seqMap.get(char.seq) || [];
+			seqMap.set(char.seq, [...existing, char.cp]);
+		}
+
+		// Check for conflicts
+		for (const char of allCharsWithSeq) {
+			if (!char.seq) continue;
+			const conflictingCps = new Set<number>();
+
+			// Check for exact duplicates
+			const duplicates = seqMap.get(char.seq) || [];
+			if (duplicates.length > 1) {
+				for (const cp of duplicates) {
+					if (cp !== char.cp) {
+						conflictingCps.add(cp);
+					}
+				}
+			}
+
+			// Check if this sequence is a prefix of another sequence
+			for (const [otherSeq, otherCps] of seqMap.entries()) {
+				if (otherSeq === char.seq) continue;
+				if (otherSeq.startsWith(char.seq)) {
+					for (const cp of otherCps) {
+						conflictingCps.add(cp);
+					}
+				}
+			}
+
+			// Check if another sequence is a prefix of this sequence
+			for (const [otherSeq, otherCps] of seqMap.entries()) {
+				if (otherSeq === char.seq) continue;
+				if (char.seq.startsWith(otherSeq)) {
+					for (const cp of otherCps) {
+						conflictingCps.add(cp);
+					}
+				}
+			}
+
+			if (conflictingCps.size > 0) {
+				conflicts.set(char.cp, Array.from(conflictingCps));
+			}
+		}
+
+		return conflicts;
+	}, []);
+
 	const applySequencesToCharacters = useCallback((
 		selectedCharactersParam: Record<string, NameEntry[]>,
 		customSequencesParam: {key: string; seq: string}[],
@@ -491,8 +545,20 @@ function App() {
 			result[groupKey] = updatedEntries;
 		}
 
+		// Detect conflicts across all characters
+		const allChars = Object.values(result).flat();
+		const conflictMap = detectConflicts(allChars);
+
+		// Add conflict information to each character
+		for (const groupKey of Object.keys(result)) {
+			result[groupKey] = result[groupKey].map((char) => ({
+				...char,
+				conflicts: conflictMap.get(char.cp),
+			}));
+		}
+
 		return result;
-	}, [diacriticMarks, getGreekSeq, prefixes]);
+	}, [diacriticMarks, getGreekSeq, prefixes, detectConflicts]);
 
 	const selectedCharactersWithSequences = useMemo(
 		() => applySequencesToCharacters(selectedCharacters, customSequences, diacriticMarks),
@@ -714,11 +780,22 @@ function App() {
 
 	const selectedCount = Object.values(selectedCharactersWithSequences).flat().length;
 
+	const conflictCount = useMemo(() => Object.values(selectedCharactersWithSequences)
+		.flat()
+		.filter((char) => char.conflicts && char.conflicts.length > 0)
+		.length, [selectedCharactersWithSequences]);
+
+	const allCharacters = useMemo(
+		() => Object.values(selectedCharactersWithSequences).flat(),
+		[selectedCharactersWithSequences],
+	);
+
 	const commonTableAttributes = useMemo(() => ({
+		allCharacters,
 		customSequences,
 		onSequenceChange: handleSequenceChange,
 		onRemoveSequence: handleRemoveSequence,
-	}), [customSequences, handleRemoveSequence, handleSequenceChange]);
+	}), [allCharacters, customSequences, handleRemoveSequence, handleSequenceChange]);
 
 	return (
 		<Fragment>
@@ -1293,6 +1370,7 @@ function App() {
 			</main>
 			<Footer
 				selectedCount={selectedCount}
+				conflictCount={conflictCount}
 				onGenerate={handleGenerate}
 				onPreview={handlePreview}
 			/>

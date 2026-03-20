@@ -1,5 +1,4 @@
-import type {NameEntry} from './types';
-import {buildName} from './utils/buildName';
+import {CharWithSeq} from './types';
 
 function formatCodePoint(cp: number): string {
 	return 'U+' + cp.toString(16).toUpperCase().padStart(4, '0');
@@ -14,13 +13,31 @@ function codePointChar(cp: number): string {
 }
 
 interface CharactersTableProps {
-	readonly entries: NameEntry[],
+	readonly entries: Array<CharWithSeq>,
+	readonly allCharacters: Array<CharWithSeq>,
 	readonly customSequences: {key: string; seq: string}[],
 	readonly onSequenceChange: (_cpKey: string, _sequence: string) => void,
 	readonly onRemoveSequence?: (_cpKey: string) => void,
 }
 
-export default function CharactersTable({entries, customSequences, onSequenceChange, onRemoveSequence}: CharactersTableProps) {
+export default function CharactersTable({entries, allCharacters, customSequences, onSequenceChange, onRemoveSequence}: CharactersTableProps) {
+	const getConflictTooltip = (conflicts: number[] | undefined) => {
+		if (!conflicts || conflicts.length === 0) return null;
+
+		const conflictDetails = conflicts.map((cp) => {
+			const entry = allCharacters.find((e) => e.cp === cp);
+			if (!entry) return null;
+			const key = String(entry.cp);
+			const seq = customSequences.find((cs) => cs.key === key)?.seq ?? entry.seq ?? '';
+			return {
+				cp,
+				text: `${formatCodePoint(cp)} (${seq}): ${entry.name}`,
+			};
+		}).filter((item): item is {cp: number; text: string} => item !== null);
+
+		return conflictDetails;
+	};
+
 	return (
 		<table>
 			<thead>
@@ -37,19 +54,41 @@ export default function CharactersTable({entries, customSequences, onSequenceCha
 					const key = String(e.cp);
 					const customSeq = customSequences.find((cs) => cs.key === key)?.seq ?? e.seq ?? '';
 					const hasSequence = Boolean(customSeq);
+					const hasConflict = e.conflicts && e.conflicts.length > 0;
+					const tooltipText = getConflictTooltip(e.conflicts);
+
 					return (
 						<tr key={e.cp}>
 							<td className='mono'>{formatCodePoint(e.cp)}</td>
 							<td className='char'>{codePointChar(e.cp)}</td>
 							<td>
-								<input
-									type='text'
-									value={customSeq}
-									className='key-input'
-									onChange={(ev) => onSequenceChange(key, ev.target.value)}
-								/>
+								{hasConflict
+									? (
+										<div className='conflict-tooltip'>
+											<input
+												type='text'
+												value={customSeq}
+												className='key-input conflict-input'
+												onChange={(ev) => onSequenceChange(key, ev.target.value)}
+											/>
+											<span className='conflict-tooltip-text'>
+												Conflicts with:
+												{tooltipText?.map((item) => (
+													<div key={item.cp}>{item.text}</div>
+												))}
+											</span>
+										</div>
+									)
+									: (
+										<input
+											type='text'
+											value={customSeq}
+											className='key-input'
+											onChange={(ev) => onSequenceChange(key, ev.target.value)}
+										/>
+									)}
 							</td>
-							<td>{buildName(e)}</td>
+							<td>{e.name}</td>
 							<td>
 								{hasSequence && onRemoveSequence && (
 									<button
