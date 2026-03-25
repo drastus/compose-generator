@@ -112,11 +112,11 @@ const scriptPrefixes = {
 	[MS]: 's',
 	[MBF]: 'f*',
 	[MF]: 'f',
-	[MDS]: '2',
-	[MSSBI]: '0*/',
-	[MSSB]: '0*',
-	[MSSI]: '0/',
-	[MSS]: '0',
+	[MDS]: 'm2',
+	[MSSBI]: 'm0*/',
+	[MSSB]: 'm0*',
+	[MSSI]: 'm0/',
+	[MSS]: 'm0',
 	[MBI]: 'm*/',
 	[MB]: 'm*',
 	[MI]: 'm/',
@@ -353,6 +353,7 @@ function App() {
 		if (baseLetterName === 'DOTLESS I') return characters.latin.find((e) => e.cp === 0x0131);
 		if (baseLetterName === 'DOTLESS J') return characters.latin.find((e) => e.cp === 0x0237);
 		if (baseLetterName === 'DIGAMMA' && entry.template?.[1] === C) return characters.greek.find((e) => e.cp === 0x03DC);
+		if (baseLetterName === 'THETA SYMBOL' && entry.template?.[1] === C) return characters.greek.find((e) => e.cp === 0x03F4);
 		if (GREEK_LETTERS.includes(baseLetterName) || baseLetterName === 'FINAL SIGMA' || baseLetterName === 'DIGAMMA') {
 			return characters.greek.find((e) =>
 				e.template?.[0] === 'GREEK LETTER'
@@ -518,8 +519,12 @@ function App() {
 						} else if (groupKey === 'math_alphanumeric_symbols' && entry.template[2].length > 1) {
 							const baseEntry = getMathAlphanumericSymbolBase(entry);
 							if (baseEntry) {
-								const preprefix = scriptPrefixes[entry.template[0] as keyof typeof scriptPrefixes];
-								seq = GREEK_LETTERS.includes(entry.template[2].split(' ')[0])
+								let preprefix = scriptPrefixes[entry.template[0] as keyof typeof scriptPrefixes];
+								const hasStandardGreekLetter = GREEK_LETTERS.includes(entry.template[2].split(' ')[0]);
+								if (hasStandardGreekLetter || [0x03C2, 0x2202].includes(baseEntry.cp)) {
+									preprefix = preprefix.charAt(0).toUpperCase() + preprefix.slice(1);
+								}
+								seq = hasStandardGreekLetter
 									? getGreekSeq(baseEntry, diacriticKeys, preprefix)
 									: preprefix + baseEntry.defaultSeq;
 							}
