@@ -1,10 +1,10 @@
 import {useEffect, useRef, useState, MouseEvent, ReactNode} from 'react';
 
-interface CharactersContainerProps {
+type CharactersContainerProps = {
 	readonly charactersNumber: number,
 	readonly onAddSequence: () => void,
 	readonly children: ReactNode,
-}
+};
 
 export default function CharactersContainer({charactersNumber, onAddSequence, children}: CharactersContainerProps) {
 	const [isExpanded, setIsExpanded] = useState(false);

@@ -14,3 +14,15 @@ export type CharWithSeq = {
 	seq?: string,
 	conflicts?: number[],
 };
+
+export type DiacriticMark = {
+	name: string,
+	mark: string,
+	key: string,
+};
+
+export type SpecialChar = {
+	label: string,
+	name: string,
+	keysym: string,
+};

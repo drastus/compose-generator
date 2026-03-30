@@ -59,6 +59,12 @@ section + section {
 	margin-bottom: 1rem;
 }
 
+.table-container {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
 .table-header {
 	cursor: pointer;
 	padding: 8px;
@@ -67,12 +73,6 @@ section + section {
 	display: flex;
 	align-items: center;
 	gap: 8px;
-}
-
-.table-container {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  margin-bottom: 16px;
 }
 
 table {
@@ -321,4 +321,52 @@ button {
 	.footer-conflict-count {
 		color: #ef4444;
 	}
+}
+
+/* Sequence toolbar styles */
+.sequence-input-wrapper {
+	position: relative;
+}
+
+.sequence-toolbar-container {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	margin-top: 0.25rem;
+	z-index: 10;
+	background-color: var(--bg-primary);
+	padding: 0.25rem;
+	border: 1px solid var(--border);
+	border-radius: 4px;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.sequence-toolbar {
+	display: flex;
+	gap: 0.25rem;
+	flex-wrap: nowrap;
+	white-space: nowrap;
+}
+
+.sequence-toolbar-button {
+	width: 2em;
+	padding: 0.25rem 0.5rem;
+	border: 1px solid var(--border);
+	border-radius: 4px;
+	background-color: var(--bg-secondary);
+	color: var(--text-primary);
+	font-size: 0.9em;
+	cursor: pointer;
+	transition: background-color 0.2s;
+}
+
+.sequence-toolbar-button:hover {
+	background-color: var(--border);
+}
+
+.sequence-toolbar-tooltip {
+	margin-top: 0.25rem;
+	font-size: 0.85em;
+	color: var(--text-secondary);
+	font-style: italic;
 }
