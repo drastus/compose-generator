@@ -63,7 +63,7 @@ export const defaultDiacriticMarks: DiacriticMark[] = [
 	{name: 'caron', mark: 'ˇ', key: '<'},
 	{name: 'dot below', mark: '̣', key: '!'},
 	{name: 'hook above', mark: '̉', key: '?'},
-	{name: 'hook', mark: '̡', key: '3'},
+	{name: 'hook', mark: '̡', key: '3'}, // also descender
 	{name: 'horn', mark: '̛', key: '9'},
 	{name: 'inverted breve', mark: '̑', key: ')'},
 	{name: 'double grave', mark: '̏', key: '``'},

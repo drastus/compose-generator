@@ -1,7 +1,7 @@
 import {Fragment, useState, useCallback, useMemo, useRef, useEffect} from 'react';
 import {buildName} from './utils/buildName';
 import {C, COMB, DIA, GREEK_LETTERS} from './constants';
-import {characters} from './data/names';
+import {characters as mainCharacters} from './data/names';
 import {defaultDiacriticMarkKeys, defaultDiacriticMarks, mapDiacriticParts, scriptPrefixes, scriptsGroups, specialChars, symbolsGroups} from './mappings';
 import {CharWithSeq, DiacriticMark, NameEntry} from './types';
 import AddingModal from './AddingModal';
@@ -32,7 +32,7 @@ type SetSelectionState = Record<string, Record<string, boolean | undefined>>;
 const initialSetSelection: SetSelectionState = {
 	latin: {base: true, ext: true, historic: false},
 	greek: {basic: true, base: false, historic: false},
-	cyrillic: {base: true},
+	cyrillic: {base: true, ext: false},
 	math_alphanumeric_symbols: {
 		mbs: false,
 		ms: false,
@@ -51,8 +51,8 @@ const initialSetSelection: SetSelectionState = {
 	},
 };
 
-const greekCodePoints = new Set((characters.greek ?? []).map((entry) => entry.cp));
-const cyrillicCodePoints = new Set((characters.cyrillic ?? []).map((entry) => entry.cp));
+const greekCodePoints = new Set((mainCharacters.greek ?? []).map((entry) => entry.cp));
+const cyrillicCodePoints = new Set((mainCharacters.cyrillic ?? []).map((entry) => entry.cp));
 
 const keySymNames: Record<string, string> = {
 	' ': 'space',
@@ -100,12 +100,12 @@ function App() {
 	const [modalContent, setModalContent] = useState('');
 	const [modalMode, setModalMode] = useState<'preview' | 'addSequence' | null>(null);
 	const [modalGroups, setModalGroups] = useState<string[]>([]);
-	const [availableCharacters, setAvailableCharacters] = useState<Record<string, NameEntry[]>>(characters);
+	const [availableCharacters, setAvailableCharacters] = useState<Record<string, NameEntry[]>>(mainCharacters);
 	const [diacriticMarks, setDiacriticMarks] = useState<DiacriticMark[]>(defaultDiacriticMarks);
 	const [customSequences, setCustomSequences] = useState<{key: string; seq: string}[]>([]);
 	const [prefixes, setPrefixes] = useState(defaultPrefixes);
 	const prevPrefixesRef = useRef(prefixes);
-	const defaultCharacters: Record<string, NameEntry[]> = Object.fromEntries(Object.entries(characters).map(([key, entries]) => [
+	const defaultCharacters: Record<string, NameEntry[]> = Object.fromEntries(Object.entries(mainCharacters).map(([key, entries]) => [
 		key,
 		entries.filter((entry) => {
 			if (!entry.set || entry.set.length === 0) return false;
@@ -162,7 +162,7 @@ function App() {
 
 	const setSelection = useMemo(() => computeSetSelection(selectedCharacters), [computeSetSelection, selectedCharacters]);
 
-	const buildSetSelection = useCallback(<K extends keyof SetSelectionState & keyof typeof characters>(
+	const buildSetSelection = useCallback(<K extends keyof SetSelectionState & keyof typeof mainCharacters>(
 		category: K,
 		selection: SetSelectionState[K],
 	) => availableCharacters[category].filter((entry) => {
@@ -237,20 +237,20 @@ function App() {
 	/* excluding Latin latters and digits */
 	const getMathAlphanumericSymbolBase = (entry: NameEntry) => {
 		const baseLetterName = entry.template![2];
-		if (baseLetterName === 'PARTIAL DIFFERENTIAL') return characters.math_operators.find((e) => e.cp === 0x2202);
-		if (baseLetterName === 'NABLA') return characters.math_operators.find((e) => e.cp === 0x2207);
-		if (baseLetterName === 'DOTLESS I') return characters.latin.find((e) => e.cp === 0x0131);
-		if (baseLetterName === 'DOTLESS J') return characters.latin.find((e) => e.cp === 0x0237);
-		if (baseLetterName === 'DIGAMMA' && entry.template?.[1] === C) return characters.greek.find((e) => e.cp === 0x03DC);
-		if (baseLetterName === 'THETA SYMBOL' && entry.template?.[1] === C) return characters.greek.find((e) => e.cp === 0x03F4);
+		if (baseLetterName === 'PARTIAL DIFFERENTIAL') return mainCharacters.math_operators.find((e) => e.cp === 0x2202);
+		if (baseLetterName === 'NABLA') return mainCharacters.math_operators.find((e) => e.cp === 0x2207);
+		if (baseLetterName === 'DOTLESS I') return mainCharacters.latin.find((e) => e.cp === 0x0131);
+		if (baseLetterName === 'DOTLESS J') return mainCharacters.latin.find((e) => e.cp === 0x0237);
+		if (baseLetterName === 'DIGAMMA' && entry.template?.[1] === C) return mainCharacters.greek.find((e) => e.cp === 0x03DC);
+		if (baseLetterName === 'THETA SYMBOL' && entry.template?.[1] === C) return mainCharacters.greek.find((e) => e.cp === 0x03F4);
 		if (GREEK_LETTERS.includes(baseLetterName) || baseLetterName === 'FINAL SIGMA' || baseLetterName === 'DIGAMMA') {
-			return characters.greek.find((e) =>
+			return mainCharacters.greek.find((e) =>
 				e.template?.[0] === 'GREEK LETTER'
 				&& e.template[1] === entry.template![1]
 				&& (e.end === baseLetterName || e.template[2] === baseLetterName)
 				&& e.defaultSeq?.toLowerCase().startsWith(defaultPrefixes.greek.char));
 		}
-		return characters.greek.find((e) => e.name?.endsWith(baseLetterName));
+		return mainCharacters.greek.find((e) => e.name?.endsWith(baseLetterName));
 	};
 
 	const getGreekSeq = useCallback((baseEntry: NameEntry, diacriticKeys: string, preprefix = '') => {
@@ -397,7 +397,7 @@ function App() {
 						const diacriticKeys = diacriticMarksForChar.map((mark: DiacriticMark | undefined) => mark!.key).join('');
 						if ((groupKey === 'greek' && entry.template[0] === 'GREEK LETTER')) {
 							const baseLetterName = entry.template[2];
-							const baseEntry = characters.greek.find((e) =>
+							const baseEntry = mainCharacters.greek.find((e) =>
 								e.template?.[0] === 'GREEK LETTER'
 								&& e.template[1] === entry.template![1]
 								&& (e.end === baseLetterName || e.template[2] === baseLetterName)
@@ -579,7 +579,7 @@ function App() {
 			const prevGroupEntries = prevChars[group] ?? [];
 
 			if (isTurningOn) {
-				const allEntriesForSet = (characters[group] ?? []).filter((entry) => (entry.set ?? []).includes(setKey as string));
+				const allEntriesForSet = (availableCharacters[group] ?? []).filter((entry) => (entry.set ?? []).includes(setKey as string));
 				const existingSet = new Set(prevGroupEntries.map((e) => e.cp));
 				const toAdd = allEntriesForSet.filter((entry) => !existingSet.has(entry.cp));
 				return {
@@ -918,6 +918,14 @@ function App() {
 										label='Basic Cyrillic'
 										description='Base Cyrillic letters.'
 										onChange={() => handleSetSelectionToggle('cyrillic', 'base')}
+									/>
+									<Checkbox
+										id='cyrillic-ext'
+										isChecked={setSelection.cyrillic.ext === true}
+										isIndeterminate={setSelection.cyrillic.ext === undefined}
+										label='Extended Cyrillic'
+										description='Extended Cyrillic letters.'
+										onChange={() => handleSetSelectionToggle('cyrillic', 'ext')}
 									/>
 								</div>
 								<div className='filters'>
