@@ -875,7 +875,7 @@ const latin: NameEntry[] = [
 	{cp: 0x028F, end: 'SMALL CAPITAL Y', template: [LL, _]},
 	{cp: 0x0290, end: 'Z WITH RETROFLEX HOOK', template: [LL, S]},
 	{cp: 0x0291, end: 'Z WITH CURL', template: [LL, S]},
-	{cp: 0x0292, end: 'EZH', template: [LL, S], set: ['ext'], defaultSeq: 'sh'},
+	{cp: 0x0292, end: 'EZH', template: [LL, S], set: ['ext'], defaultSeq: 'zh'},
 	{cp: 0x0293, end: 'EZH WITH CURL', template: [LL, S]},
 	{cp: 0x0294, end: 'GLOTTAL STOP', template: [LL, _]},
 	{cp: 0x0295, end: 'PHARYNGEAL VOICED FRICATIVE', template: [LL, _]},

@@ -52,6 +52,15 @@ const GREEK_DIACRITICS = [
 ];
 const GREEK_DIACRITICS_PATTERN = GREEK_DIACRITICS.join('|');
 
+const CYRILLIC_DIACRITICS = [
+	'DESCENDER',
+	'DIAERESIS',
+	'GRAVE',
+	'MACRON',
+	'STROKE',
+];
+const CYRILLIC_DIACRITICS_PATTERN = CYRILLIC_DIACRITICS.join('|');
+
 function fail(msg: string): never {
 	console.error(msg);
 	process.exit(1);
@@ -535,6 +544,8 @@ function generateFileContent(
 import {ML, DIA, COMB, LL, GL, ${Object.keys(mathematicalAlphanumericSymbolsGroups).join(', ')}} from '../constants';
 `);
 	} else if (categories[0] === 'cyrillic') {
+		const cyrillicConstants = CYRILLIC_DIACRITICS.map((c) => c.replace(/ /g, '_'));
+		lines.push(`import {${cyrillicConstants.join(', ')}} from '../constants';`);
 		lines.push(`${caseConstantsImport}
 import {CL} from '../constants';
 `);
@@ -548,10 +559,10 @@ import {CL} from '../constants';
 		sets: string[],
 		seqPart: string,
 		name: string,
-		script: 'LATIN' | 'GREEK',
+		script: 'LATIN' | 'GREEK' | 'CYRILLIC',
 		diacriticsPattern: string,
 	): boolean => {
-		const templateIdent = script === 'GREEK' ? 'GL' : 'LL';
+		const templateIdent = script === 'GREEK' ? 'GL' : script === 'CYRILLIC' ? 'CL' : 'LL';
 		const re = new RegExp(`^${script} ((CAPITAL|SMALL) )?LETTER ([A-Z0-9 -]+?)(?: WITH (${diacriticsPattern})(?: AND (${diacriticsPattern})(?: AND (${diacriticsPattern}))?)?)?$`);
 		const match = name.match(re);
 		if (!match) return false;
@@ -599,6 +610,7 @@ import {CL} from '../constants';
 
 			handled ||= addLetterEntry(lines, cpHex, sets, seqPart, name, 'LATIN', LATIN_DIACRITICS_PATTERN);
 			handled ||= addLetterEntry(lines, cpHex, sets, seqPart, name, 'GREEK', GREEK_DIACRITICS_PATTERN);
+			handled ||= addLetterEntry(lines, cpHex, sets, seqPart, name, 'CYRILLIC', CYRILLIC_DIACRITICS_PATTERN);
 
 			if (handled) {
 				continue;

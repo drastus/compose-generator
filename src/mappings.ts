@@ -4,6 +4,7 @@ import {
 	CIRCUMFLEX,
 	COMB,
 	DASIA,
+	DESCENDER,
 	DIA,
 	DIAERESIS,
 	DIALYTIKA,
@@ -63,7 +64,7 @@ export const defaultDiacriticMarks: DiacriticMark[] = [
 	{name: 'caron', mark: 'ˇ', key: '<'},
 	{name: 'dot below', mark: '̣', key: '!'},
 	{name: 'hook above', mark: '̉', key: '?'},
-	{name: 'hook', mark: '̡', key: '3'}, // also descender
+	{name: 'hook', mark: '̡', key: '3'},
 	{name: 'horn', mark: '̛', key: '9'},
 	{name: 'inverted breve', mark: '̑', key: ')'},
 	{name: 'double grave', mark: '̏', key: '``'},
@@ -92,6 +93,7 @@ export const mapDiacriticParts = (parts: string[]) => (
 		if (part === PERISPOMENI || part === CIRCUMFLEX) return 'circumflex';
 		if (part === VRACHY || part === BREVE) return 'breve';
 		if (part === YPOGEGRAMMENI || part === PROSGEGRAMMENI) return 'ypogegrammeni';
+		if (part === DESCENDER) return 'hook';
 		return part.toLowerCase().replace('_', ' ');
 	})
 );

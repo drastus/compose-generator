@@ -81,7 +81,6 @@ export default function CharactersTable({entries, allCharacters, customSequences
 					const isTouched = touchedInputs.has(key);
 					const customSeq = customSequences.find((cs) => cs.key === key)?.seq;
 					const displayValue = isTouched ? (customSeq ?? '') : (customSeq ?? e.seq ?? '');
-					const hasSequence = Boolean(customSeq);
 					const hasConflict = e.conflicts && e.conflicts.length > 0;
 					const tooltipText = getConflictTooltip(e.conflicts);
 

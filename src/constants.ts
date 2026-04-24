@@ -19,6 +19,7 @@ export const INVERTED_BREVE = 'INVERTED BREVE';
 export const DOUBLE_GRAVE = 'DOUBLE GRAVE';
 export const DOUBLE_ACUTE = 'DOUBLE ACUTE';
 export const COMMA_BELOW = 'COMMA BELOW';
+export const DESCENDER = 'DESCENDER';
 export const TONOS = 'TONOS';
 export const DIALYTIKA = 'DIALYTIKA';
 export const PSILI = 'PSILI';

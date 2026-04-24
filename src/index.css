@@ -370,3 +370,109 @@ button {
 	color: var(--text-secondary);
 	font-style: italic;
 }
+
+/* Diacritics table styles */
+.diacritics-table-wrapper {
+	overflow-x: auto;
+	margin: 1rem 0;
+}
+
+.diacritics-table {
+	border-collapse: collapse;
+	font-size: 14px;
+	table-layout: fixed;
+	width: max-content;
+}
+
+.diacritics-table th {
+	background: var(--bg-secondary);
+	font-weight: 500;
+	padding: 8px;
+	border: 1px solid var(--border);
+	text-align: center;
+}
+
+.diacritics-table td {
+	border: 1px solid var(--border);
+	padding: 4px;
+	text-align: center;
+	vertical-align: top;
+}
+
+/* Remove vertical border between lower- and uppercase cells */
+.diacritics-table td:nth-child(odd) {
+	border-left: none;
+}
+
+.diacritics-table td:nth-child(even):not(:first-child) {
+	border-right: none;
+}
+
+/* Remove vertical border between lower and upper header cells */
+.diacritics-table th:nth-child(even):not([colspan]) {
+	border-left: none;
+}
+
+.diacritics-table th:nth-child(odd):not([colspan]) {
+	border-right: none;
+}
+
+.diacritics-header {
+	font-size: 0.85em;
+	font-weight: 600;
+}
+
+.diacritics-case-header {
+	font-size: 0.75em;
+	font-weight: 400;
+	color: var(--text-secondary);
+	padding: 4px 8px;
+}
+
+.diacritics-base-letter {
+	font-weight: 500;
+	background: var(--bg-secondary);
+	white-space: nowrap;
+}
+
+.diacritics-cell-td {
+	padding: 8px 4px;
+}
+
+.diacritics-cell {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+}
+
+.diacritics-char {
+	width: 100%;
+	font-family: 'DejaVu Serif', 'Cambria Math', ui-sans-serif, system-ui;
+	font-size: 1.5em;
+	cursor: help;
+}
+
+.diacritics-input {
+	min-width: 50px;
+	max-width: 70px;
+	font-size: 0.75em;
+	padding: 2px 4px;
+}
+
+.view-toggle {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin: 1rem 0;
+	padding: 0.5rem;
+	background: var(--bg-secondary);
+	border-radius: 4px;
+}
+
+.view-toggle label {
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
+}

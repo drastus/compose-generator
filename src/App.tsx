@@ -7,6 +7,7 @@ import {CharWithSeq, DiacriticMark, NameEntry} from './types';
 import AddingModal from './AddingModal';
 import CharactersContainer from './CharactersContainer';
 import CharactersTable from './CharactersTable';
+import CharactersDiacriticsTable from './CharactersDiacriticsTable';
 import Checkbox from './Checkbox';
 import Footer from './Footer';
 import Modal from './Modal';
@@ -105,6 +106,11 @@ function App() {
 	const [customSequences, setCustomSequences] = useState<{key: string; seq: string}[]>([]);
 	const [prefixes, setPrefixes] = useState(defaultPrefixes);
 	const prevPrefixesRef = useRef(prefixes);
+	const [useDiacriticsView, setUseDiacriticsView] = useState<Record<'latin' | 'greek' | 'cyrillic', boolean>>({
+		latin: true,
+		greek: true,
+		cyrillic: true,
+	});
 	const defaultCharacters: Record<string, NameEntry[]> = Object.fromEntries(Object.entries(mainCharacters).map(([key, entries]) => [
 		key,
 		entries.filter((entry) => {
@@ -265,6 +271,18 @@ function App() {
 		return preprefix + prefix + diacriticKeys + coreSeq;
 	}, [prefixes.greek.cased, prefixes.greek.char]);
 
+	const getCyrillicSeq = useCallback((baseEntry: NameEntry, diacriticKeys: string, preprefix = '') => {
+		const firstChar = baseEntry.defaultSeq![0];
+		const isCapital = firstChar === firstChar.toUpperCase();
+		const coreSeq = prefixes.cyrillic.cased
+			? baseEntry.defaultSeq!.slice(1)
+			: baseEntry.altSeq?.slice(1) ?? baseEntry.defaultSeq!.slice(1);
+		const prefix = prefixes.cyrillic.cased && isCapital
+			? prefixes.cyrillic.char.toUpperCase()
+			: prefixes.cyrillic.char;
+		return preprefix + prefix + diacriticKeys + coreSeq;
+	}, [prefixes.cyrillic.cased, prefixes.cyrillic.char]);
+
 	const handleApplySequences = useCallback(() => {
 		setSelectedCharacters((prev) => {
 			const next = {...prev};
@@ -383,7 +401,7 @@ function App() {
 					entry.template && ((
 						entry.template.length >= 3
 						&& (entry.template[0].endsWith('LETTER') || entry.template[0].startsWith('MATHEMATICAL'))
-						&& (entry.template[2].length === 1 || entry.template[0] === 'GREEK LETTER')
+						&& (entry.template[2].length === 1 || entry.template[0] === 'GREEK LETTER' || entry.template[0] === 'CYRILLIC LETTER')
 					) || (
 						Object.keys(scriptPrefixes).includes(entry.template[0])
 					))
@@ -404,6 +422,16 @@ function App() {
 								&& e.defaultSeq?.toLowerCase().startsWith(defaultPrefixes.greek.char));
 							if (baseEntry?.defaultSeq) {
 								seq = getGreekSeq(baseEntry, diacriticKeys);
+							}
+						} else if ((groupKey === 'cyrillic' && entry.template[0] === 'CYRILLIC LETTER')) {
+							const baseLetterName = entry.template[2];
+							const baseEntry = selectedCharactersParam.cyrillic?.find((e) =>
+								e.template?.[0] === 'CYRILLIC LETTER'
+								&& e.template[1] === entry.template![1]
+								&& (e.end === baseLetterName || e.template[2] === baseLetterName)
+								&& e.defaultSeq?.toLowerCase().startsWith(defaultPrefixes.cyrillic.char));
+							if (baseEntry?.defaultSeq) {
+								seq = getCyrillicSeq(baseEntry, diacriticKeys);
 							}
 						} else if (groupKey === 'math_alphanumeric_symbols' && entry.template[2].length > 1) {
 							const baseEntry = getMathAlphanumericSymbolBase(entry);
@@ -452,7 +480,7 @@ function App() {
 		}
 
 		return result;
-	}, [diacriticMarks, getGreekSeq, prefixes, detectConflicts]);
+	}, [diacriticMarks, getGreekSeq, getCyrillicSeq, prefixes, detectConflicts]);
 
 	const selectedCharactersWithSequences = useMemo(
 		() => applySequencesToCharacters(selectedCharacters, customSequences, diacriticMarks),
@@ -719,69 +747,64 @@ function App() {
 						})}
 					</div>
 					<section>
-						<h3>Diacritic Marks</h3>
-						<table className='diacritic-table'>
-							<thead>
-								<tr>
-									<th>Name</th>
-									<th>Mark</th>
-									<th>Key</th>
-								</tr>
-							</thead>
-							<tbody>
-								{diacriticMarks.filter((mark) => mark.name !== 'ypogegrammeni' || setSelection.greek.historic !== false).map((mark, index) => (
-									<tr key={mark.name}>
-										<td>{mark.name}</td>
-										<td>{mark.mark}</td>
-										<td>
-											<input
-												type='text'
-												value={mark.key}
-												maxLength={2}
-												className='key-input'
-												onChange={(e) => handleDiacriticKeyChange(index, e.target.value)}
-											/>
-										</td>
+						<h3>Diacritic marks</h3>
+						<CharactersContainer
+							charactersNumber={selectedCharacters.modifier.length + selectedCharacters.combining.length}
+							onAddSequence={() => handleAddSequence(['modifier', 'combining'])}
+						>
+							<table className='diacritic-table'>
+								<thead>
+									<tr>
+										<th>Name</th>
+										<th>Mark</th>
+										<th>Key</th>
 									</tr>
-								))}
-							</tbody>
-						</table>
-					</section>
-					<section>
-						{selectedCharacters.modifier.length > 0 && (
-							<Fragment>
-								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
-									<h3>Modifier letters</h3>
-								</div>
-								<CharactersContainer
-									charactersNumber={selectedCharacters.modifier.length}
-									onAddSequence={() => handleAddSequence(['modifier'])}
-								>
-									<CharactersTable
-										entries={selectedCharactersWithSequences.modifier}
-										{...commonTableAttributes}
-									/>
-								</CharactersContainer>
-							</Fragment>
-						)}
-					</section>
-					<section>
-						{selectedCharacters.combining.length > 0 && (
-							<Fragment>
-								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
-									<h3>Combining diacritical marks</h3>
-								</div>
-								<CharactersContainer
-									charactersNumber={selectedCharacters.combining.length}
-									onAddSequence={() => handleAddSequence(['combining'])}
-								>
-									<CharactersTable
-										entries={selectedCharactersWithSequences.combining}
-										{...commonTableAttributes}
-									/>
-								</CharactersContainer>
-							</Fragment>
-						)}
+								</thead>
+								<tbody>
+									{diacriticMarks.filter((mark) => mark.name !== 'ypogegrammeni' || setSelection.greek.historic !== false).map((mark, index) => (
+										<tr key={mark.name}>
+											<td>{mark.name}</td>
+											<td>{mark.mark}</td>
+											<td>
+												<input
+													type='text'
+													value={mark.key}
+													maxLength={2}
+													className='key-input'
+													onChange={(e) => handleDiacriticKeyChange(index, e.target.value)}
+												/>
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+							<section>
+								{selectedCharacters.modifier.length > 0 && (
+									<Fragment>
+										<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
+											<h3>Modifier letters</h3>
+										</div>
+										<CharactersTable
+											entries={selectedCharactersWithSequences.modifier}
+											{...commonTableAttributes}
+										/>
+									</Fragment>
+								)}
+							</section>
+							<section>
+								{selectedCharacters.combining.length > 0 && (
+									<Fragment>
+										<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
+											<h3>Combining diacritical marks</h3>
+										</div>
+										<CharactersTable
+											entries={selectedCharactersWithSequences.combining}
+											{...commonTableAttributes}
+										/>
+									</Fragment>
+								)}
+							</section>
+						</CharactersContainer>
 					</section>
 					<section>
 						{selectedCharacters.latin.length > 0 && (
@@ -819,10 +842,32 @@ function App() {
 											onChange={() => handleSetSelectionToggle('latin', 'historic')}
 										/>
 									</div>
-									<CharactersTable
-										entries={selectedCharactersWithSequences.latin}
-										{...commonTableAttributes}
-									/>
+									<div className='view-toggle'>
+										<label htmlFor='latin-view-toggle'>
+											<input
+												id='latin-view-toggle'
+												type='checkbox'
+												checked={useDiacriticsView.latin}
+												onChange={(e) => setUseDiacriticsView((prev) => ({...prev, latin: e.target.checked}))}
+											/>
+											{' '}
+											Diacritics table view
+										</label>
+									</div>
+									{useDiacriticsView.latin
+										? (
+											<CharactersDiacriticsTable
+												entries={selectedCharactersWithSequences.latin}
+												selectedCharacters={selectedCharacters.latin}
+												{...commonTableAttributes}
+											/>
+										)
+										: (
+											<CharactersTable
+												entries={selectedCharactersWithSequences.latin}
+												{...commonTableAttributes}
+											/>
+										)}
 								</CharactersContainer>
 							</Fragment>
 						)}
@@ -893,10 +938,32 @@ function App() {
 											}))}
 										/>
 									</div>
-									<CharactersTable
-										entries={selectedCharactersWithSequences.greek}
-										{...commonTableAttributes}
-									/>
+									<div className='view-toggle'>
+										<label htmlFor='greek-view-toggle'>
+											<input
+												id='greek-view-toggle'
+												type='checkbox'
+												checked={useDiacriticsView.greek}
+												onChange={(e) => setUseDiacriticsView((prev) => ({...prev, greek: e.target.checked}))}
+											/>
+											{' '}
+											Diacritics table view
+										</label>
+									</div>
+									{useDiacriticsView.greek
+										? (
+											<CharactersDiacriticsTable
+												entries={selectedCharactersWithSequences.greek}
+												selectedCharacters={selectedCharacters.greek}
+												{...commonTableAttributes}
+											/>
+										)
+										: (
+											<CharactersTable
+												entries={selectedCharactersWithSequences.greek}
+												{...commonTableAttributes}
+											/>
+										)}
 								</CharactersContainer>
 							</Fragment>
 						)}
@@ -958,10 +1025,32 @@ function App() {
 										}))}
 									/>
 								</div>
-								<CharactersTable
-									entries={selectedCharactersWithSequences.cyrillic}
-									{...commonTableAttributes}
-								/>
+								<div className='view-toggle'>
+									<label htmlFor='cyrillic-view-toggle'>
+										<input
+											id='cyrillic-view-toggle'
+											type='checkbox'
+											checked={useDiacriticsView.cyrillic}
+											onChange={(e) => setUseDiacriticsView((prev) => ({...prev, cyrillic: e.target.checked}))}
+										/>
+										{' '}
+										Diacritics table view
+									</label>
+								</div>
+								{useDiacriticsView.cyrillic
+									? (
+										<CharactersDiacriticsTable
+											entries={selectedCharactersWithSequences.cyrillic}
+											selectedCharacters={selectedCharacters.cyrillic}
+											{...commonTableAttributes}
+										/>
+									)
+									: (
+										<CharactersTable
+											entries={selectedCharactersWithSequences.cyrillic}
+											{...commonTableAttributes}
+										/>
+									)}
 							</CharactersContainer>
 						</section>
 					)}
