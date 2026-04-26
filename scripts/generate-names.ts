@@ -162,6 +162,7 @@ const ALLOWED_BLOCKS = new Set<string>([
 	'Supplemental Arrows-B',
 	'Miscellaneous Mathematical Symbols-B',
 	'Supplemental Mathematical Operators',
+	'Variation Selectors',
 	'Mathematical Alphanumeric Symbols',
 	'Miscellaneous Symbols and Arrows',
 	'Miscellaneous Symbols and Pictographs',
@@ -225,7 +226,9 @@ function classify(blockName: string, generalCat: string, cp: number): string | u
 	// Modifier
 	if (generalCat === 'Lm' || generalCat === 'Sk') return 'modifier';
 	// Combining marks
-	if (generalCat === 'Mn' || generalCat === 'Mc' || generalCat === 'Me') return 'combining';
+	if ((generalCat === 'Mn' || generalCat === 'Mc' || generalCat === 'Me') && blockName !== 'Variation Selectors') {
+		return 'combining';
+	}
 	// Numbers
 	if (generalCat === 'Nd' || generalCat === 'Nl' || generalCat === 'No') return 'math_number';
 	// Punctuation
@@ -234,12 +237,20 @@ function classify(blockName: string, generalCat: string, cp: number): string | u
 	if (generalCat === 'Sm') return 'math_operators';
 	// Currency
 	if (generalCat === 'Sc') return 'currency';
+	// Emoji
+	if (generalCat === 'So' && (
+		blockName === 'Miscellaneous Symbols and Pictographs'
+		|| blockName === 'Emoticons'
+		|| blockName === 'Transport and Map Symbols'
+		|| blockName === 'Miscellaneous Symbols'
+		|| blockName === 'Dingbats'
+	)) return 'emoji';
 	// Symbols other
 	if (generalCat === 'So') return 'misc';
 	// Separators (spaces etc.)
 	if (generalCat.startsWith('Z')) return 'punctuation_separators';
 	// Format
-	if (generalCat === 'Cf') return 'format';
+	if (generalCat === 'Cf' || blockName === 'Variation Selectors') return 'format';
 	return undefined;
 }
 
@@ -492,6 +503,22 @@ const sets = {
 			[0x20BF, 0x20BF], // bitcoin sign
 		],
 	},
+	emoji: {
+		base: [
+			[0x1F603, 0x1F604],
+			[0x1F606, 0x1F606],
+			[0x1F609, 0x1F609],
+			[0x1F60E, 0x1F60E],
+			[0x1F610, 0x1F610],
+			[0x1F618, 0x1F618],
+			[0x1F61B, 0x1F61C],
+			[0x1F620, 0x1F620],
+			[0x1F622, 0x1F622],
+			[0x1F62E, 0x1F62E],
+			[0x1F641, 0x1F641],
+			[0x1F642, 0x1F642],
+		],
+	},
 	misc: {
 		base: [
 			[0x00A6, 0x00B0],
@@ -740,6 +767,7 @@ function main() {
 		'math_number',
 		'math_alphanumeric_symbols',
 		'currency',
+		'emoji',
 		'misc',
 		'format',
 	];

@@ -1324,6 +1324,24 @@ function App() {
 						)}
 					</section>
 					<section>
+						{selectedCharacters.emoji.length > 0 && (
+							<Fragment>
+								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
+									<h3>Emoji</h3>
+								</div>
+								<CharactersContainer
+									charactersNumber={selectedCharacters.emoji.length}
+									onAddSequence={() => handleAddSequence(['emoji'])}
+								>
+									<CharactersTable
+										entries={selectedCharactersWithSequences.emoji}
+										{...commonTableAttributes}
+									/>
+								</CharactersContainer>
+							</Fragment>
+						)}
+					</section>
+					<section>
 						{selectedCharacters.misc.length > 0 && (
 							<Fragment>
 								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
