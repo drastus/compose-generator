@@ -2,7 +2,7 @@ import {useState, useRef, useMemo, Fragment} from 'react';
 import {CharWithSeq, NameEntry} from './types';
 import SequenceToolbar from './SequenceToolbar';
 import CharactersTable from './CharactersTable';
-import {LL, GL, CL, C} from './constants';
+import {LL, GL, CL, C} from './constants/strings';
 
 function formatCodePoint(cp: number): string {
 	return 'U+' + cp.toString(16).toUpperCase().padStart(4, '0');
@@ -23,6 +23,7 @@ type CharactersDiacriticsTableProps = {
 	readonly customSequences: {key: string; seq: string}[],
 	readonly onSequenceChange: (_cpKey: string, _sequence: string) => void,
 	readonly onRemoveSequence?: (_cpKey: string) => void,
+	readonly onConflictDetection?: (_cpKey: string, _seq: string) => void,
 };
 
 type DiacriticColumn = {
@@ -42,6 +43,7 @@ export default function CharactersDiacriticsTable({
 	customSequences,
 	onSequenceChange,
 	onRemoveSequence,
+	onConflictDetection,
 }: CharactersDiacriticsTableProps) {
 	const [focusedInput, setFocusedInput] = useState<string | null>(null);
 	const [touchedInputs, setTouchedInputs] = useState<Set<string>>(new Set());
@@ -250,7 +252,11 @@ export default function CharactersDiacriticsTable({
 										setTouchedInputs((prev) => new Set(prev).add(key));
 									}}
 									onFocus={() => setFocusedInput(key)}
-									onBlur={() => setFocusedInput(null)}
+									onBlur={() => {
+										setFocusedInput(null);
+										const currentSeq = inputRefs.current.get(key)?.value ?? '';
+										if (currentSeq) onConflictDetection?.(key, currentSeq);
+									}}
 								/>
 								<span className='conflict-tooltip-text'>
 									Conflicts with:
@@ -273,7 +279,11 @@ export default function CharactersDiacriticsTable({
 									setTouchedInputs((prev) => new Set(prev).add(key));
 								}}
 								onFocus={() => setFocusedInput(key)}
-								onBlur={() => setFocusedInput(null)}
+								onBlur={() => {
+									setFocusedInput(null);
+									const currentSeq = inputRefs.current.get(key)?.value ?? '';
+									if (currentSeq) onConflictDetection?.(key, currentSeq);
+								}}
 							/>
 						)}
 					{focusedInput === key && (

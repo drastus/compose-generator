@@ -1,4 +1,4 @@
-import {_, C, S, DIGIT_NAMES} from '../constants';
+import {_, C, S, DIGIT_NAMES} from '../constants/strings';
 import {NameEntry} from '../types';
 
 const caseLabels = new Set([_, C, S]);

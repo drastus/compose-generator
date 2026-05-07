@@ -6,6 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "generate:names": "tsx scripts/generate-names.ts",
+    "generate:assigned-ranges": "tsx scripts/generate-assigned-ranges.ts",
     "start": "vite",
     "build": "vite build",
     "preview": "vite preview --port 5173",

@@ -48,7 +48,6 @@ export default [
 		files: ['**/*.ts', '**/*.tsx'],
 		languageOptions: {
 			parser: tsParser,
-			// Avoid requiring TS project references; keeps parsing lightweight
 			parserOptions: {},
 		},
 		rules: {},

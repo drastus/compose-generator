@@ -3,9 +3,9 @@
 
 import {NameEntry} from '../types';
 
-import {DESCENDER, DIAERESIS, GRAVE, MACRON, STROKE} from '../constants';
-import {_, C, S} from '../constants';
-import {CL} from '../constants';
+import {DESCENDER, DIAERESIS, GRAVE, MACRON, STROKE} from '../constants/strings';
+import {_, C, S} from '../constants/strings';
+import {COMB, CL} from '../constants/strings';
 
 const cyrillic: NameEntry[] = [
 	{cp: 0x0400, template: [CL, C, 'IE', GRAVE], set: ['base']},
@@ -138,6 +138,14 @@ const cyrillic: NameEntry[] = [
 	{cp: 0x047F, end: 'OT', template: [CL, S]},
 	{cp: 0x0480, end: 'KOPPA', template: [CL, C]},
 	{cp: 0x0481, end: 'KOPPA', template: [CL, S]},
+	{cp: 0x0482, name: 'CYRILLIC THOUSANDS SIGN', cat: 'misc'},
+	{cp: 0x0483, end: 'CYRILLIC TITLO', template: [COMB]},
+	{cp: 0x0484, end: 'CYRILLIC PALATALIZATION', template: [COMB]},
+	{cp: 0x0485, end: 'CYRILLIC DASIA PNEUMATA', template: [COMB]},
+	{cp: 0x0486, end: 'CYRILLIC PSILI PNEUMATA', template: [COMB]},
+	{cp: 0x0487, end: 'CYRILLIC POKRYTIE', template: [COMB]},
+	{cp: 0x0488, end: 'CYRILLIC HUNDRED THOUSANDS SIGN', template: [COMB]},
+	{cp: 0x0489, end: 'CYRILLIC MILLIONS SIGN', template: [COMB]},
 	{cp: 0x048A, end: 'SHORT I WITH TAIL', template: [CL, C]},
 	{cp: 0x048B, end: 'SHORT I WITH TAIL', template: [CL, S]},
 	{cp: 0x048C, end: 'SEMISOFT SIGN', template: [CL, C]},
@@ -256,54 +264,6 @@ const cyrillic: NameEntry[] = [
 	{cp: 0x04FD, end: 'HA WITH HOOK', template: [CL, S]},
 	{cp: 0x04FE, template: [CL, C, 'HA', STROKE]},
 	{cp: 0x04FF, template: [CL, S, 'HA', STROKE]},
-	{cp: 0x0500, end: 'KOMI DE', template: [CL, C]},
-	{cp: 0x0501, end: 'KOMI DE', template: [CL, S]},
-	{cp: 0x0502, end: 'KOMI DJE', template: [CL, C]},
-	{cp: 0x0503, end: 'KOMI DJE', template: [CL, S]},
-	{cp: 0x0504, end: 'KOMI ZJE', template: [CL, C]},
-	{cp: 0x0505, end: 'KOMI ZJE', template: [CL, S]},
-	{cp: 0x0506, end: 'KOMI DZJE', template: [CL, C]},
-	{cp: 0x0507, end: 'KOMI DZJE', template: [CL, S]},
-	{cp: 0x0508, end: 'KOMI LJE', template: [CL, C]},
-	{cp: 0x0509, end: 'KOMI LJE', template: [CL, S]},
-	{cp: 0x050A, end: 'KOMI NJE', template: [CL, C]},
-	{cp: 0x050B, end: 'KOMI NJE', template: [CL, S]},
-	{cp: 0x050C, end: 'KOMI SJE', template: [CL, C]},
-	{cp: 0x050D, end: 'KOMI SJE', template: [CL, S]},
-	{cp: 0x050E, end: 'KOMI TJE', template: [CL, C]},
-	{cp: 0x050F, end: 'KOMI TJE', template: [CL, S]},
-	{cp: 0x0510, end: 'REVERSED ZE', template: [CL, C]},
-	{cp: 0x0511, end: 'REVERSED ZE', template: [CL, S]},
-	{cp: 0x0512, end: 'EL WITH HOOK', template: [CL, C]},
-	{cp: 0x0513, end: 'EL WITH HOOK', template: [CL, S]},
-	{cp: 0x0514, end: 'LHA', template: [CL, C]},
-	{cp: 0x0515, end: 'LHA', template: [CL, S]},
-	{cp: 0x0516, end: 'RHA', template: [CL, C]},
-	{cp: 0x0517, end: 'RHA', template: [CL, S]},
-	{cp: 0x0518, end: 'YAE', template: [CL, C]},
-	{cp: 0x0519, end: 'YAE', template: [CL, S]},
-	{cp: 0x051A, end: 'QA', template: [CL, C]},
-	{cp: 0x051B, end: 'QA', template: [CL, S]},
-	{cp: 0x051C, end: 'WE', template: [CL, C]},
-	{cp: 0x051D, end: 'WE', template: [CL, S]},
-	{cp: 0x051E, end: 'ALEUT KA', template: [CL, C]},
-	{cp: 0x051F, end: 'ALEUT KA', template: [CL, S]},
-	{cp: 0x0520, end: 'EL WITH MIDDLE HOOK', template: [CL, C]},
-	{cp: 0x0521, end: 'EL WITH MIDDLE HOOK', template: [CL, S]},
-	{cp: 0x0522, end: 'EN WITH MIDDLE HOOK', template: [CL, C]},
-	{cp: 0x0523, end: 'EN WITH MIDDLE HOOK', template: [CL, S]},
-	{cp: 0x0524, template: [CL, C, 'PE', DESCENDER]},
-	{cp: 0x0525, template: [CL, S, 'PE', DESCENDER]},
-	{cp: 0x0526, template: [CL, C, 'SHHA', DESCENDER]},
-	{cp: 0x0527, template: [CL, S, 'SHHA', DESCENDER]},
-	{cp: 0x0528, end: 'EN WITH LEFT HOOK', template: [CL, C]},
-	{cp: 0x0529, end: 'EN WITH LEFT HOOK', template: [CL, S]},
-	{cp: 0x052A, end: 'DZZHE', template: [CL, C]},
-	{cp: 0x052B, end: 'DZZHE', template: [CL, S]},
-	{cp: 0x052C, end: 'DCHE', template: [CL, C]},
-	{cp: 0x052D, end: 'DCHE', template: [CL, S]},
-	{cp: 0x052E, template: [CL, C, 'EL', DESCENDER]},
-	{cp: 0x052F, template: [CL, S, 'EL', DESCENDER]},
 ];
 
 export const characters: Record<string, NameEntry[]> = {cyrillic};

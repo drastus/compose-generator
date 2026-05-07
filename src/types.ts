@@ -6,6 +6,7 @@ export type NameEntry = {
 	set?: string[],
 	defaultSeq?: string,
 	altSeq?: string,
+	cat?: string,
 };
 
 export type CharWithSeq = {

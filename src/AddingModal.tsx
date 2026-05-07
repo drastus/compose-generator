@@ -1,63 +1,48 @@
 import {Fragment, useMemo} from 'react';
 import CharactersTable from './CharactersTable';
-import {NameEntry} from './types';
+import {CharWithSeq} from './types';
 
 type AddingModalProps = {
-	readonly availableCharacters: Record<string, NameEntry[]>;
-	readonly selectedCharacters: Record<string, NameEntry[]>;
-	readonly modalGroups: string[];
+	readonly entries: CharWithSeq[];
+	readonly allCharacters: CharWithSeq[];
 	readonly customSequences: {key: string; seq: string}[];
 	readonly handleSequenceChange: (_cp: string, _sequence: string) => void;
 	readonly handleApplySequences: () => void;
 	readonly closeModal: () => void;
+	readonly onConflictDetection?: (_cpKey: string, _seq: string) => void;
 };
 
 function AddingModal({
-	availableCharacters,
-	selectedCharacters,
-	modalGroups,
+	entries,
+	allCharacters,
 	customSequences,
 	handleSequenceChange,
 	handleApplySequences,
 	closeModal,
+	onConflictDetection,
 }: AddingModalProps) {
-	const modalEntries = useMemo(
-		() => {
-			const result: NameEntry[] = [];
-			modalGroups.forEach((groupKey) => {
-				const all = availableCharacters[groupKey] ?? [];
-				const selectedSet = new Set((selectedCharacters[groupKey] ?? []).map((e) => e.cp));
-				all.forEach((entry) => {
-					if (!selectedSet.has(entry.cp)) {
-						result.push(entry);
-					}
-				});
-			});
-			return result;
-		},
-		[modalGroups, availableCharacters, selectedCharacters],
-	);
-
 	const hasPendingSequences = useMemo(
 		() => {
-			if (!modalEntries.length) return false;
-			const modalSet = new Set(modalEntries.map((e) => e.cp));
+			if (!entries.length) return false;
+			const entrySet = new Set(entries.map((e) => e.cp));
 			return customSequences.some((cs) => {
 				if (!cs.seq) return false;
 				const cp = Number(cs.key);
-				return modalSet.has(cp);
+				return entrySet.has(cp);
 			});
 		},
-		[modalEntries, customSequences],
+		[entries, customSequences],
 	);
 
 	return (
 		<Fragment>
 			<div className='modal-add-sequence-table'>
 				<CharactersTable
-					entries={modalEntries}
+					entries={entries}
+					allCharacters={allCharacters}
 					customSequences={customSequences}
 					onSequenceChange={handleSequenceChange}
+					onConflictDetection={onConflictDetection}
 				/>
 			</div>
 			<div className='modal-add-sequence-footer'>

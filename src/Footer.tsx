@@ -3,11 +3,13 @@ export default function Footer({
 	conflictCount,
 	onGenerate,
 	onPreview,
+	onAddAnyCharacter,
 }: {
 	readonly selectedCount: number;
 	readonly conflictCount: number;
 	readonly onGenerate: () => void;
 	readonly onPreview: () => void;
+	readonly onAddAnyCharacter: () => void;
 }) {
 	return (
 		<footer className='page-footer'>
@@ -20,6 +22,13 @@ export default function Footer({
 				)}
 			</div>
 			<div className='footer-actions'>
+				<button
+					type='button'
+					className='generate-button secondary'
+					onClick={onAddAnyCharacter}
+				>
+					Add sequence
+				</button>
 				<button
 					type='button'
 					className='generate-button secondary'

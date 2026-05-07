@@ -20,16 +20,16 @@ type CharactersTableProps = {
 	readonly customSequences: {key: string; seq: string}[],
 	readonly onSequenceChange: (_cpKey: string, _sequence: string) => void,
 	readonly onRemoveSequence?: (_cpKey: string) => void,
+	readonly onConflictDetection?: (_cpKey: string, _seq: string) => void,
 };
 
-export default function CharactersTable({entries, allCharacters, customSequences, onSequenceChange, onRemoveSequence}: CharactersTableProps) {
+export default function CharactersTable({entries, allCharacters, customSequences, onSequenceChange, onRemoveSequence, onConflictDetection}: CharactersTableProps) {
 	const [focusedInput, setFocusedInput] = useState<string | null>(null);
 	const [touchedInputs, setTouchedInputs] = useState<Set<string>>(new Set());
 	const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
 
 	const handleInsertChar = (cpKey: string, char: string) => {
 		const input = inputRefs.current.get(cpKey);
-		console.log('handleInsertChar', cpKey, char, input);
 		if (!input) return;
 
 		const start = input.selectionStart ?? 0;
@@ -105,7 +105,11 @@ export default function CharactersTable({entries, allCharacters, customSequences
 														setTouchedInputs((prev) => new Set(prev).add(key));
 													}}
 													onFocus={() => setFocusedInput(key)}
-													onBlur={() => setFocusedInput(null)}
+													onBlur={() => {
+														setFocusedInput(null);
+														const currentSeq = inputRefs.current.get(key)?.value ?? '';
+														if (currentSeq) onConflictDetection?.(key, currentSeq);
+													}}
 												/>
 												<span className='conflict-tooltip-text'>
 													Conflicts with:
@@ -128,7 +132,11 @@ export default function CharactersTable({entries, allCharacters, customSequences
 													setTouchedInputs((prev) => new Set(prev).add(key));
 												}}
 												onFocus={() => setFocusedInput(key)}
-												onBlur={() => setFocusedInput(null)}
+												onBlur={() => {
+													setFocusedInput(null);
+													const currentSeq = inputRefs.current.get(key)?.value ?? '';
+													if (currentSeq) onConflictDetection?.(key, currentSeq);
+												}}
 											/>
 										)}
 									{focusedInput === key && (

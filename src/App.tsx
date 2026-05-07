@@ -1,10 +1,14 @@
 import {Fragment, useState, useCallback, useMemo, useRef, useEffect} from 'react';
 import {buildName} from './utils/buildName';
-import {C, COMB, DIA, GREEK_LETTERS} from './constants';
+import {blockToGroup, groupPrimaryBlock} from './utils/blockToGroup';
+import {CORE_CATEGORIES} from './constants/lists';
+import {C, COMB, DIA, GREEK_LETTERS} from './constants/strings';
 import {characters as mainCharacters} from './data/names';
-import {defaultDiacriticMarkKeys, defaultDiacriticMarks, mapDiacriticParts, scriptPrefixes, scriptsGroups, specialChars, symbolsGroups} from './mappings';
+import {assignedRanges} from './data/assigned-ranges';
+import {defaultDiacriticMarkKeys, defaultDiacriticMarks, keySymNames, mapDiacriticParts, scriptPrefixes, scriptsGroups, specialChars, symbolsGroups} from './constants/mappings';
 import {CharWithSeq, DiacriticMark, NameEntry} from './types';
 import AddingModal from './AddingModal';
+import CharacterPickerModal from './CharacterPickerModal';
 import CharactersContainer from './CharactersContainer';
 import CharactersTable from './CharactersTable';
 import CharactersDiacriticsTable from './CharactersDiacriticsTable';
@@ -28,13 +32,29 @@ const uncasedPrefixOptions = latinPrefixLetters.flatMap((letter) => {
 	];
 });
 
+const formatScriptGroupName = (groupName: string): string => groupName
+	.split('_')
+	.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+	.join(' ');
+
+const findBlockNameForCp = (cp: number): string | null => {
+	for (const [blockName, ranges] of assignedRanges) {
+		for (const [start, end] of ranges) {
+			if (cp >= start && cp <= end) {
+				return blockName;
+			}
+		}
+	}
+	return null;
+};
+
 type SetSelectionState = Record<string, Record<string, boolean | undefined>>;
 
 const initialSetSelection: SetSelectionState = {
 	latin: {base: true, ext: true, historic: false},
 	greek: {basic: true, base: false, historic: false},
 	cyrillic: {base: true, ext: false},
-	math_alphanumeric_symbols: {
+	math_alphanumerics: {
 		mbs: false,
 		ms: false,
 		mbf: false,
@@ -55,53 +75,65 @@ const initialSetSelection: SetSelectionState = {
 const greekCodePoints = new Set((mainCharacters.greek ?? []).map((entry) => entry.cp));
 const cyrillicCodePoints = new Set((mainCharacters.cyrillic ?? []).map((entry) => entry.cp));
 
-const keySymNames: Record<string, string> = {
-	' ': 'space',
-	'!': 'exclam',
-	'"': 'quotedbl',
-	'#': 'numbersign',
-	$: 'dollar',
-	'%': 'percent',
-	'&': 'ampersand',
-	'\'': 'apostrophe',
-	'(': 'parenleft',
-	')': 'parenright',
-	'*': 'asterisk',
-	'+': 'plus',
-	',': 'comma',
-	'-': 'minus',
-	'.': 'period',
-	'/': 'slash',
-	':': 'colon',
-	';': 'semicolon',
-	'<': 'less',
-	'=': 'equal',
-	'>': 'greater',
-	'?': 'question',
-	'@': 'at',
-	'[': 'bracketleft',
-	'\\': 'backslash',
-	']': 'bracketright',
-	'^': 'asciicircum',
-	_: 'underscore',
-	'`': 'grave',
-	'{': 'braceleft',
-	'|': 'bar',
-	'}': 'braceright',
-	'~': 'asciitilde',
-};
-
 const defaultPrefixes = {
 	greek: {char: 'g', cased: true},
 	cyrillic: {char: 'c', cased: true},
 };
 
+function detectConflicts(allCharsWithSeq: CharWithSeq[]): Map<number, number[]> {
+	const conflicts = new Map<number, number[]>();
+	const seqMap = new Map<string, number[]>();
+
+	for (const char of allCharsWithSeq) {
+		if (!char.seq) continue;
+		const existing = seqMap.get(char.seq) || [];
+		seqMap.set(char.seq, [...existing, char.cp]);
+	}
+
+	for (const char of allCharsWithSeq) {
+		if (!char.seq) continue;
+		const conflictingCps = new Set<number>();
+
+		const duplicates = seqMap.get(char.seq) || [];
+		if (duplicates.length > 1) {
+			for (const cp of duplicates) {
+				if (cp !== char.cp) conflictingCps.add(cp);
+			}
+		}
+
+		for (const [otherSeq, otherCps] of seqMap.entries()) {
+			if (otherSeq === char.seq) continue;
+			if (otherSeq.startsWith(char.seq)) {
+				for (const cp of otherCps) conflictingCps.add(cp);
+			}
+		}
+
+		for (const [otherSeq, otherCps] of seqMap.entries()) {
+			if (otherSeq === char.seq) continue;
+			if (char.seq.startsWith(otherSeq)) {
+				for (const cp of otherCps) conflictingCps.add(cp);
+			}
+		}
+
+		if (conflictingCps.size > 0) {
+			conflicts.set(char.cp, Array.from(conflictingCps));
+		}
+	}
+
+	return conflicts;
+}
+
 function App() {
 	const [showModal, setShowModal] = useState(false);
 	const [modalContent, setModalContent] = useState('');
 	const [modalMode, setModalMode] = useState<'preview' | 'addSequence' | null>(null);
-	const [modalGroups, setModalGroups] = useState<string[]>([]);
+	const [pickerOpen, setPickerOpen] = useState(false);
+	const [pickerSection, setPickerSection] = useState<{label: string; keys: string[]} | undefined>(undefined);
+	const [pendingEntries, setPendingEntries] = useState<NameEntry[]>([]);
+	const [pendingEntryGroups, setPendingEntryGroups] = useState<Map<number, string>>(new Map());
+	const [pendingConflictMap, setPendingConflictMap] = useState<Map<number, number[]>>(new Map());
 	const [availableCharacters, setAvailableCharacters] = useState<Record<string, NameEntry[]>>(mainCharacters);
+	const [loadedBlocks, setLoadedBlocks] = useState<Set<string>>(new Set());
 	const [diacriticMarks, setDiacriticMarks] = useState<DiacriticMark[]>(defaultDiacriticMarks);
 	const [customSequences, setCustomSequences] = useState<{key: string; seq: string}[]>([]);
 	const [prefixes, setPrefixes] = useState(defaultPrefixes);
@@ -123,7 +155,7 @@ function App() {
 				const selection = initialSetSelection.greek;
 				return entry.set.some((s) => selection[s] ?? false);
 			}
-			if (key === 'math_alphanumeric_symbols') {
+			if (key === 'math_alphanumerics') {
 				return entry.set.includes('mds_base');
 			}
 			return entry.set.includes('base');
@@ -228,16 +260,62 @@ function App() {
 		(keys: (keyof typeof defaultCharacters)[]) => keys.some((k) => selectedCharacters[k]?.length > 0)
 	), [selectedCharacters]);
 
-	const handleAddSequence = useCallback((groups: string[]) => {
-		setModalMode('addSequence');
-		setModalGroups(groups);
-		setShowModal(true);
+	const handleOpenPicker = useCallback((section?: {label: string; keys: string[]}) => {
+		setPickerSection(section);
+		setPickerOpen(true);
 	}, []);
+
+	const handlePickerConfirm = useCallback((cps: number[]) => {
+		setPickerOpen(false);
+
+		const cpGroups = new Map<number, string>();
+
+		for (const cp of cps) {
+			// Check if character is in availableCharacters
+			let group: string | null = null;
+			for (const [groupKey, entries] of Object.entries(availableCharacters)) {
+				if (entries.some((entry) => entry.cp === cp)) {
+					group = groupKey;
+					break;
+				}
+			}
+
+			// If not found in availableCharacters, use blockToGroup
+			if (!group) {
+				const blockName = findBlockNameForCp(cp);
+				if (blockName) {
+					group = blockToGroup(blockName);
+				} else {
+					console.error(`No group found for code point ${cp}`);
+				}
+			}
+
+			if (group) {
+				cpGroups.set(cp, group);
+			}
+		}
+
+		const entries: NameEntry[] = cps.map((cp) => {
+			const group = cpGroups.get(cp)!;
+			const existing = (availableCharacters[group] ?? []).find((e) => e.cp === cp);
+			return existing ?? {
+				cp,
+				name: `U+${cp.toString(16).toUpperCase().padStart(4, '0')}`,
+			};
+		});
+
+		setPendingEntries(entries);
+		setPendingEntryGroups(cpGroups);
+		setModalMode('addSequence');
+		setShowModal(true);
+	}, [availableCharacters]);
 
 	const closeModal = useCallback(() => {
 		setShowModal(false);
 		setModalMode(null);
-		setModalGroups([]);
+		setPendingEntries([]);
+		setPendingEntryGroups(new Map());
+		setPendingConflictMap(new Map());
 	}, []);
 
 	/* excluding Latin latters and digits */
@@ -286,80 +364,26 @@ function App() {
 	const handleApplySequences = useCallback(() => {
 		setSelectedCharacters((prev) => {
 			const next = {...prev};
-			modalGroups.forEach((groupKey) => {
-				const all = availableCharacters[groupKey] ?? [];
-				if (!all.length) return;
-				const existingSet = new Set((next[groupKey] ?? []).map((e) => e.cp));
-				const toAdd = all.filter((entry) => {
-					if (existingSet.has(entry.cp)) return false;
-					const key = String(entry.cp);
-					const seq = customSequences.find((cs) => cs.key === key)?.seq ?? '';
-					return Boolean(seq);
-				});
-				if (toAdd.length > 0) {
-					next[groupKey] = [...(next[groupKey] ?? []), ...toAdd];
+			for (const entry of pendingEntries) {
+				const group = pendingEntryGroups.get(entry.cp);
+				if (!group) continue;
+				const key = String(entry.cp);
+				const seq = customSequences.find((cs) => cs.key === key)?.seq ?? '';
+				if (!seq) continue;
+				const existingList = next[group] ?? [];
+				const existingSet = new Set(existingList.map((e) => e.cp));
+				if (!existingSet.has(entry.cp)) {
+					next[group] = [...existingList, entry];
 				}
-			});
+			}
 			return next;
 		});
 		setShowModal(false);
 		setModalMode(null);
-		setModalGroups([]);
-	}, [availableCharacters, customSequences, modalGroups]);
-
-	const detectConflicts = useCallback((allCharsWithSeq: CharWithSeq[]): Map<number, number[]> => {
-		const conflicts = new Map<number, number[]>();
-		const seqMap = new Map<string, number[]>();
-
-		// Group characters by sequence
-		for (const char of allCharsWithSeq) {
-			if (!char.seq) continue;
-			const existing = seqMap.get(char.seq) || [];
-			seqMap.set(char.seq, [...existing, char.cp]);
-		}
-
-		// Check for conflicts
-		for (const char of allCharsWithSeq) {
-			if (!char.seq) continue;
-			const conflictingCps = new Set<number>();
-
-			// Check for exact duplicates
-			const duplicates = seqMap.get(char.seq) || [];
-			if (duplicates.length > 1) {
-				for (const cp of duplicates) {
-					if (cp !== char.cp) {
-						conflictingCps.add(cp);
-					}
-				}
-			}
-
-			// Check if this sequence is a prefix of another sequence
-			for (const [otherSeq, otherCps] of seqMap.entries()) {
-				if (otherSeq === char.seq) continue;
-				if (otherSeq.startsWith(char.seq)) {
-					for (const cp of otherCps) {
-						conflictingCps.add(cp);
-					}
-				}
-			}
-
-			// Check if another sequence is a prefix of this sequence
-			for (const [otherSeq, otherCps] of seqMap.entries()) {
-				if (otherSeq === char.seq) continue;
-				if (char.seq.startsWith(otherSeq)) {
-					for (const cp of otherCps) {
-						conflictingCps.add(cp);
-					}
-				}
-			}
-
-			if (conflictingCps.size > 0) {
-				conflicts.set(char.cp, Array.from(conflictingCps));
-			}
-		}
-
-		return conflicts;
-	}, []);
+		setPendingEntries([]);
+		setPendingEntryGroups(new Map());
+		setPendingConflictMap(new Map());
+	}, [customSequences, pendingEntries, pendingEntryGroups]);
 
 	const applySequencesToCharacters = useCallback((
 		selectedCharactersParam: Record<string, NameEntry[]>,
@@ -433,7 +457,7 @@ function App() {
 							if (baseEntry?.defaultSeq) {
 								seq = getCyrillicSeq(baseEntry, diacriticKeys);
 							}
-						} else if (groupKey === 'math_alphanumeric_symbols' && entry.template[2].length > 1) {
+						} else if (groupKey === 'math_alphanumerics' && entry.template[2].length > 1) {
 							const baseEntry = getMathAlphanumericSymbolBase(entry);
 							if (baseEntry) {
 								let preprefix = scriptPrefixes[entry.template[0] as keyof typeof scriptPrefixes];
@@ -480,12 +504,40 @@ function App() {
 		}
 
 		return result;
-	}, [diacriticMarks, getGreekSeq, getCyrillicSeq, prefixes, detectConflicts]);
+	}, [diacriticMarks, getGreekSeq, getCyrillicSeq, prefixes]);
 
 	const selectedCharactersWithSequences = useMemo(
 		() => applySequencesToCharacters(selectedCharacters, customSequences, diacriticMarks),
 		[selectedCharacters, customSequences, diacriticMarks, applySequencesToCharacters],
 	);
+
+	const pendingEntriesWithConflicts = useMemo(() =>
+		pendingEntries.map((entry) => ({
+			cp: entry.cp,
+			name: buildName(entry),
+			seq: customSequences.find((cs) => cs.key === String(entry.cp))?.seq ?? '',
+			conflicts: pendingConflictMap.get(entry.cp),
+		})),
+	[pendingEntries, customSequences, pendingConflictMap]);
+
+	const handleAddingModalConflictDetection = useCallback((cpKey: string, seq: string) => {
+		const cp = Number(cpKey);
+		const pendingChars: CharWithSeq[] = pendingEntries.map((entry) => ({
+			cp: entry.cp,
+			name: buildName(entry),
+			seq: entry.cp === cp ? seq : (customSequences.find((cs) => cs.key === String(entry.cp))?.seq ?? ''),
+		}));
+		const existingChars = Object.values(selectedCharactersWithSequences).flat();
+		const conflictMap = detectConflicts([...existingChars, ...pendingChars]);
+		const newPendingConflicts = new Map<number, number[]>();
+		for (const char of pendingChars) {
+			if (char.seq) {
+				const charConflicts = conflictMap.get(char.cp);
+				if (charConflicts) newPendingConflicts.set(char.cp, charConflicts);
+			}
+		}
+		setPendingConflictMap(newPendingConflicts);
+	}, [pendingEntries, customSequences, selectedCharactersWithSequences]);
 
 	useEffect(() => {
 		const prev = prevPrefixesRef.current;
@@ -572,7 +624,9 @@ function App() {
 					next.greek = currentlyChecked ? [] : buildSetSelection('greek', setSelection.greek);
 				} else {
 					if (!defaultCharacters[k]) {
-						import(`./data/names-${k}.ts`).then((mod) => {
+						const primaryBlock = groupPrimaryBlock[k];
+						const fileSlug = primaryBlock ? primaryBlock.replace(/ /g, '_') : k;
+						import(`./data/names-${fileSlug}.ts`).then((mod) => {
 							setAvailableCharacters((current) => ({
 								...current,
 								[k]: mod.characters[k] ?? [],
@@ -581,6 +635,9 @@ function App() {
 								...current,
 								[k]: currentlyChecked ? [] : (mod.characters[k] ?? []).filter((entry: NameEntry) => entry.set?.includes('base')),
 							}));
+							if (primaryBlock) {
+								setLoadedBlocks((current) => new Set(current).add(primaryBlock));
+							}
 						});
 						return;
 					}
@@ -714,6 +771,11 @@ function App() {
 		[selectedCharactersWithSequences],
 	);
 
+	const pickerSelectedCps = useMemo(
+		() => new Set(Object.values(selectedCharacters).flat().map((e) => e.cp)),
+		[selectedCharacters],
+	);
+
 	const commonTableAttributes = useMemo(() => ({
 		allCharacters,
 		customSequences,
@@ -750,7 +812,7 @@ function App() {
 						<h3>Diacritic marks</h3>
 						<CharactersContainer
 							charactersNumber={selectedCharacters.modifier.length + selectedCharacters.combining.length}
-							onAddSequence={() => handleAddSequence(['modifier', 'combining'])}
+							onAddSequence={() => handleOpenPicker({label: 'Diacritic marks', keys: ['modifier', 'combining']})}
 						>
 							<table className='diacritic-table'>
 								<thead>
@@ -810,11 +872,11 @@ function App() {
 						{selectedCharacters.latin.length > 0 && (
 							<Fragment>
 								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
-									<h3>Latin alphabet</h3>
+									<h3>Latin</h3>
 								</div>
 								<CharactersContainer
 									charactersNumber={selectedCharacters.latin.length}
-									onAddSequence={() => handleAddSequence(['latin'])}
+									onAddSequence={() => handleOpenPicker({label: 'Latin', keys: ['latin']})}
 								>
 									<div className='filters'>
 										<Checkbox
@@ -876,11 +938,11 @@ function App() {
 						{selectedCharacters.greek.length > 0 && (
 							<Fragment>
 								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
-									<h3>Greek alphabet</h3>
+									<h3>Greek</h3>
 								</div>
 								<CharactersContainer
 									charactersNumber={selectedCharacters.greek.length}
-									onAddSequence={() => handleAddSequence(['greek'])}
+									onAddSequence={() => handleOpenPicker({label: 'Greek', keys: ['greek']})}
 								>
 									<div className='filters'>
 										<Checkbox
@@ -975,7 +1037,7 @@ function App() {
 							</div>
 							<CharactersContainer
 								charactersNumber={selectedCharacters.cyrillic.length}
-								onAddSequence={() => handleAddSequence(['cyrillic'])}
+								onAddSequence={() => handleOpenPicker({label: 'Cyrillic alphabet', keys: ['cyrillic']})}
 							>
 								<div className='filters'>
 									<Checkbox
@@ -1054,6 +1116,24 @@ function App() {
 							</CharactersContainer>
 						</section>
 					)}
+					{Object.keys(selectedCharacters)
+						.filter((key) => ![...CORE_CATEGORIES, 'cyrillic'].includes(key) && selectedCharacters[key as keyof typeof selectedCharacters]?.length > 0)
+						.map((scriptKey) => (
+							<section key={scriptKey}>
+								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
+									<h3>{formatScriptGroupName(scriptKey)}</h3>
+								</div>
+								<CharactersContainer
+									charactersNumber={selectedCharacters[scriptKey as keyof typeof selectedCharacters]?.length ?? 0}
+									onAddSequence={() => handleOpenPicker({label: formatScriptGroupName(scriptKey), keys: [scriptKey]})}
+								>
+									<CharactersTable
+										entries={selectedCharactersWithSequences[scriptKey as keyof typeof selectedCharactersWithSequences] || []}
+										{...commonTableAttributes}
+									/>
+								</CharactersContainer>
+							</section>
+						))}
 				</section>
 				<section>
 					<h2>Symbols</h2>
@@ -1073,40 +1153,25 @@ function App() {
 						})}
 					</div>
 					<section>
-						{hasAnyInGroup(['punctuation_separators', 'punctuation']) && (
+						{hasAnyInGroup(['punctuation']) && (
 							<Fragment>
 								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
 									<h3>Punctuation</h3>
 								</div>
-								<section>
-									<h4>Separators</h4>
-									<CharactersContainer
-										charactersNumber={selectedCharacters.punctuation_separators.length}
-										onAddSequence={() => handleAddSequence(['punctuation_separators'])}
-									>
-										<CharactersTable
-											entries={selectedCharactersWithSequences.punctuation_separators}
-											{...commonTableAttributes}
-										/>
-									</CharactersContainer>
-								</section>
-								<section>
-									<h4>General</h4>
-									<CharactersContainer
-										charactersNumber={selectedCharacters.punctuation.length}
-										onAddSequence={() => handleAddSequence(['punctuation'])}
-									>
-										<CharactersTable
-											entries={selectedCharactersWithSequences.punctuation}
-											{...commonTableAttributes}
-										/>
-									</CharactersContainer>
-								</section>
+								<CharactersContainer
+									charactersNumber={selectedCharacters.punctuation.length}
+									onAddSequence={() => handleOpenPicker({label: 'Punctuation', keys: ['punctuation']})}
+								>
+									<CharactersTable
+										entries={selectedCharactersWithSequences.punctuation}
+										{...commonTableAttributes}
+									/>
+								</CharactersContainer>
 							</Fragment>
 						)}
 					</section>
 					<section>
-						{hasAnyInGroup(['math_operators', 'math_number', 'math_alphanumeric_symbols']) && (
+						{hasAnyInGroup(['math_operators', 'math_number', 'math_alphanumerics']) && (
 							<Fragment>
 								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
 									<h3>Mathematical symbols</h3>
@@ -1115,7 +1180,7 @@ function App() {
 									<h4>Operators</h4>
 									<CharactersContainer
 										charactersNumber={selectedCharacters.math_operators.length}
-										onAddSequence={() => handleAddSequence(['math_operators'])}
+										onAddSequence={() => handleOpenPicker({label: 'Operators', keys: ['math_operators']})}
 									>
 										<CharactersTable
 											entries={selectedCharactersWithSequences.math_operators}
@@ -1127,7 +1192,7 @@ function App() {
 									<h4>Numbers</h4>
 									<CharactersContainer
 										charactersNumber={selectedCharacters.math_number.length}
-										onAddSequence={() => handleAddSequence(['math_number'])}
+										onAddSequence={() => handleOpenPicker({label: 'Numbers', keys: ['math_number']})}
 									>
 										<CharactersTable
 											entries={selectedCharactersWithSequences.math_number}
@@ -1138,8 +1203,8 @@ function App() {
 								<section>
 									<h4>Alphanumeric symbols</h4>
 									<CharactersContainer
-										charactersNumber={selectedCharacters.math_alphanumeric_symbols.length}
-										onAddSequence={() => handleAddSequence(['math_alphanumeric_symbols'])}
+										charactersNumber={selectedCharacters.math_alphanumerics.length}
+										onAddSequence={() => handleOpenPicker({label: 'Alphanumeric symbols', keys: ['math_alphanumerics']})}
 									>
 										<div className='filters'>
 											<table>
@@ -1148,31 +1213,31 @@ function App() {
 													<td>
 														<Checkbox
 															id='math-alphanumeric-symbols-bold'
-															isChecked={setSelection.math_alphanumeric_symbols.mb === true}
-															isIndeterminate={setSelection.math_alphanumeric_symbols.mb === undefined}
+															isChecked={setSelection.math_alphanumerics.mb === true}
+															isIndeterminate={setSelection.math_alphanumerics.mb === undefined}
 															label='Bold'
 															description='Bold alphanumeric symbols.'
-															onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'mb')}
+															onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mb')}
 														/>
 													</td>
 													<td>
 														<Checkbox
 															id='math-alphanumeric-symbols-italic'
-															isChecked={setSelection.math_alphanumeric_symbols.mi === true}
-															isIndeterminate={setSelection.math_alphanumeric_symbols.mi === undefined}
+															isChecked={setSelection.math_alphanumerics.mi === true}
+															isIndeterminate={setSelection.math_alphanumerics.mi === undefined}
 															label='Italic'
 															description='Italic alphanumeric symbols.'
-															onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'mi')}
+															onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mi')}
 														/>
 													</td>
 													<td>
 														<Checkbox
 															id='math-alphanumeric-symbols-bold-italic'
-															isChecked={setSelection.math_alphanumeric_symbols.mbi === true}
-															isIndeterminate={setSelection.math_alphanumeric_symbols.mbi === undefined}
+															isChecked={setSelection.math_alphanumerics.mbi === true}
+															isIndeterminate={setSelection.math_alphanumerics.mbi === undefined}
 															label='Bold italic'
 															description='Bold italic alphanumeric symbols.'
-															onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'mbi')}
+															onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mbi')}
 														/>
 													</td>
 												</tr>
@@ -1180,41 +1245,41 @@ function App() {
 													<td>
 														<Checkbox
 															id='math-alphanumeric-symbols-sans-serif'
-															isChecked={setSelection.math_alphanumeric_symbols.mss === true}
-															isIndeterminate={setSelection.math_alphanumeric_symbols.mss === undefined}
+															isChecked={setSelection.math_alphanumerics.mss === true}
+															isIndeterminate={setSelection.math_alphanumerics.mss === undefined}
 															label='Sans-serif'
 															description='Sans-serif alphanumeric symbols.'
-															onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'mss')}
+															onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mss')}
 														/>
 													</td>
 													<td>
 														<Checkbox
 															id='math-alphanumeric-symbols-sans-serif-bold'
-															isChecked={setSelection.math_alphanumeric_symbols.mssb === true}
-															isIndeterminate={setSelection.math_alphanumeric_symbols.mssb === undefined}
+															isChecked={setSelection.math_alphanumerics.mssb === true}
+															isIndeterminate={setSelection.math_alphanumerics.mssb === undefined}
 															label='Sans-serif bold'
 															description='Sans-serif bold alphanumeric symbols.'
-															onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'mssb')}
+															onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mssb')}
 														/>
 													</td>
 													<td>
 														<Checkbox
 															id='math-alphanumeric-symbols-sans-serif-italic'
-															isChecked={setSelection.math_alphanumeric_symbols.mssi === true}
-															isIndeterminate={setSelection.math_alphanumeric_symbols.mssi === undefined}
+															isChecked={setSelection.math_alphanumerics.mssi === true}
+															isIndeterminate={setSelection.math_alphanumerics.mssi === undefined}
 															label='Sans-serif italic'
 															description='Sans-serif italic alphanumeric symbols.'
-															onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'mssi')}
+															onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mssi')}
 														/>
 													</td>
 													<td>
 														<Checkbox
 															id='math-alphanumeric-symbols-sans-serif-bold-italic'
-															isChecked={setSelection.math_alphanumeric_symbols.mssbi === true}
-															isIndeterminate={setSelection.math_alphanumeric_symbols.mssbi === undefined}
+															isChecked={setSelection.math_alphanumerics.mssbi === true}
+															isIndeterminate={setSelection.math_alphanumerics.mssbi === undefined}
 															label='Sans-serif bold italic'
 															description='Sans-serif bold italic alphanumeric symbols.'
-															onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'mssbi')}
+															onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mssbi')}
 														/>
 													</td>
 												</tr>
@@ -1222,21 +1287,21 @@ function App() {
 													<td>
 														<Checkbox
 															id='math-alphanumeric-symbols-script'
-															isChecked={setSelection.math_alphanumeric_symbols.ms === true}
-															isIndeterminate={setSelection.math_alphanumeric_symbols.ms === undefined}
+															isChecked={setSelection.math_alphanumerics.ms === true}
+															isIndeterminate={setSelection.math_alphanumerics.ms === undefined}
 															label='Script'
 															description='Script alphanumeric symbols.'
-															onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'ms')}
+															onChange={() => handleSetSelectionToggle('math_alphanumerics', 'ms')}
 														/>
 													</td>
 													<td>
 														<Checkbox
 															id='math-alphanumeric-symbols-script-bold'
-															isChecked={setSelection.math_alphanumeric_symbols.mbs === true}
-															isIndeterminate={setSelection.math_alphanumeric_symbols.mbs === undefined}
+															isChecked={setSelection.math_alphanumerics.mbs === true}
+															isIndeterminate={setSelection.math_alphanumerics.mbs === undefined}
 															label='Script bold'
 															description='Script bold alphanumeric symbols.'
-															onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'mbs')}
+															onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mbs')}
 														/>
 													</td>
 												</tr>
@@ -1244,21 +1309,21 @@ function App() {
 													<td>
 														<Checkbox
 															id='math-alphanumeric-symbols-fraktur'
-															isChecked={setSelection.math_alphanumeric_symbols.mf === true}
-															isIndeterminate={setSelection.math_alphanumeric_symbols.mf === undefined}
+															isChecked={setSelection.math_alphanumerics.mf === true}
+															isIndeterminate={setSelection.math_alphanumerics.mf === undefined}
 															label='Fraktur'
 															description='Fraktur alphanumeric symbols.'
-															onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'mf')}
+															onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mf')}
 														/>
 													</td>
 													<td>
 														<Checkbox
 															id='math-alphanumeric-symbols-fraktur-bold'
-															isChecked={setSelection.math_alphanumeric_symbols.mbf === true}
-															isIndeterminate={setSelection.math_alphanumeric_symbols.mbf === undefined}
+															isChecked={setSelection.math_alphanumerics.mbf === true}
+															isIndeterminate={setSelection.math_alphanumerics.mbf === undefined}
 															label='Fraktur bold'
 															description='Fraktur bold alphanumeric symbols.'
-															onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'mbf')}
+															onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mbf')}
 														/>
 													</td>
 												</tr>
@@ -1266,11 +1331,11 @@ function App() {
 													<td>
 														<Checkbox
 															id='math-alphanumeric-symbols-monospace'
-															isChecked={setSelection.math_alphanumeric_symbols.mm === true}
-															isIndeterminate={setSelection.math_alphanumeric_symbols.mm === undefined}
+															isChecked={setSelection.math_alphanumerics.mm === true}
+															isIndeterminate={setSelection.math_alphanumerics.mm === undefined}
 															label='Monospace'
 															description='Monospace alphanumeric symbols.'
-															onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'mm')}
+															onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mm')}
 														/>
 													</td>
 												</tr>
@@ -1278,26 +1343,26 @@ function App() {
 													<td>
 														<Checkbox
 															id='math-alphanumeric-symbols-double-struck'
-															isChecked={setSelection.math_alphanumeric_symbols.mds === true}
-															isIndeterminate={setSelection.math_alphanumeric_symbols.mds === undefined}
+															isChecked={setSelection.math_alphanumerics.mds === true}
+															isIndeterminate={setSelection.math_alphanumerics.mds === undefined}
 															label='Double-struck'
 															description='Double-struck alphanumeric symbols.'
-															onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'mds')}
+															onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mds')}
 														/>
 														<Checkbox
 															id='math-alphanumeric-symbols-double-struck-base'
-															isChecked={setSelection.math_alphanumeric_symbols.mds_base === true}
-															isIndeterminate={setSelection.math_alphanumeric_symbols.mds_base === undefined}
+															isChecked={setSelection.math_alphanumerics.mds_base === true}
+															isIndeterminate={setSelection.math_alphanumerics.mds_base === undefined}
 															label='Base double-struck'
 															description='Number sets symbols.'
-															onChange={() => handleSetSelectionToggle('math_alphanumeric_symbols', 'mds_base')}
+															onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mds_base')}
 														/>
 													</td>
 												</tr>
 											</table>
 										</div>
 										<CharactersTable
-											entries={selectedCharactersWithSequences.math_alphanumeric_symbols}
+											entries={selectedCharactersWithSequences.math_alphanumerics}
 											{...commonTableAttributes}
 										/>
 									</CharactersContainer>
@@ -1313,7 +1378,7 @@ function App() {
 								</div>
 								<CharactersContainer
 									charactersNumber={selectedCharacters.currency.length}
-									onAddSequence={() => handleAddSequence(['currency'])}
+									onAddSequence={() => handleOpenPicker({label: 'Currency', keys: ['currency']})}
 								>
 									<CharactersTable
 										entries={selectedCharactersWithSequences.currency}
@@ -1331,7 +1396,7 @@ function App() {
 								</div>
 								<CharactersContainer
 									charactersNumber={selectedCharacters.emoji.length}
-									onAddSequence={() => handleAddSequence(['emoji'])}
+									onAddSequence={() => handleOpenPicker({label: 'Emoji', keys: ['emoji']})}
 								>
 									<CharactersTable
 										entries={selectedCharactersWithSequences.emoji}
@@ -1349,7 +1414,7 @@ function App() {
 								</div>
 								<CharactersContainer
 									charactersNumber={selectedCharacters.misc.length}
-									onAddSequence={() => handleAddSequence(['misc'])}
+									onAddSequence={() => handleOpenPicker({label: 'Miscellaneous', keys: ['misc']})}
 								>
 									<CharactersTable
 										entries={selectedCharactersWithSequences.misc}
@@ -1367,7 +1432,7 @@ function App() {
 								</div>
 								<CharactersContainer
 									charactersNumber={selectedCharacters.format.length}
-									onAddSequence={() => handleAddSequence(['format'])}
+									onAddSequence={() => handleOpenPicker({label: 'Format', keys: ['format']})}
 								>
 									<CharactersTable
 										entries={selectedCharactersWithSequences.format}
@@ -1384,7 +1449,25 @@ function App() {
 				conflictCount={conflictCount}
 				onGenerate={handleGenerate}
 				onPreview={handlePreview}
+				onAddAnyCharacter={() => handleOpenPicker()}
 			/>
+			<Modal
+				isOpen={pickerOpen}
+				title='Add sequence'
+				contentClassName='picker-modal-content'
+				onClose={() => setPickerOpen(false)}
+			>
+				<CharacterPickerModal
+					availableCharacters={availableCharacters}
+					loadedBlocks={loadedBlocks}
+					restrictToSection={pickerSection}
+					selectedCps={pickerSelectedCps}
+					closeModal={() => setPickerOpen(false)}
+					onAvailableCharactersChange={setAvailableCharacters}
+					onBlockLoaded={(blockName) => setLoadedBlocks((prev) => new Set(prev).add(blockName))}
+					onConfirm={handlePickerConfirm}
+				/>
+			</Modal>
 			<Modal
 				isOpen={showModal}
 				title={modalMode === 'addSequence' ? 'Add sequences' : 'Generated Compose sequences'}
@@ -1393,13 +1476,13 @@ function App() {
 				{modalMode === 'addSequence'
 					? (
 						<AddingModal
-							availableCharacters={availableCharacters}
-							selectedCharacters={selectedCharacters}
-							modalGroups={modalGroups}
+							entries={pendingEntriesWithConflicts}
+							allCharacters={[...allCharacters, ...pendingEntriesWithConflicts]}
 							customSequences={customSequences}
 							handleApplySequences={handleApplySequences}
 							handleSequenceChange={handleSequenceChange}
 							closeModal={closeModal}
+							onConflictDetection={handleAddingModalConflictDetection}
 						/>
 					)
 					: (

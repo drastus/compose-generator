@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {specialChars} from './mappings';
+import {specialChars} from './constants/mappings';
 
 type SequenceToolbarProps = {
 	readonly onInsert: (_char: string) => void;

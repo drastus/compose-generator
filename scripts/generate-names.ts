@@ -7,7 +7,10 @@ import path from 'node:path';
 import process from 'node:process';
 import {fileURLToPath} from 'node:url';
 import {parse} from 'csv-parse/sync';
-import {DIGIT_NAMES} from '../src/constants';
+import {DIGIT_NAMES} from '../src/constants/strings';
+import {ALLOWED_BLOCKS, CORE_BLOCKS, CORE_CATEGORIES} from '../src/constants/lists';
+import {blockToGroup} from '../src/utils/blockToGroup';
+import classify, {classifyAsCore, scatteredMathematicalAlphanumericSymbols} from '../src/utils/classify';
 
 const DIGIT_NAMES_VALUES = Object.fromEntries(Object.entries(DIGIT_NAMES).map(([k, v]) => [v, k]));
 
@@ -131,45 +134,6 @@ function loadBlocks(blocksPath: string): BlockRange[] {
 	return ranges;
 }
 
-const ALLOWED_BLOCKS = new Set<string>([
-	'Basic Latin',
-	'Latin-1 Supplement',
-	'Latin Extended-A',
-	'Latin Extended-B',
-	'IPA Extensions',
-	'Spacing Modifier Letters',
-	'Combining Diacritical Marks',
-	'Greek and Coptic',
-	'Cyrillic',
-	'Cyrillic Supplement',
-	'Combining Diacritical Marks Supplement',
-	'Latin Extended Additional',
-	'Greek Extended',
-	'General Punctuation',
-	'Superscripts and Subscripts',
-	'Currency Symbols',
-	'Combining Diacritical Marks for Symbols',
-	'Letterlike Symbols',
-	'Number Forms',
-	'Arrows',
-	'Mathematical Operators',
-	'Miscellaneous Technical',
-	'Geometric Shapes',
-	'Miscellaneous Symbols',
-	'Dingbats',
-	'Miscellaneous Mathematical Symbols-A',
-	'Supplemental Arrows-A',
-	'Supplemental Arrows-B',
-	'Miscellaneous Mathematical Symbols-B',
-	'Supplemental Mathematical Operators',
-	'Variation Selectors',
-	'Mathematical Alphanumeric Symbols',
-	'Miscellaneous Symbols and Arrows',
-	'Miscellaneous Symbols and Pictographs',
-	'Emoticons',
-	'Transport and Map Symbols',
-]);
-
 const mathematicalAlphanumericSymbolsGroups = {
 	MBS: 'MATHEMATICAL BOLD SCRIPT',
 	MS: 'MATHEMATICAL SCRIPT',
@@ -186,76 +150,8 @@ const mathematicalAlphanumericSymbolsGroups = {
 	MM: 'MATHEMATICAL MONOSPACE',
 };
 
-const scatteredMathematicalAlphanumericSymbols = [
-	{cp: 0x2102, template: ['MDS', 'C', 'C']},
-	{cp: 0x210A, template: ['MS', 'S', 'G']},
-	{cp: 0x210B, template: ['MS', 'C', 'H']},
-	{cp: 0x210C, template: ['MF', 'C', 'H']},
-	{cp: 0x210D, template: ['MDS', 'C', 'H']},
-	{cp: 0x210E, template: ['MI', 'S', 'H']},
-	{cp: 0x2110, template: ['MS', 'C', 'I']},
-	{cp: 0x2111, template: ['MF', 'C', 'I']},
-	{cp: 0x2112, template: ['MS', 'C', 'L']},
-	{cp: 0x2115, template: ['MDS', 'C', 'N']},
-	{cp: 0x2119, template: ['MDS', 'C', 'P']},
-	{cp: 0x211A, template: ['MDS', 'C', 'Q']},
-	{cp: 0x211B, template: ['MS', 'C', 'R']},
-	{cp: 0x211D, template: ['MDS', 'C', 'R']},
-	{cp: 0x2124, template: ['MDS', 'C', 'Z']},
-	{cp: 0x2128, template: ['MF', 'C', 'Z']},
-	{cp: 0x212C, template: ['MF', 'C', 'B']},
-	{cp: 0x212D, template: ['MF', 'C', 'C']},
-	{cp: 0x212F, template: ['MS', 'S', 'E']},
-	{cp: 0x2130, template: ['MS', 'C', 'E']},
-	{cp: 0x2131, template: ['MS', 'C', 'F']},
-	{cp: 0x2133, template: ['MS', 'C', 'M']},
-	{cp: 0x2134, template: ['MS', 'S', 'O']},
-];
-
-function classify(blockName: string, generalCat: string, cp: number): string | undefined {
-	// Mathematical alphanumeric symbols
-	if (blockName === 'Mathematical Alphanumeric Symbols' || scatteredMathematicalAlphanumericSymbols.some((s) => s.cp === cp)) {
-		return 'math_alphanumeric_symbols';
-	}
-	// Letters
-	if (generalCat === 'Lu' || generalCat === 'Ll' || generalCat === 'Lt' || generalCat === 'Lo') {
-		if (blockName === 'Greek and Coptic' || blockName === 'Greek Extended') return 'greek';
-		if (blockName === 'Cyrillic' || blockName === 'Cyrillic Supplement') return 'cyrillic';
-		return 'latin';
-	}
-	// Modifier
-	if (generalCat === 'Lm' || generalCat === 'Sk') return 'modifier';
-	// Combining marks
-	if ((generalCat === 'Mn' || generalCat === 'Mc' || generalCat === 'Me') && blockName !== 'Variation Selectors') {
-		return 'combining';
-	}
-	// Numbers
-	if (generalCat === 'Nd' || generalCat === 'Nl' || generalCat === 'No') return 'math_number';
-	// Punctuation
-	if (generalCat.startsWith('P')) return 'punctuation';
-	// Math operators
-	if (generalCat === 'Sm') return 'math_operators';
-	// Currency
-	if (generalCat === 'Sc') return 'currency';
-	// Emoji
-	if (generalCat === 'So' && (
-		blockName === 'Miscellaneous Symbols and Pictographs'
-		|| blockName === 'Emoticons'
-		|| blockName === 'Transport and Map Symbols'
-		|| blockName === 'Miscellaneous Symbols'
-		|| blockName === 'Dingbats'
-	)) return 'emoji';
-	// Symbols other
-	if (generalCat === 'So') return 'misc';
-	// Separators (spaces etc.)
-	if (generalCat.startsWith('Z')) return 'punctuation_separators';
-	// Format
-	if (generalCat === 'Cf' || blockName === 'Variation Selectors') return 'format';
-	return undefined;
-}
-
 const orderingOverrides: Record<string, {cp: number; after: number}[]> = {
-	math_alphanumeric_symbols: [
+	math_alphanumerics: [
 		{cp: 0x2102, after: 0x1D539},
 		{cp: 0x210A, after: 0x1D4BB},
 		{cp: 0x210B, after: 0x1D4A2},
@@ -444,13 +340,9 @@ const sets = {
 			[0x04EE, 0x04EF],
 		],
 	},
-	punctuation_separators: {
-		base: [
-			[0x00A0, 0x00A0],
-		],
-	},
 	punctuation: {
 		base: [
+			[0x00A0, 0x00A0],
 			[0x00A1, 0x00BF],
 			[0x2010, 0x2014],
 			[0x2018, 0x2022],
@@ -486,7 +378,7 @@ const sets = {
 			[0x00B2, 0x215E],
 		],
 	},
-	math_alphanumeric_symbols: {
+	math_alphanumerics: {
 		mds_base: [
 			[0x2102],
 			[0x210D],
@@ -524,6 +416,7 @@ const sets = {
 			[0x00A6, 0x00B0],
 			[0x2116, 0x2116], // number sign
 			[0x2122, 0x2122], // trade mark sign
+			[0x2300, 0x2300], // diameter
 		],
 	},
 	format: {
@@ -552,8 +445,9 @@ function getSetsForCodePoint(cp: number, category: string): string[] {
 
 function generateFileContent(
 	categories: string[],
-	built: Record<string, {cp: number; name: string}[]>,
+	built: Record<string, {cp: number; name: string; cat?: string}[]>,
 	sequences: Map<number, {defaultSeq: string; altSeq?: string}>,
+	runtimeGroup?: string,
 ): string {
 	const lines: string[] = [];
 
@@ -562,19 +456,25 @@ function generateFileContent(
 	lines.push('// Do not edit this file directly.\n');
 	lines.push('import {NameEntry} from \'../types\';\n');
 
-	const caseConstantsImport = 'import {_, C, S} from \'../constants\';';
+	const caseConstantsImport = 'import {_, C, S} from \'../constants/strings\';';
 
 	if (categories.length > 1) { // Constants for main names.ts
 		const constants = Array.from(new Set([...LATIN_DIACRITICS, ...GREEK_DIACRITICS]));
-		lines.push(`import {${constants.map((c) => c.replace(/ /g, '_')).join(', ')}} from '../constants';`);
+		lines.push(`import {${constants.map((c) => c.replace(/ /g, '_')).join(', ')}} from '../constants/strings';`);
 		lines.push(`${caseConstantsImport}
-import {ML, DIA, COMB, LL, GL, ${Object.keys(mathematicalAlphanumericSymbolsGroups).join(', ')}} from '../constants';
+import {ML, DIA, COMB, LL, GL, ${Object.keys(mathematicalAlphanumericSymbolsGroups).join(', ')}} from '../constants/strings';
 `);
-	} else if (categories[0] === 'cyrillic') {
-		const cyrillicConstants = CYRILLIC_DIACRITICS.map((c) => c.replace(/ /g, '_'));
-		lines.push(`import {${cyrillicConstants.join(', ')}} from '../constants';`);
+	} else if (runtimeGroup === 'cyrillic') {
+		const allEntries = Object.values(built).flat();
+		const cyrillicConstantNames = CYRILLIC_DIACRITICS.map((c) => c.replace(/ /g, '_'));
+		const usedDiacritics = cyrillicConstantNames.filter((dc) => allEntries.some(({name}) => new RegExp(`WITH ${dc.replace('_', ' ')}\\b`).test(name)));
+		const needsComb = allEntries.some(({name}) => name.startsWith('COMBINING '));
+		if (usedDiacritics.length > 0) {
+			lines.push(`import {${usedDiacritics.join(', ')}} from '../constants/strings';`);
+		}
+		const clImport = needsComb ? 'COMB, CL' : 'CL';
 		lines.push(`${caseConstantsImport}
-import {CL} from '../constants';
+import {${clImport}} from '../constants/strings';
 `);
 	}
 
@@ -618,11 +518,11 @@ import {CL} from '../constants';
 		return true;
 	};
 
-	const addEntries = (key: string, entries: {cp: number; name: string}[]) => {
+	const addEntries = (key: string, entries: {cp: number; name: string; cat?: string}[]) => {
 		if (entries.length === 0) return;
 
 		lines.push(`const ${key}: NameEntry[] = [`);
-		for (const {cp, name} of entries) {
+		for (const {cp, name, cat} of entries) {
 			const cpHex = '0x' + cp.toString(16).toUpperCase().padStart(4, '0');
 			const sets = getSetsForCodePoint(cp, key);
 			const seqInfo = sequences.get(cp);
@@ -633,11 +533,13 @@ import {CL} from '../constants';
 					seqPart += `, altSeq: '${escapeTSString(seqInfo.altSeq)}'`;
 				}
 			}
+			const catPart = cat ? `, cat: '${cat}'` : '';
+			const trailingPart = seqPart + catPart;
 			let handled = false;
 
-			handled ||= addLetterEntry(lines, cpHex, sets, seqPart, name, 'LATIN', LATIN_DIACRITICS_PATTERN);
-			handled ||= addLetterEntry(lines, cpHex, sets, seqPart, name, 'GREEK', GREEK_DIACRITICS_PATTERN);
-			handled ||= addLetterEntry(lines, cpHex, sets, seqPart, name, 'CYRILLIC', CYRILLIC_DIACRITICS_PATTERN);
+			handled ||= addLetterEntry(lines, cpHex, sets, trailingPart, name, 'LATIN', LATIN_DIACRITICS_PATTERN);
+			handled ||= addLetterEntry(lines, cpHex, sets, trailingPart, name, 'GREEK', GREEK_DIACRITICS_PATTERN);
+			handled ||= addLetterEntry(lines, cpHex, sets, trailingPart, name, 'CYRILLIC', CYRILLIC_DIACRITICS_PATTERN);
 
 			if (handled) {
 				continue;
@@ -647,30 +549,30 @@ import {CL} from '../constants';
 				const [, caseLabel] = name.match(/CYRILLIC (CAPITAL|SMALL) LETTER /) as [string, 'CAPITAL' | 'SMALL'];
 				const end = name.substring(`CYRILLIC ${caseLabel} LETTER `.length);
 				const endingEsc = escapeTSString(end);
-				lines.push(`\t{cp: ${cpHex}, template: [CL, ${caseLabel === 'CAPITAL' ? 'C' : 'S'}, '${endingEsc}']${setsPart(sets)}${seqPart}},`);
+				lines.push(`\t{cp: ${cpHex}, template: [CL, ${caseLabel === 'CAPITAL' ? 'C' : 'S'}, '${endingEsc}']${setsPart(sets)}${trailingPart}},`);
 			} else if (name.startsWith('MODIFIER LETTER ')) {
 				const end = name.substring('MODIFIER LETTER '.length);
 				const endingEsc = escapeTSString(end);
-				lines.push(`\t{cp: ${cpHex}, template: [ML, '${endingEsc}']${setsPart(sets)}${seqPart}},`);
+				lines.push(`\t{cp: ${cpHex}, template: [ML, '${endingEsc}']${setsPart(sets)}${trailingPart}},`);
 			} else if (name.startsWith('COMBINING ')) {
 				const end = name.substring('COMBINING '.length);
 				const match = end.match(`^(${LATIN_DIACRITICS_PATTERN}|${GREEK_DIACRITICS_PATTERN})( ACCENT)?$`);
 				if (match) {
 					const diacriticName = match[1].replace(' ', '_');
-					lines.push(`\t{cp: ${cpHex}, template: [COMB, ${diacriticName}]${setsPart(sets)}${seqPart}},`);
+					lines.push(`\t{cp: ${cpHex}, template: [COMB, ${diacriticName}]${setsPart(sets)}${trailingPart}},`);
 				} else {
 					const endingEsc = escapeTSString(end);
-					lines.push(`\t{cp: ${cpHex}, end: '${endingEsc}', template: [COMB]${setsPart(sets)}${seqPart}},`);
+					lines.push(`\t{cp: ${cpHex}, end: '${endingEsc}', template: [COMB]${setsPart(sets)}${trailingPart}},`);
 				}
 			} else if (key === 'modifier') {
 				const match = name.match(`^(${LATIN_DIACRITICS_PATTERN}|${GREEK_DIACRITICS_PATTERN})( ACCENT)?$`);
 				if (match) {
 					const diacriticName = match[1].replace(' ', '_');
 					const accentString = match[2] ? '\'ACCENT\'' : '';
-					lines.push(`\t{cp: ${cpHex}, template: [DIA, ${diacriticName}${accentString ? `, ${accentString}` : ''}]${setsPart(sets)}${seqPart}},`);
+					lines.push(`\t{cp: ${cpHex}, template: [DIA, ${diacriticName}${accentString ? `, ${accentString}` : ''}]${setsPart(sets)}${trailingPart}},`);
 				} else {
 					const nameEsc = escapeTSString(name);
-					lines.push(`\t{cp: ${cpHex}, name: '${nameEsc}'${setsPart(sets)}${seqPart}},`);
+					lines.push(`\t{cp: ${cpHex}, name: '${nameEsc}'${setsPart(sets)}${trailingPart}},`);
 				}
 			} else {
 				const nameEsc = escapeTSString(name);
@@ -687,7 +589,7 @@ import {CL} from '../constants';
 							end = DIGIT_NAMES_VALUES[digitMatch[1] as keyof typeof DIGIT_NAMES_VALUES];
 						}
 						sets.push(key.toLowerCase());
-						lines.push(`\t{cp: ${cpHex}, template: [${key}, ${caseIdent}, '${end}']${setsPart(sets)}${seqPart}},`);
+						lines.push(`\t{cp: ${cpHex}, template: [${key}, ${caseIdent}, '${end}']${setsPart(sets)}${trailingPart}},`);
 						handled = true;
 					}
 				});
@@ -696,11 +598,11 @@ import {CL} from '../constants';
 					if (scatteredSymbol) {
 						const template = `[${scatteredSymbol.template[0]}, ${scatteredSymbol.template[1]}, '${scatteredSymbol.template[2]}']`;
 						sets.push(scatteredSymbol.template[0].toLowerCase());
-						lines.push(`\t{cp: ${cpHex}, name: '${nameEsc}', template: ${template}${setsPart(sets)}${seqPart}},`);
+						lines.push(`\t{cp: ${cpHex}, name: '${nameEsc}', template: ${template}${setsPart(sets)}${trailingPart}},`);
 						handled = true;
 					}
 				}
-				if (!handled) lines.push(`\t{cp: ${cpHex}, name: '${nameEsc}'${setsPart(sets)}${seqPart}},`);
+				if (!handled) lines.push(`\t{cp: ${cpHex}, name: '${nameEsc}'${setsPart(sets)}${trailingPart}},`);
 			}
 		}
 		lines.push('];\n');
@@ -739,40 +641,29 @@ function main() {
 	const blockRanges = loadBlocks(blocksPath).filter((b) => ALLOWED_BLOCKS.has(b.name));
 	const sequences = loadSequences(sequencesPath);
 
-	// We'll accumulate entries by the new categories.
+	// Core categories accumulator (keyed by category).
 	const built: Record<string, {cp: number; name: string}[]> = {};
+	// Extra blocks accumulator (keyed by block name, with optional cat metadata).
+	const extraBuilt: Record<string, {cp: number; name: string; cat?: string}[]> = {};
 
 	for (const {start, end, name: blockName} of blockRanges) {
 		for (let cp = start; cp <= end; cp++) {
 			const info = nameMap.get(cp);
 			if (!info) continue;
-			const category = classify(blockName, info.cat, cp);
-			if (!category) continue;
-			built[category] ||= [];
-			built[category].push({cp, name: info.name});
+			if (CORE_BLOCKS.has(blockName)) {
+				const category = classify(blockName, info.cat, cp);
+				if (!category) continue;
+				built[category] ||= [];
+				built[category].push({cp, name: info.name});
+			} else {
+				const cat = classifyAsCore(blockName, info.cat, cp);
+				extraBuilt[blockName] ||= [];
+				extraBuilt[blockName].push(cat === undefined ? {cp, name: info.name} : {cp, name: info.name, cat});
+			}
 		}
 	}
 
 	applyOrderingOverrides(built);
-
-	const allCategories = Object.keys(built);
-	const coreCategories = [
-		'modifier',
-		'combining',
-		'latin',
-		'greek',
-		'punctuation_separators',
-		'punctuation',
-		'math_operators',
-		'math_number',
-		'math_alphanumeric_symbols',
-		'currency',
-		'emoji',
-		'misc',
-		'format',
-	];
-
-	const extraCategories = allCategories.filter((c) => !coreCategories.includes(c));
 
 	const srcDir = path.join(projectRoot, 'src', 'data');
 	if (!fs.existsSync(srcDir)) {
@@ -780,13 +671,18 @@ function main() {
 	}
 
 	// Write core categories into src/names.ts
-	const mainContent = generateFileContent(coreCategories, built, sequences);
+	const mainContent = generateFileContent(CORE_CATEGORIES, built, sequences);
 	fs.writeFileSync(path.join(srcDir, 'names.ts'), mainContent, 'utf8');
 
-	// Write remaining categories into separate src/names-<category>.ts files
-	for (const category of extraCategories) {
-		const content = generateFileContent([category], built, sequences);
-		fs.writeFileSync(path.join(srcDir, `names-${category}.ts`), content, 'utf8');
+	// Write per-block files for EXTRA_BLOCKS
+	for (const [blockName, entries] of Object.entries(extraBuilt)) {
+		const runtimeGroup = blockToGroup(blockName);
+		const fileSlug = blockName.replace(/ /g, '_');
+		const blockBuilt: Record<string, {cp: number; name: string; cat?: string}[]> = {
+			[runtimeGroup]: entries,
+		};
+		const content = generateFileContent([runtimeGroup], blockBuilt, sequences, runtimeGroup);
+		fs.writeFileSync(path.join(srcDir, `names-${fileSlug}.ts`), content, 'utf8');
 	}
 }
 
