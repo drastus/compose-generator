@@ -1,5 +1,5 @@
 import {Fragment, useMemo, useRef, useState} from 'react';
-import CharactersTable, {CharactersTableHandle} from './CharactersTable';
+import CharactersList, {CharactersListHandle} from './CharactersList';
 import SequenceToolbar from './SequenceToolbar';
 import {CharWithSeq} from './types';
 
@@ -35,13 +35,13 @@ function AddingModal({
 		[entries, customSequences],
 	);
 
-	const tableRef = useRef<CharactersTableHandle>(null);
+	const tableRef = useRef<CharactersListHandle>(null);
 	const [inputFocused, setInputFocused] = useState(false);
 
 	return (
 		<Fragment>
 			<div className='modal-add-sequence-table'>
-				<CharactersTable
+				<CharactersList
 					ref={tableRef}
 					entries={entries}
 					allCharacters={allCharacters}

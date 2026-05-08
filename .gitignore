@@ -4,6 +4,5 @@ node_modules
 .debris
 .megaignore
 .eslintcache
-TODO.md
 /*.md
 !README.md

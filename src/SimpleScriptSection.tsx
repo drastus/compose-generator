@@ -1,6 +1,6 @@
 import {CharWithSeq} from './types';
 import CharactersContainer from './CharactersContainer';
-import CharactersTable from './CharactersTable';
+import CharactersList from './CharactersList';
 
 type TableSharedProps = {
 	readonly allCharacters: CharWithSeq[];
@@ -23,7 +23,7 @@ export default function SimpleScriptSection({title, entries, onAddSequence, ...t
 				<h3>{title}</h3>
 			</div>
 			<CharactersContainer charactersNumber={entries.length} onAddSequence={onAddSequence}>
-				<CharactersTable
+				<CharactersList
 					entries={entries}
 					{...tableProps}
 				/>

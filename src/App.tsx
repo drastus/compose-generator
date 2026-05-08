@@ -1,5 +1,5 @@
-import {Fragment, useState, useCallback, useMemo} from 'react';
-import {CORE_CATEGORIES} from './constants/lists';
+import {Fragment, useState, useCallback, useMemo, useEffect} from 'react';
+import {CORE_CATEGORIES, latinPrefixLetters} from './constants/lists';
 import {defaultDiacriticMarks, scriptsGroups, symbolsGroups} from './constants/mappings';
 import {assignedRanges} from './data/assigned-ranges';
 import {characters as mainCharacters} from './data/names';
@@ -13,15 +13,14 @@ import {CharWithSeq, DiacriticMark, NameEntry} from './types';
 import AddingModal from './AddingModal';
 import CharacterPickerModal from './CharacterPickerModal';
 import CharactersContainer from './CharactersContainer';
-import CharactersTable from './CharactersTable';
+import CharactersList from './CharactersList';
+import CharactersMathStylesTable from './CharactersMathStylesTable';
 import Checkbox from './Checkbox';
 import ScriptSectionWithDiacritics from './ScriptSectionWithDiacritics';
 import SimpleScriptSection from './SimpleScriptSection';
 import Footer from './Footer';
 import Modal from './Modal';
 import './index.css';
-
-const latinPrefixLetters = 'abcdefghijklmnopqrstuvwxyz'.split('');
 
 const casedPrefixOptions = latinPrefixLetters.map((letter) => {
 	const upper = letter.toUpperCase();
@@ -114,6 +113,7 @@ function App() {
 		greek: true,
 		cyrillic: true,
 	});
+	const [useMathStylesView, setUseMathStylesView] = useState(false);
 	const [selectedCharacters, setSelectedCharacters] = useState(defaultCharacters);
 
 	const computeSetSelection = useCallback((
@@ -152,6 +152,19 @@ function App() {
 	}, [availableCharacters]);
 
 	const setSelection = useMemo(() => computeSetSelection(selectedCharacters), [computeSetSelection, selectedCharacters]);
+
+	useEffect(() => {
+		const mathAlphaSelection = setSelection.math_alphanumerics;
+		const {mds_base, ...relevantSelections} = mathAlphaSelection;
+		const hasAnyTrue = Object.values(relevantSelections).some((value) => value === true);
+		const hasOnlyFalseOrUndefined = Object.values(relevantSelections).every((value) => value === false || value === undefined);
+
+		if (hasAnyTrue) {
+			setUseMathStylesView(true);
+		} else if (hasOnlyFalseOrUndefined) {
+			setUseMathStylesView(false);
+		}
+	}, [setSelection.math_alphanumerics]);
 
 	const buildSetSelection = useCallback(<K extends keyof SetSelectionState & keyof typeof mainCharacters>(
 		category: K,
@@ -545,7 +558,7 @@ function App() {
 										<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
 											<h3>Modifier letters</h3>
 										</div>
-										<CharactersTable
+										<CharactersList
 											entries={selectedCharactersWithSequences.modifier}
 											{...commonTableAttributes}
 										/>
@@ -558,7 +571,7 @@ function App() {
 										<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
 											<h3>Combining diacritical marks</h3>
 										</div>
-										<CharactersTable
+										<CharactersList
 											entries={selectedCharactersWithSequences.combining}
 											{...commonTableAttributes}
 										/>
@@ -777,7 +790,7 @@ function App() {
 										charactersNumber={selectedCharacters.math_operators.length}
 										onAddSequence={() => handleOpenPicker({label: 'Operators', keys: ['math_operators']})}
 									>
-										<CharactersTable
+										<CharactersList
 											entries={selectedCharactersWithSequences.math_operators}
 											{...commonTableAttributes}
 										/>
@@ -789,7 +802,7 @@ function App() {
 										charactersNumber={selectedCharacters.math_number.length}
 										onAddSequence={() => handleOpenPicker({label: 'Numbers', keys: ['math_number']})}
 									>
-										<CharactersTable
+										<CharactersList
 											entries={selectedCharactersWithSequences.math_number}
 											{...commonTableAttributes}
 										/>
@@ -956,10 +969,32 @@ function App() {
 												</tr>
 											</table>
 										</div>
-										<CharactersTable
-											entries={selectedCharactersWithSequences.math_alphanumerics}
-											{...commonTableAttributes}
-										/>
+										<div className='view-toggle'>
+											<label htmlFor='math-alphanumerics-view-toggle'>
+												<input
+													id='math-alphanumerics-view-toggle'
+													type='checkbox'
+													checked={useMathStylesView}
+													onChange={(e) => setUseMathStylesView(e.target.checked)}
+												/>
+												{'  '}
+												Math styles table view
+											</label>
+										</div>
+										{useMathStylesView
+											? (
+												<CharactersMathStylesTable
+													entries={selectedCharactersWithSequences.math_alphanumerics}
+													selectedCharacters={selectedCharacters.math_alphanumerics}
+													{...commonTableAttributes}
+												/>
+											)
+											: (
+												<CharactersList
+													entries={selectedCharactersWithSequences.math_alphanumerics}
+													{...commonTableAttributes}
+												/>
+											)}
 									</CharactersContainer>
 								</section>
 							</Fragment>

@@ -2,7 +2,9 @@ import {useState, useRef, useMemo, Fragment} from 'react';
 import {CharWithSeq, NameEntry} from './types';
 import SequenceToolbar from './SequenceToolbar';
 import CharactersList from './CharactersList';
-import {LL, GL, CL, C} from './constants/strings';
+import {
+	C, MB, MBI, MBF, MBS, MDS, MF, MI, MM, MS, MSS, MSSB, MSSBI, MSSI, GREEK_LETTERS, ADDITIONAL_MATH_ALPHANUMERIC_SYMBOLS, ADDITIONAL_GREEK_LETTERS,
+} from './constants/strings';
 
 function formatCodePoint(cp: number): string {
 	return 'U+' + cp.toString(16).toUpperCase().padStart(4, '0');
@@ -16,7 +18,7 @@ function codePointChar(cp: number): string {
 	}
 }
 
-type CharactersDiacriticsTableProps = {
+type CharactersMathStylesTableProps = {
 	readonly entries: Array<CharWithSeq>,
 	readonly allCharacters: Array<CharWithSeq>,
 	readonly selectedCharacters: NameEntry[],
@@ -26,9 +28,9 @@ type CharactersDiacriticsTableProps = {
 	readonly onConflictDetection?: (_cpKey: string, _seq: string) => void,
 };
 
-type DiacriticColumn = {
-	name: string,
-	key: string,
+type StyleColumn = {
+	style: string,
+	label: string,
 };
 
 type BaseLetterRow = {
@@ -36,7 +38,32 @@ type BaseLetterRow = {
 	variants: Map<string, {lower?: CharWithSeq; upper?: CharWithSeq}>,
 };
 
-export default function CharactersDiacriticsTable({
+const STYLE_ORDER: StyleColumn[] = [
+	{style: MB, label: 'Bold'},
+	{style: MI, label: 'Italic'},
+	{style: MBI, label: 'Bold Italic'},
+	{style: MS, label: 'Script'},
+	{style: MBS, label: 'Bold Script'},
+	{style: MF, label: 'Fraktur'},
+	{style: MBF, label: 'Bold Fraktur'},
+	{style: MDS, label: 'Double-Struck'},
+	{style: MSS, label: 'Sans-Serif'},
+	{style: MSSB, label: 'Sans-Serif Bold'},
+	{style: MSSI, label: 'Sans-Serif Italic'},
+	{style: MSSBI, label: 'Sans-Serif Bold Italic'},
+	{style: MM, label: 'Monospace'},
+];
+
+const getLetterType = (letter: string) => {
+	if (letter.length === 1 && letter >= '0' && letter <= '9') return 'digit';
+	if (letter.length === 1 && letter >= 'A' && letter <= 'Z') return 'latin';
+	if (GREEK_LETTERS.includes(letter)) return 'greek';
+	if (ADDITIONAL_GREEK_LETTERS.includes(letter)) return 'additional_greek';
+	if (ADDITIONAL_MATH_ALPHANUMERIC_SYMBOLS.includes(letter)) return 'additional';
+	return 'other';
+};
+
+export default function CharactersMathStylesTable({
 	entries,
 	allCharacters,
 	selectedCharacters,
@@ -44,7 +71,7 @@ export default function CharactersDiacriticsTable({
 	onSequenceChange,
 	onRemoveSequence,
 	onConflictDetection,
-}: CharactersDiacriticsTableProps) {
+}: CharactersMathStylesTableProps) {
 	const [focusedInput, setFocusedInput] = useState<string | null>(null);
 	const [touchedInputs, setTouchedInputs] = useState<Set<string>>(new Set());
 	const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
@@ -84,138 +111,78 @@ export default function CharactersDiacriticsTable({
 		return conflictDetails;
 	};
 
-	// Build the 2D structure
-	const {baseLetters, diacritics, unmatchedChars} = useMemo(() => {
-		// Extract base letter from character template
-		const extractBaseLetter = (entry: CharWithSeq): string | null => {
-			const rawChar = selectedCharacters.find((c) => c.cp === entry.cp);
-			if (!rawChar) return null;
-
-			const {template} = rawChar;
-			if (!template || !Array.isArray(template)) return null;
-
-			// For Latin letters: [LL, C/S, 'LETTER', ...diacritics]
-			if (template[0] === LL && template.length >= 3) {
-				const letter = template[2];
-				if (typeof letter === 'string' && letter.length === 1) {
-					return letter.toUpperCase();
-				}
-			}
-
-			if (template[0] === GL || template[0] === CL) {
-				if (template.length >= 3) {
-					return template[2];
-				}
-				if (rawChar.end && typeof rawChar.end === 'string') {
-					return rawChar.end;
-				}
-				return null;
-			}
-
-			return null;
-		};
-
-		const isCommonAlphabetLetter = (letter: string): boolean => (
-			[LL, GL, CL].includes(letter)
-		);
-
-		// Extract diacritics from character template
-		const extractDiacritics = (entry: CharWithSeq): {diacritics: string[]; diacriticKey: string} => {
-			const rawChar = selectedCharacters.find((c) => c.cp === entry.cp);
-			if (!rawChar) return {diacritics: [], diacriticKey: ''};
-
-			const {template} = rawChar;
-			if (!template || !Array.isArray(template)) return {diacritics: [], diacriticKey: ''};
-
-			if (isCommonAlphabetLetter(template[0]) && template.length >= 3) {
-				const diacritics = template.slice(3);
-				const diacriticKey = diacritics.length === 0 ? '' : diacritics.join('+');
-				return {diacritics, diacriticKey};
-			}
-
-			return {diacritics: [], diacriticKey: ''};
-		};
-
-		// Determine if character is uppercase
-		const isUpperCase = (entry: CharWithSeq): boolean => {
-			const rawChar = selectedCharacters.find((c) => c.cp === entry.cp);
-			if (!rawChar) return false;
-
-			const {template} = rawChar;
-			if (!template || !Array.isArray(template)) return false;
-
-			if (isCommonAlphabetLetter(template[0]) && template.length >= 2) {
-				return template[1] === C;
-			}
-
-			return false;
-		};
-
+	const {baseLetters, styles, unmatchedChars} = useMemo(() => {
 		const baseLetterMap = new Map<string, BaseLetterRow>();
-		const diacriticSet = new Set<string>();
+		const presentStyles = new Set<string>();
 		const unmatched: CharWithSeq[] = [];
 
 		for (const char of entries) {
-			const baseLetter = extractBaseLetter(char);
-
-			if (!baseLetter) {
+			const rawChar = selectedCharacters.find((c) => c.cp === char.cp);
+			if (!rawChar?.template) {
 				unmatched.push(char);
 				continue;
 			}
 
-			const {diacritics, diacriticKey} = extractDiacritics(char);
+			const {template} = rawChar;
+			const style = template[0];
+			const caseMarker = template[1];
+			const baseLetter = template[2];
 
-			// Only show characters with exactly 0 or 1 diacritic in main table
-			if (diacritics.length > 1) {
+			const isLatinLetter = typeof baseLetter === 'string' && baseLetter.length === 1 && baseLetter >= 'A' && baseLetter <= 'Z';
+			const isGreekLetter = typeof baseLetter === 'string' && GREEK_LETTERS.includes(baseLetter);
+			const isAdditionalGreek = typeof baseLetter === 'string' && ADDITIONAL_GREEK_LETTERS.includes(baseLetter);
+			const isAditionalAlphanumeric = typeof baseLetter === 'string' && ADDITIONAL_MATH_ALPHANUMERIC_SYMBOLS.includes(baseLetter);
+			const isDigit = typeof baseLetter === 'string' && baseLetter.length === 1 && baseLetter >= '0' && baseLetter <= '9';
+
+			if (!isLatinLetter && !isGreekLetter && !isAdditionalGreek && !isAditionalAlphanumeric && !isDigit) {
 				unmatched.push(char);
 				continue;
 			}
 
-			const isUpper = isUpperCase(char);
+			presentStyles.add(style);
+			const isUpper = caseMarker === C;
 
 			if (!baseLetterMap.has(baseLetter)) {
-				baseLetterMap.set(baseLetter, {
-					baseLetter,
-					variants: new Map(),
-				});
+				baseLetterMap.set(baseLetter, {baseLetter, variants: new Map()});
 			}
 
 			const row = baseLetterMap.get(baseLetter)!;
-
-			if (!row.variants.has(diacriticKey)) {
-				row.variants.set(diacriticKey, {});
+			if (!row.variants.has(style)) {
+				row.variants.set(style, {});
 			}
 
-			const variant = row.variants.get(diacriticKey)!;
+			const variant = row.variants.get(style)!;
 			if (isUpper) {
 				variant.upper = char;
 			} else {
 				variant.lower = char;
 			}
-
-			diacriticSet.add(diacriticKey);
 		}
 
-		// Sort diacritics: empty string first, then alphabetically
-		const sortedDiacritics = Array.from(diacriticSet).sort((a, b) => {
-			if (a === '') return -1;
-			if (b === '') return 1;
+		const activeStyles = STYLE_ORDER.filter((s) => presentStyles.has(s.style));
+
+		const compareLetters = (a: string, b: string) => {
+			const aType = getLetterType(a);
+			const bType = getLetterType(b);
+
+			const typeOrder = {latin: 0, greek: 1, additional_greek: 2, additional: 3, digit: 4, other: 5};
+			const typeDiff = typeOrder[aType] - typeOrder[bType];
+			if (typeDiff !== 0) return typeDiff;
+
+			// Same type: sort within type
+			if (aType === 'digit' || aType === 'latin') return a.localeCompare(b);
+			if (aType === 'greek') {
+				const aIndex = GREEK_LETTERS.indexOf(a);
+				const bIndex = GREEK_LETTERS.indexOf(b);
+				return aIndex - bIndex;
+			}
+
 			return a.localeCompare(b);
-		});
-
-		const diacriticColumns: DiacriticColumn[] = sortedDiacritics.map((d) => ({
-			name: d === '' ? 'Base' : d,
-			key: d,
-		}));
-
-		// Sort base letters alphabetically
-		const sortedBaseLetters = Array.from(baseLetterMap.values()).sort((a, b) => a.baseLetter.localeCompare(b.baseLetter));
-
-		return {
-			baseLetters: sortedBaseLetters,
-			diacritics: diacriticColumns,
-			unmatchedChars: unmatched,
 		};
+
+		const sortedBaseLetters = Array.from(baseLetterMap.values()).sort((a, b) => compareLetters(a.baseLetter, b.baseLetter));
+
+		return {baseLetters: sortedBaseLetters, styles: activeStyles, unmatchedChars: unmatched};
 	}, [entries, selectedCharacters]);
 
 	const renderCell = (char: CharWithSeq | undefined) => {
@@ -301,15 +268,15 @@ export default function CharactersDiacriticsTable({
 					<thead>
 						<tr>
 							<th rowSpan={2}>Letter</th>
-							{diacritics.map((dia) => (
-								<th key={dia.key} colSpan={2} className='diacritics-header'>
-									{dia.name}
+							{styles.map((s) => (
+								<th key={s.style} colSpan={2} className='diacritics-header'>
+									{s.label}
 								</th>
 							))}
 						</tr>
 						<tr>
-							{diacritics.map((dia) => (
-								<Fragment key={`${dia.key}-case`}>
+							{styles.map((s) => (
+								<Fragment key={`${s.style}-case`}>
 									<th className='diacritics-case-header'>lower</th>
 									<th className='diacritics-case-header'>upper</th>
 								</Fragment>
@@ -322,10 +289,19 @@ export default function CharactersDiacriticsTable({
 								<td className='diacritics-base-letter'>
 									{row.baseLetter}
 								</td>
-								{diacritics.map((dia) => {
-									const variant = row.variants.get(dia.key);
+								{styles.map((s) => {
+									const variant = row.variants.get(s.style);
+									const letterType = getLetterType(row.baseLetter);
+									const hasMergedColumns = letterType === 'digit' || letterType === 'additional';
+									if (hasMergedColumns) {
+										return (
+											<td key={`${row.baseLetter}-${s.style}`} colSpan={2} className='diacritics-cell-td'>
+												{renderCell(variant?.lower ?? variant?.upper)}
+											</td>
+										);
+									}
 									return (
-										<Fragment key={`${row.baseLetter}-${dia.key}`}>
+										<Fragment key={`${row.baseLetter}-${s.style}`}>
 											<td className='diacritics-cell-td'>
 												{renderCell(variant?.lower)}
 											</td>

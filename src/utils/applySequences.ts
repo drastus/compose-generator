@@ -21,7 +21,7 @@ function getMathAlphanumericSymbolBase(entry: NameEntry): NameEntry | undefined 
 	if (baseLetterName === 'DOTLESS J') return mainCharacters.latin.find((e) => e.cp === 0x0237);
 	if (baseLetterName === 'DIGAMMA' && entry.template?.[1] === C) return mainCharacters.greek.find((e) => e.cp === 0x03DC);
 	if (baseLetterName === 'THETA SYMBOL' && entry.template?.[1] === C) return mainCharacters.greek.find((e) => e.cp === 0x03F4);
-	if (GREEK_LETTERS.includes(baseLetterName) || baseLetterName === 'FINAL SIGMA' || baseLetterName === 'DIGAMMA') {
+	if (GREEK_LETTERS.includes(baseLetterName) || baseLetterName === 'DIGAMMA') {
 		return mainCharacters.greek.find((e) =>
 			e.template?.[0] === 'GREEK LETTER'
 			&& e.template[1] === entry.template![1]

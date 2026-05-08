@@ -88,10 +88,26 @@ export const GREEK_LETTERS = [
 	'PI',
 	'RHO',
 	'SIGMA',
+	'FINAL SIGMA',
 	'TAU',
 	'UPSILON',
 	'PHI',
 	'CHI',
 	'PSI',
 	'OMEGA',
+];
+
+export const ADDITIONAL_GREEK_LETTERS = [
+	'THETA SYMBOL',
+	'EPSILON SYMBOL',
+	'KAPPA SYMBOL',
+	'PHI SYMBOL',
+	'RHO SYMBOL',
+	'PI SYMBOL',
+	'DIGAMMA',
+];
+
+export const ADDITIONAL_MATH_ALPHANUMERIC_SYMBOLS = [
+	'NABLA',
+	'PARTIAL DIFFERENTIAL',
 ];

@@ -64,3 +64,5 @@ export const CORE_CATEGORIES = [
 	'misc',
 	'format',
 ];
+
+export const latinPrefixLetters = 'abcdefghijklmnopqrstuvwxyz'.split('');

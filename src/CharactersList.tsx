@@ -14,11 +14,11 @@ function codePointChar(cp: number): string {
 	}
 }
 
-export type CharactersTableHandle = {
+export type CharactersListHandle = {
 	insertIntoFocused: (_char: string) => void;
 };
 
-type CharactersTableProps = {
+type CharactersListProps = {
 	readonly entries: Array<CharWithSeq>,
 	readonly allCharacters: Array<CharWithSeq>,
 	readonly customSequences: {key: string; seq: string}[],
@@ -28,7 +28,7 @@ type CharactersTableProps = {
 	readonly onFocusChange?: (_hasFocus: boolean) => void,
 };
 
-const CharactersTable = forwardRef<CharactersTableHandle, CharactersTableProps>(
+const CharactersList = forwardRef<CharactersListHandle, CharactersListProps>(
 	({entries, allCharacters, customSequences, onSequenceChange, onRemoveSequence = undefined, onConflictDetection = undefined, onFocusChange = undefined}, ref) => {
 		const [focusedInput, setFocusedInput] = useState<string | null>(null);
 		const [touchedInputs, setTouchedInputs] = useState<Set<string>>(new Set());
@@ -183,4 +183,4 @@ const CharactersTable = forwardRef<CharactersTableHandle, CharactersTableProps>(
 	},
 );
 
-export default CharactersTable;
+export default CharactersList;

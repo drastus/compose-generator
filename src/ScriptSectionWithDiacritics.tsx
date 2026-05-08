@@ -1,7 +1,7 @@
 import {ReactNode} from 'react';
 import {CharWithSeq, NameEntry} from './types';
 import CharactersContainer from './CharactersContainer';
-import CharactersTable from './CharactersTable';
+import CharactersList from './CharactersList';
 import CharactersDiacriticsTable from './CharactersDiacriticsTable';
 
 type TableSharedProps = {
@@ -63,7 +63,7 @@ export default function ScriptSectionWithDiacritics({
 						/>
 					)
 					: (
-						<CharactersTable
+						<CharactersList
 							entries={entries}
 							{...tableProps}
 						/>
