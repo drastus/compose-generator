@@ -8,6 +8,7 @@ type CharactersContainerProps = {
 
 export default function CharactersContainer({charactersNumber, onAddSequence, children}: CharactersContainerProps) {
 	const [isExpanded, setIsExpanded] = useState(false);
+	const [isFullyExpanded, setIsFullyExpanded] = useState(false);
 	const [contentHeight, setContentHeight] = useState(0);
 	const contentRef = useRef<HTMLDivElement>(null);
 
@@ -18,14 +19,25 @@ export default function CharactersContainer({charactersNumber, onAddSequence, ch
 	}, [charactersNumber]);
 
 	const toggleExpand = () => {
-		setIsExpanded(!isExpanded);
+		if (isExpanded) {
+			setIsFullyExpanded(false);
+			setIsExpanded(false);
+		} else {
+			setIsExpanded(true);
+		}
+	};
+
+	const handleTransitionEnd = () => {
+		if (isExpanded) {
+			setIsFullyExpanded(true);
+		}
 	};
 
 	return (
 		<div className='table-container'>
 			<div
 				className='table-header'
-				style={{overflow: isExpanded ? 'unset' : 'hidden'}}
+				style={{overflow: isFullyExpanded ? 'unset' : 'hidden'}}
 				onClick={toggleExpand}
 			>
 				<span style={{transition: 'transform 0.5s', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0)'}}>
@@ -53,9 +65,10 @@ export default function CharactersContainer({charactersNumber, onAddSequence, ch
 				ref={contentRef}
 				style={{
 					maxHeight: isExpanded ? `${contentHeight}px` : '0',
-					overflow: isExpanded ? 'unset' : 'hidden',
+					overflow: isFullyExpanded ? 'unset' : 'hidden',
 					transition: 'max-height 0.5s ease-in-out',
 				}}
+				onTransitionEnd={handleTransitionEnd}
 			>
 				{children}
 			</div>

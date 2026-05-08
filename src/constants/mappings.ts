@@ -196,6 +196,11 @@ export const groupsToUnicodeBlocks = {
 	],
 };
 
+export const defaultPrefixes = {
+	greek: {char: 'g', cased: true},
+	cyrillic: {char: 'c', cased: true},
+};
+
 export const keySymNames: Record<string, string> = {
 	' ': 'space',
 	'!': 'exclam',

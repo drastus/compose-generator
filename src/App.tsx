@@ -1,18 +1,22 @@
-import {Fragment, useState, useCallback, useMemo, useRef, useEffect} from 'react';
-import {buildName} from './utils/buildName';
-import {blockToGroup, groupPrimaryBlock} from './utils/blockToGroup';
+import {Fragment, useState, useCallback, useMemo} from 'react';
 import {CORE_CATEGORIES} from './constants/lists';
-import {C, COMB, DIA, GREEK_LETTERS} from './constants/strings';
-import {characters as mainCharacters} from './data/names';
+import {defaultDiacriticMarks, scriptsGroups, symbolsGroups} from './constants/mappings';
 import {assignedRanges} from './data/assigned-ranges';
-import {defaultDiacriticMarkKeys, defaultDiacriticMarks, keySymNames, mapDiacriticParts, scriptPrefixes, scriptsGroups, specialChars, symbolsGroups} from './constants/mappings';
+import {characters as mainCharacters} from './data/names';
+import {usePrefixes} from './hooks/usePrefixes';
+import {applySequencesToCharacters} from './utils/applySequences';
+import {blockToGroup, groupPrimaryBlock} from './utils/blockToGroup';
+import {buildName} from './utils/buildName';
+import {detectConflicts} from './utils/detectConflicts';
+import {formatSequence} from './utils/formatSequence';
 import {CharWithSeq, DiacriticMark, NameEntry} from './types';
 import AddingModal from './AddingModal';
 import CharacterPickerModal from './CharacterPickerModal';
 import CharactersContainer from './CharactersContainer';
 import CharactersTable from './CharactersTable';
-import CharactersDiacriticsTable from './CharactersDiacriticsTable';
 import Checkbox from './Checkbox';
+import ScriptSectionWithDiacritics from './ScriptSectionWithDiacritics';
+import SimpleScriptSection from './SimpleScriptSection';
 import Footer from './Footer';
 import Modal from './Modal';
 import './index.css';
@@ -72,56 +76,24 @@ const initialSetSelection: SetSelectionState = {
 	},
 };
 
-const greekCodePoints = new Set((mainCharacters.greek ?? []).map((entry) => entry.cp));
-const cyrillicCodePoints = new Set((mainCharacters.cyrillic ?? []).map((entry) => entry.cp));
-
-const defaultPrefixes = {
-	greek: {char: 'g', cased: true},
-	cyrillic: {char: 'c', cased: true},
-};
-
-function detectConflicts(allCharsWithSeq: CharWithSeq[]): Map<number, number[]> {
-	const conflicts = new Map<number, number[]>();
-	const seqMap = new Map<string, number[]>();
-
-	for (const char of allCharsWithSeq) {
-		if (!char.seq) continue;
-		const existing = seqMap.get(char.seq) || [];
-		seqMap.set(char.seq, [...existing, char.cp]);
-	}
-
-	for (const char of allCharsWithSeq) {
-		if (!char.seq) continue;
-		const conflictingCps = new Set<number>();
-
-		const duplicates = seqMap.get(char.seq) || [];
-		if (duplicates.length > 1) {
-			for (const cp of duplicates) {
-				if (cp !== char.cp) conflictingCps.add(cp);
-			}
+const defaultCharacters: Record<string, NameEntry[]> = Object.fromEntries(Object.entries(mainCharacters).map(([key, entries]) => [
+	key,
+	entries.filter((entry) => {
+		if (!entry.set || entry.set.length === 0) return false;
+		if (key === 'latin') {
+			const selection = initialSetSelection.latin;
+			return entry.set.some((s) => selection[s] ?? false);
 		}
-
-		for (const [otherSeq, otherCps] of seqMap.entries()) {
-			if (otherSeq === char.seq) continue;
-			if (otherSeq.startsWith(char.seq)) {
-				for (const cp of otherCps) conflictingCps.add(cp);
-			}
+		if (key === 'greek') {
+			const selection = initialSetSelection.greek;
+			return entry.set.some((s) => selection[s] ?? false);
 		}
-
-		for (const [otherSeq, otherCps] of seqMap.entries()) {
-			if (otherSeq === char.seq) continue;
-			if (char.seq.startsWith(otherSeq)) {
-				for (const cp of otherCps) conflictingCps.add(cp);
-			}
+		if (key === 'math_alphanumerics') {
+			return entry.set.includes('mds_base');
 		}
-
-		if (conflictingCps.size > 0) {
-			conflicts.set(char.cp, Array.from(conflictingCps));
-		}
-	}
-
-	return conflicts;
-}
+		return entry.set.includes('base');
+	}),
+]));
 
 function App() {
 	const [showModal, setShowModal] = useState(false);
@@ -136,31 +108,12 @@ function App() {
 	const [loadedBlocks, setLoadedBlocks] = useState<Set<string>>(new Set());
 	const [diacriticMarks, setDiacriticMarks] = useState<DiacriticMark[]>(defaultDiacriticMarks);
 	const [customSequences, setCustomSequences] = useState<{key: string; seq: string}[]>([]);
-	const [prefixes, setPrefixes] = useState(defaultPrefixes);
-	const prevPrefixesRef = useRef(prefixes);
+	const [prefixes, setPrefixes] = usePrefixes(setCustomSequences);
 	const [useDiacriticsView, setUseDiacriticsView] = useState<Record<'latin' | 'greek' | 'cyrillic', boolean>>({
 		latin: true,
 		greek: true,
 		cyrillic: true,
 	});
-	const defaultCharacters: Record<string, NameEntry[]> = Object.fromEntries(Object.entries(mainCharacters).map(([key, entries]) => [
-		key,
-		entries.filter((entry) => {
-			if (!entry.set || entry.set.length === 0) return false;
-			if (key === 'latin') {
-				const selection = initialSetSelection.latin;
-				return entry.set.some((s) => selection[s] ?? false);
-			}
-			if (key === 'greek') {
-				const selection = initialSetSelection.greek;
-				return entry.set.some((s) => selection[s] ?? false);
-			}
-			if (key === 'math_alphanumerics') {
-				return entry.set.includes('mds_base');
-			}
-			return entry.set.includes('base');
-		}),
-	]));
 	const [selectedCharacters, setSelectedCharacters] = useState(defaultCharacters);
 
 	const computeSetSelection = useCallback((
@@ -318,49 +271,6 @@ function App() {
 		setPendingConflictMap(new Map());
 	}, []);
 
-	/* excluding Latin latters and digits */
-	const getMathAlphanumericSymbolBase = (entry: NameEntry) => {
-		const baseLetterName = entry.template![2];
-		if (baseLetterName === 'PARTIAL DIFFERENTIAL') return mainCharacters.math_operators.find((e) => e.cp === 0x2202);
-		if (baseLetterName === 'NABLA') return mainCharacters.math_operators.find((e) => e.cp === 0x2207);
-		if (baseLetterName === 'DOTLESS I') return mainCharacters.latin.find((e) => e.cp === 0x0131);
-		if (baseLetterName === 'DOTLESS J') return mainCharacters.latin.find((e) => e.cp === 0x0237);
-		if (baseLetterName === 'DIGAMMA' && entry.template?.[1] === C) return mainCharacters.greek.find((e) => e.cp === 0x03DC);
-		if (baseLetterName === 'THETA SYMBOL' && entry.template?.[1] === C) return mainCharacters.greek.find((e) => e.cp === 0x03F4);
-		if (GREEK_LETTERS.includes(baseLetterName) || baseLetterName === 'FINAL SIGMA' || baseLetterName === 'DIGAMMA') {
-			return mainCharacters.greek.find((e) =>
-				e.template?.[0] === 'GREEK LETTER'
-				&& e.template[1] === entry.template![1]
-				&& (e.end === baseLetterName || e.template[2] === baseLetterName)
-				&& e.defaultSeq?.toLowerCase().startsWith(defaultPrefixes.greek.char));
-		}
-		return mainCharacters.greek.find((e) => e.name?.endsWith(baseLetterName));
-	};
-
-	const getGreekSeq = useCallback((baseEntry: NameEntry, diacriticKeys: string, preprefix = '') => {
-		const firstChar = baseEntry.defaultSeq![0];
-		const isCapital = firstChar === firstChar.toUpperCase();
-		const coreSeq = prefixes.greek.cased
-			? baseEntry.defaultSeq!.slice(1)
-			: baseEntry.altSeq?.slice(1) ?? baseEntry.defaultSeq!.slice(1);
-		const prefix = prefixes.greek.cased && isCapital
-			? prefixes.greek.char.toUpperCase()
-			: prefixes.greek.char;
-		return preprefix + prefix + diacriticKeys + coreSeq;
-	}, [prefixes.greek.cased, prefixes.greek.char]);
-
-	const getCyrillicSeq = useCallback((baseEntry: NameEntry, diacriticKeys: string, preprefix = '') => {
-		const firstChar = baseEntry.defaultSeq![0];
-		const isCapital = firstChar === firstChar.toUpperCase();
-		const coreSeq = prefixes.cyrillic.cased
-			? baseEntry.defaultSeq!.slice(1)
-			: baseEntry.altSeq?.slice(1) ?? baseEntry.defaultSeq!.slice(1);
-		const prefix = prefixes.cyrillic.cased && isCapital
-			? prefixes.cyrillic.char.toUpperCase()
-			: prefixes.cyrillic.char;
-		return preprefix + prefix + diacriticKeys + coreSeq;
-	}, [prefixes.cyrillic.cased, prefixes.cyrillic.char]);
-
 	const handleApplySequences = useCallback(() => {
 		setSelectedCharacters((prev) => {
 			const next = {...prev};
@@ -385,130 +295,9 @@ function App() {
 		setPendingConflictMap(new Map());
 	}, [customSequences, pendingEntries, pendingEntryGroups]);
 
-	const applySequencesToCharacters = useCallback((
-		selectedCharactersParam: Record<string, NameEntry[]>,
-		customSequencesParam: {key: string; seq: string}[],
-		diacriticMarksParam: DiacriticMark[],
-	): Record<string, CharWithSeq[]> => {
-		const customMap = new Map(customSequencesParam.map((cs) => [cs.key, cs.seq]));
-		const result: Record<string, CharWithSeq[]> = {};
-
-		for (const [groupKey, entries] of Object.entries(selectedCharactersParam)) {
-			const updatedEntries = entries.map((entry) => {
-				let seq: string | undefined;
-				const customSeq = customMap.get(String(entry.cp));
-				if (customSeq) {
-					seq = customSeq;
-				} else if (entry.defaultSeq) {
-					let baseSeq = entry.defaultSeq;
-					if (['greek', 'cyrillic'].includes(groupKey)) {
-						baseSeq = prefixes[groupKey as keyof typeof prefixes].cased ? entry.defaultSeq : (entry.altSeq ?? entry.defaultSeq);
-					}
-					let newSeq = baseSeq ?? '';
-					if (['greek', 'cyrillic'].includes(groupKey) && newSeq.length > 0 && newSeq[0].toLowerCase() === defaultPrefixes[groupKey as keyof typeof defaultPrefixes].char) {
-						let coreSeq = newSeq.slice(1);
-						if (coreSeq.length > 1 && defaultDiacriticMarkKeys.includes(coreSeq[0])) {
-							const diacriticMarkName = defaultDiacriticMarks.find((mark) => mark.key === coreSeq[0])!.name;
-							const diacriticMarkKey = diacriticMarks.find((mark) => mark.name === diacriticMarkName)!.key;
-							coreSeq = diacriticMarkKey + coreSeq.slice(1);
-						}
-						if (newSeq.startsWith(defaultPrefixes[groupKey as keyof typeof defaultPrefixes].char)) {
-							newSeq = prefixes[groupKey as keyof typeof prefixes].char + coreSeq;
-						} else {
-							newSeq = prefixes[groupKey as keyof typeof prefixes].cased
-								? prefixes[groupKey as keyof typeof prefixes].char.toUpperCase() + coreSeq
-								: prefixes[groupKey as keyof typeof prefixes].char + '\\' + coreSeq;
-						}
-					}
-					seq = newSeq;
-				} else if (
-					entry.template && ((
-						entry.template.length >= 3
-						&& (entry.template[0].endsWith('LETTER') || entry.template[0].startsWith('MATHEMATICAL'))
-						&& (entry.template[2].length === 1 || entry.template[0] === 'GREEK LETTER' || entry.template[0] === 'CYRILLIC LETTER')
-					) || (
-						Object.keys(scriptPrefixes).includes(entry.template[0])
-					))
-				) {
-					const diacriticParts = entry.template.slice([DIA, COMB].includes(entry.template[0]) ? 1 : 3)
-						.filter((name: string) => name !== 'ACCENT');
-					const diacriticNames = mapDiacriticParts(diacriticParts);
-					const diacriticMarksForChar = diacriticNames
-						.map((name: string) => diacriticMarksParam.find((mark) => mark.name === name));
-					if (!diacriticMarksForChar.some((mark) => !mark)) { // all diacritics found
-						const diacriticKeys = diacriticMarksForChar.map((mark: DiacriticMark | undefined) => mark!.key).join('');
-						if ((groupKey === 'greek' && entry.template[0] === 'GREEK LETTER')) {
-							const baseLetterName = entry.template[2];
-							const baseEntry = mainCharacters.greek.find((e) =>
-								e.template?.[0] === 'GREEK LETTER'
-								&& e.template[1] === entry.template![1]
-								&& (e.end === baseLetterName || e.template[2] === baseLetterName)
-								&& e.defaultSeq?.toLowerCase().startsWith(defaultPrefixes.greek.char));
-							if (baseEntry?.defaultSeq) {
-								seq = getGreekSeq(baseEntry, diacriticKeys);
-							}
-						} else if ((groupKey === 'cyrillic' && entry.template[0] === 'CYRILLIC LETTER')) {
-							const baseLetterName = entry.template[2];
-							const baseEntry = selectedCharactersParam.cyrillic?.find((e) =>
-								e.template?.[0] === 'CYRILLIC LETTER'
-								&& e.template[1] === entry.template![1]
-								&& (e.end === baseLetterName || e.template[2] === baseLetterName)
-								&& e.defaultSeq?.toLowerCase().startsWith(defaultPrefixes.cyrillic.char));
-							if (baseEntry?.defaultSeq) {
-								seq = getCyrillicSeq(baseEntry, diacriticKeys);
-							}
-						} else if (groupKey === 'math_alphanumerics' && entry.template[2].length > 1) {
-							const baseEntry = getMathAlphanumericSymbolBase(entry);
-							if (baseEntry) {
-								let preprefix = scriptPrefixes[entry.template[0] as keyof typeof scriptPrefixes];
-								const hasStandardGreekLetter = GREEK_LETTERS.includes(entry.template[2].split(' ')[0]);
-								if (hasStandardGreekLetter || [0x03C2, 0x2202].includes(baseEntry.cp)) {
-									preprefix = preprefix.charAt(0).toUpperCase() + preprefix.slice(1);
-								}
-								seq = hasStandardGreekLetter
-									? getGreekSeq(baseEntry, diacriticKeys, preprefix)
-									: preprefix + baseEntry.defaultSeq;
-							}
-						} else {
-							let prefix = '';
-							if (Object.keys(scriptPrefixes).includes(entry.template[0])) {
-								prefix = scriptPrefixes[entry.template[0] as keyof typeof scriptPrefixes];
-							}
-							let baseLetter = [DIA, COMB].includes(entry.template[0]) ? '' : entry.template[2];
-							if (entry.template[1] === 'SMALL') {
-								baseLetter = baseLetter.toLowerCase();
-							}
-							seq = prefix + diacriticKeys + baseLetter;
-						}
-					}
-				}
-				return {
-					cp: entry.cp,
-					name: buildName(entry),
-					seq,
-				};
-			});
-			result[groupKey] = updatedEntries;
-		}
-
-		// Detect conflicts across all characters
-		const allChars = Object.values(result).flat();
-		const conflictMap = detectConflicts(allChars);
-
-		// Add conflict information to each character
-		for (const groupKey of Object.keys(result)) {
-			result[groupKey] = result[groupKey].map((char) => ({
-				...char,
-				conflicts: conflictMap.get(char.cp),
-			}));
-		}
-
-		return result;
-	}, [diacriticMarks, getGreekSeq, getCyrillicSeq, prefixes]);
-
 	const selectedCharactersWithSequences = useMemo(
-		() => applySequencesToCharacters(selectedCharacters, customSequences, diacriticMarks),
-		[selectedCharacters, customSequences, diacriticMarks, applySequencesToCharacters],
+		() => applySequencesToCharacters(selectedCharacters, customSequences, diacriticMarks, prefixes),
+		[selectedCharacters, customSequences, diacriticMarks, prefixes],
 	);
 
 	const pendingEntriesWithConflicts = useMemo(() =>
@@ -539,81 +328,7 @@ function App() {
 		setPendingConflictMap(newPendingConflicts);
 	}, [pendingEntries, customSequences, selectedCharactersWithSequences]);
 
-	useEffect(() => {
-		const prev = prevPrefixesRef.current;
-		if (prev.greek.char === prefixes.greek.char && prev.cyrillic.char === prefixes.cyrillic.char) {
-			return;
-		}
-
-		setCustomSequences((prevCustom) => {
-			if (prevCustom.length === 0) return prevCustom;
-			let changed = false;
-			const updated = prevCustom.map((cs) => {
-				const cp = Number(cs.key);
-				let {seq} = cs;
-				if (!seq || Number.isNaN(cp)) return cs;
-
-				if (prev.greek.char !== prefixes.greek.char && greekCodePoints.has(cp)) {
-					const prevLower = prev.greek.char;
-					const prevUpper = prevLower.toUpperCase();
-					const prevWithSlash = `${prevLower}\\`;
-					let replaced = false;
-
-					if (seq.startsWith(prevLower)) {
-						// lower-case prefix -> always new lower-case char
-						seq = prefixes.greek.char + seq.slice(1);
-						replaced = true;
-					} else if (seq.startsWith(prevUpper)) {
-						// upper-case prefix -> respect current cased flag
-						seq = (prefixes.greek.cased ? prefixes.greek.char.toUpperCase() : `${prefixes.greek.char}\\`) + seq.slice(1);
-						replaced = true;
-					} else if (seq.startsWith(prevWithSlash)) {
-						// "char\\" prefix -> also respect current cased flag
-						const replacement = prefixes.greek.cased ? prefixes.greek.char.toUpperCase() : `${prefixes.greek.char}\\`;
-						seq = replacement + seq.slice(prevWithSlash.length);
-						replaced = true;
-					}
-
-					if (replaced) {
-						changed = true;
-						return {...cs, seq};
-					}
-				}
-
-				if (prev.cyrillic.char !== prefixes.cyrillic.char && cyrillicCodePoints.has(cp)) {
-					const prevLower = prev.cyrillic.char;
-					const prevUpper = prevLower.toUpperCase();
-					const prevWithSlash = `${prevLower}\\`;
-					let replaced = false;
-
-					if (seq.startsWith(prevLower)) {
-						seq = prefixes.cyrillic.char + seq.slice(1);
-						replaced = true;
-					} else if (seq.startsWith(prevUpper)) {
-						seq = (prefixes.cyrillic.cased ? prefixes.cyrillic.char.toUpperCase() : `${prefixes.cyrillic.char}\\`) + seq.slice(1);
-						replaced = true;
-					} else if (seq.startsWith(prevWithSlash)) {
-						const replacement = prefixes.cyrillic.cased ? prefixes.cyrillic.char.toUpperCase() : `${prefixes.cyrillic.char}\\`;
-						seq = replacement + seq.slice(prevWithSlash.length);
-						replaced = true;
-					}
-
-					if (replaced) {
-						changed = true;
-						return {...cs, seq};
-					}
-				}
-
-				return cs;
-			});
-			return changed ? updated : prevCustom;
-		});
-
-		prevPrefixesRef.current = prefixes;
-	}, [prefixes]);
-
 	const handleGroupToggle = (keys: (keyof typeof defaultCharacters)[]) => {
-		console.log('handleGroupToggle', keys);
 		setSelectedCharacters((prev) => {
 			const next = {...prev};
 			const currentlyChecked = keys.every((k) => prev[k]?.length > 0);
@@ -712,22 +427,6 @@ function App() {
 				[group]: nextGroupEntries,
 			};
 		});
-	};
-
-	const formatSequence = (sequence: CharWithSeq) => {
-		const getKeyName = (key: string) => keySymNames[key]
-			?? specialChars.find((sc) => sc.label === key)?.keysym
-			?? key;
-
-		const keys = sequence.seq!
-			.split('')
-			.map((k: string) => `<${getKeyName(k)}>`)
-			.join(' ');
-
-		const char = String.fromCodePoint(sequence.cp);
-		const codePoint = sequence.cp.toString(16).toUpperCase().padStart(4, '0');
-
-		return `<Multi_key> ${keys} \t: "${char}"\tU${codePoint} # ${sequence.name}`;
 	};
 
 	const getGeneratedContent = useCallback(
@@ -868,271 +567,179 @@ function App() {
 							</section>
 						</CharactersContainer>
 					</section>
-					<section>
-						{selectedCharacters.latin.length > 0 && (
-							<Fragment>
-								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
-									<h3>Latin</h3>
-								</div>
-								<CharactersContainer
-									charactersNumber={selectedCharacters.latin.length}
-									onAddSequence={() => handleOpenPicker({label: 'Latin', keys: ['latin']})}
-								>
-									<div className='filters'>
-										<Checkbox
-											id='latin-base'
-											isChecked={setSelection.latin.base === true}
-											isIndeterminate={setSelection.latin.base === undefined}
-											label='Basic Latin'
-											description='Base Latin letters commonly used in modern European languages.'
-											onChange={() => handleSetSelectionToggle('latin', 'base')}
-										/>
-										<Checkbox
-											id='latin-ext'
-											isChecked={setSelection.latin.ext === true}
-											isIndeterminate={setSelection.latin.ext === undefined}
-											label='Extended Latin'
-											description='Additional Latin letters for extended orthographies.'
-											onChange={() => handleSetSelectionToggle('latin', 'ext')}
-										/>
-										<Checkbox
-											id='latin-historic'
-											isChecked={setSelection.latin.historic === true}
-											isIndeterminate={setSelection.latin.historic === undefined}
-											label='Historic Latin'
-											description='Historic or less commonly used Latin letters.'
-											onChange={() => handleSetSelectionToggle('latin', 'historic')}
-										/>
-									</div>
-									<div className='view-toggle'>
-										<label htmlFor='latin-view-toggle'>
-											<input
-												id='latin-view-toggle'
-												type='checkbox'
-												checked={useDiacriticsView.latin}
-												onChange={(e) => setUseDiacriticsView((prev) => ({...prev, latin: e.target.checked}))}
-											/>
-											{' '}
-											Diacritics table view
-										</label>
-									</div>
-									{useDiacriticsView.latin
-										? (
-											<CharactersDiacriticsTable
-												entries={selectedCharactersWithSequences.latin}
-												selectedCharacters={selectedCharacters.latin}
-												{...commonTableAttributes}
-											/>
-										)
-										: (
-											<CharactersTable
-												entries={selectedCharactersWithSequences.latin}
-												{...commonTableAttributes}
-											/>
-										)}
-								</CharactersContainer>
-							</Fragment>
-						)}
-					</section>
-					<section>
-						{selectedCharacters.greek.length > 0 && (
-							<Fragment>
-								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
-									<h3>Greek</h3>
-								</div>
-								<CharactersContainer
-									charactersNumber={selectedCharacters.greek.length}
-									onAddSequence={() => handleOpenPicker({label: 'Greek', keys: ['greek']})}
-								>
-									<div className='filters'>
-										<Checkbox
-											id='greek-basic'
-											isChecked={setSelection.greek.basic === true}
-											isIndeterminate={setSelection.greek.basic === undefined}
-											label='Basic Greek'
-											description='Basic Greek letters.'
-											onChange={() => handleSetSelectionToggle('greek', 'basic')}
-										/>
-										<Checkbox
-											id='greek-base'
-											isChecked={setSelection.greek.base === true}
-											isIndeterminate={setSelection.greek.base === undefined}
-											label='Modern Greek extensions'
-											description='Additional letters used in modern Greek orthography.'
-											onChange={() => handleSetSelectionToggle('greek', 'base')}
-										/>
-										<Checkbox
-											id='greek-historic'
-											isChecked={setSelection.greek.historic === true}
-											isIndeterminate={setSelection.greek.historic === undefined}
-											label='Historic / polytonic Greek'
-											description='Polytonic and historic Greek letter forms.'
-											onChange={() => handleSetSelectionToggle('greek', 'historic')}
-										/>
-									</div>
-									<div className='filters'>
-										<label htmlFor='greek-prefix-select'>Prefix</label>
-										<select
-											id='greek-prefix-select'
-											value={prefixes.greek.char}
-											onChange={(e) => setPrefixes((prev) => ({
-												...prev,
-												greek: {...prev.greek, char: e.target.value},
-											}))}
-										>
-											{(prefixes.greek.cased ? casedPrefixOptions : uncasedPrefixOptions).map((option) => (
-												<option key={`greek-${option.value}`} value={option.value}>
-													{option.label}
-												</option>
-											))}
-										</select>
-										<Checkbox
-											id='greek-prefix-cased'
-											isChecked={prefixes.greek.cased}
-											label='Cased prefix'
-											onChange={() => setPrefixes((prev) => ({
-												...prev,
-												greek: {
-													...prev.greek,
-													cased: !prev.greek.cased,
-													char: prev.greek.cased ? prev.greek.char : prev.greek.char.toLowerCase(),
-												},
-											}))}
-										/>
-									</div>
-									<div className='view-toggle'>
-										<label htmlFor='greek-view-toggle'>
-											<input
-												id='greek-view-toggle'
-												type='checkbox'
-												checked={useDiacriticsView.greek}
-												onChange={(e) => setUseDiacriticsView((prev) => ({...prev, greek: e.target.checked}))}
-											/>
-											{' '}
-											Diacritics table view
-										</label>
-									</div>
-									{useDiacriticsView.greek
-										? (
-											<CharactersDiacriticsTable
-												entries={selectedCharactersWithSequences.greek}
-												selectedCharacters={selectedCharacters.greek}
-												{...commonTableAttributes}
-											/>
-										)
-										: (
-											<CharactersTable
-												entries={selectedCharactersWithSequences.greek}
-												{...commonTableAttributes}
-											/>
-										)}
-								</CharactersContainer>
-							</Fragment>
-						)}
-					</section>
-					{selectedCharacters.cyrillic?.length > 0 && (
-						<section>
-							<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
-								<h3>Cyrillic alphabet</h3>
-							</div>
-							<CharactersContainer
-								charactersNumber={selectedCharacters.cyrillic.length}
-								onAddSequence={() => handleOpenPicker({label: 'Cyrillic alphabet', keys: ['cyrillic']})}
+					<ScriptSectionWithDiacritics
+						id='latin'
+						title='Latin'
+						entries={selectedCharactersWithSequences.latin}
+						selectedCharacters={selectedCharacters.latin}
+						isDiacriticsView={useDiacriticsView.latin}
+						onDiacriticsViewChange={(v) => setUseDiacriticsView((prev) => ({...prev, latin: v}))}
+						onAddSequence={() => handleOpenPicker({label: 'Latin', keys: ['latin']})}
+						{...commonTableAttributes}
+					>
+						<div className='filters'>
+							<Checkbox
+								id='latin-base'
+								isChecked={setSelection.latin.base === true}
+								isIndeterminate={setSelection.latin.base === undefined}
+								label='Basic Latin'
+								description='Base Latin letters commonly used in modern European languages.'
+								onChange={() => handleSetSelectionToggle('latin', 'base')}
+							/>
+							<Checkbox
+								id='latin-ext'
+								isChecked={setSelection.latin.ext === true}
+								isIndeterminate={setSelection.latin.ext === undefined}
+								label='Extended Latin'
+								description='Additional Latin letters for extended orthographies.'
+								onChange={() => handleSetSelectionToggle('latin', 'ext')}
+							/>
+							<Checkbox
+								id='latin-historic'
+								isChecked={setSelection.latin.historic === true}
+								isIndeterminate={setSelection.latin.historic === undefined}
+								label='Historic Latin'
+								description='Historic or less commonly used Latin letters.'
+								onChange={() => handleSetSelectionToggle('latin', 'historic')}
+							/>
+						</div>
+					</ScriptSectionWithDiacritics>
+					<ScriptSectionWithDiacritics
+						id='greek'
+						title='Greek'
+						entries={selectedCharactersWithSequences.greek}
+						selectedCharacters={selectedCharacters.greek}
+						isDiacriticsView={useDiacriticsView.greek}
+						onDiacriticsViewChange={(v) => setUseDiacriticsView((prev) => ({...prev, greek: v}))}
+						onAddSequence={() => handleOpenPicker({label: 'Greek', keys: ['greek']})}
+						{...commonTableAttributes}
+					>
+						<div className='filters'>
+							<Checkbox
+								id='greek-basic'
+								isChecked={setSelection.greek.basic === true}
+								isIndeterminate={setSelection.greek.basic === undefined}
+								label='Basic Greek'
+								description='Basic Greek letters.'
+								onChange={() => handleSetSelectionToggle('greek', 'basic')}
+							/>
+							<Checkbox
+								id='greek-base'
+								isChecked={setSelection.greek.base === true}
+								isIndeterminate={setSelection.greek.base === undefined}
+								label='Modern Greek extensions'
+								description='Additional letters used in modern Greek orthography.'
+								onChange={() => handleSetSelectionToggle('greek', 'base')}
+							/>
+							<Checkbox
+								id='greek-historic'
+								isChecked={setSelection.greek.historic === true}
+								isIndeterminate={setSelection.greek.historic === undefined}
+								label='Historic / polytonic Greek'
+								description='Polytonic and historic Greek letter forms.'
+								onChange={() => handleSetSelectionToggle('greek', 'historic')}
+							/>
+						</div>
+						<div className='filters'>
+							<label htmlFor='greek-prefix-select'>Prefix</label>
+							<select
+								id='greek-prefix-select'
+								value={prefixes.greek.char}
+								onChange={(e) => setPrefixes((prev) => ({
+									...prev,
+									greek: {...prev.greek, char: e.target.value},
+								}))}
 							>
-								<div className='filters'>
-									<Checkbox
-										id='cyrillic-base'
-										isChecked={setSelection.cyrillic.base === true}
-										isIndeterminate={setSelection.cyrillic.base === undefined}
-										label='Basic Cyrillic'
-										description='Base Cyrillic letters.'
-										onChange={() => handleSetSelectionToggle('cyrillic', 'base')}
-									/>
-									<Checkbox
-										id='cyrillic-ext'
-										isChecked={setSelection.cyrillic.ext === true}
-										isIndeterminate={setSelection.cyrillic.ext === undefined}
-										label='Extended Cyrillic'
-										description='Extended Cyrillic letters.'
-										onChange={() => handleSetSelectionToggle('cyrillic', 'ext')}
-									/>
-								</div>
-								<div className='filters'>
-									<label htmlFor='cyrillic-prefix-select'>Prefix</label>
-									<select
-										id='cyrillic-prefix-select'
-										value={prefixes.cyrillic.char}
-										onChange={(e) => setPrefixes((prev) => ({
-											...prev,
-											cyrillic: {...prev.cyrillic, char: e.target.value},
-										}))}
-									>
-										{(prefixes.cyrillic.cased ? casedPrefixOptions : uncasedPrefixOptions).map((option) => (
-											<option key={`cyrillic-${option.value}`} value={option.value}>
-												{option.label}
-											</option>
-										))}
-									</select>
-									<Checkbox
-										id='cyrillic-prefix-cased'
-										isChecked={prefixes.cyrillic.cased}
-										label='Cased prefix'
-										onChange={() => setPrefixes((prev) => ({
-											...prev,
-											cyrillic: {
-												...prev.cyrillic,
-												cased: !prev.cyrillic.cased,
-												char: prev.cyrillic.cased ? prev.cyrillic.char : prev.cyrillic.char.toLowerCase(),
-											},
-										}))}
-									/>
-								</div>
-								<div className='view-toggle'>
-									<label htmlFor='cyrillic-view-toggle'>
-										<input
-											id='cyrillic-view-toggle'
-											type='checkbox'
-											checked={useDiacriticsView.cyrillic}
-											onChange={(e) => setUseDiacriticsView((prev) => ({...prev, cyrillic: e.target.checked}))}
-										/>
-										{' '}
-										Diacritics table view
-									</label>
-								</div>
-								{useDiacriticsView.cyrillic
-									? (
-										<CharactersDiacriticsTable
-											entries={selectedCharactersWithSequences.cyrillic}
-											selectedCharacters={selectedCharacters.cyrillic}
-											{...commonTableAttributes}
-										/>
-									)
-									: (
-										<CharactersTable
-											entries={selectedCharactersWithSequences.cyrillic}
-											{...commonTableAttributes}
-										/>
-									)}
-							</CharactersContainer>
-						</section>
-					)}
+								{(prefixes.greek.cased ? casedPrefixOptions : uncasedPrefixOptions).map((option) => (
+									<option key={`greek-${option.value}`} value={option.value}>
+										{option.label}
+									</option>
+								))}
+							</select>
+							<Checkbox
+								id='greek-prefix-cased'
+								isChecked={prefixes.greek.cased}
+								label='Cased prefix'
+								onChange={() => setPrefixes((prev) => ({
+									...prev,
+									greek: {
+										...prev.greek,
+										cased: !prev.greek.cased,
+										char: prev.greek.cased ? prev.greek.char : prev.greek.char.toLowerCase(),
+									},
+								}))}
+							/>
+						</div>
+					</ScriptSectionWithDiacritics>
+					<ScriptSectionWithDiacritics
+						id='cyrillic'
+						title='Cyrillic alphabet'
+						entries={selectedCharactersWithSequences.cyrillic ?? []}
+						selectedCharacters={selectedCharacters.cyrillic ?? []}
+						isDiacriticsView={useDiacriticsView.cyrillic}
+						onDiacriticsViewChange={(v) => setUseDiacriticsView((prev) => ({...prev, cyrillic: v}))}
+						onAddSequence={() => handleOpenPicker({label: 'Cyrillic alphabet', keys: ['cyrillic']})}
+						{...commonTableAttributes}
+					>
+						<div className='filters'>
+							<Checkbox
+								id='cyrillic-base'
+								isChecked={setSelection.cyrillic.base === true}
+								isIndeterminate={setSelection.cyrillic.base === undefined}
+								label='Basic Cyrillic'
+								description='Base Cyrillic letters.'
+								onChange={() => handleSetSelectionToggle('cyrillic', 'base')}
+							/>
+							<Checkbox
+								id='cyrillic-ext'
+								isChecked={setSelection.cyrillic.ext === true}
+								isIndeterminate={setSelection.cyrillic.ext === undefined}
+								label='Extended Cyrillic'
+								description='Extended Cyrillic letters.'
+								onChange={() => handleSetSelectionToggle('cyrillic', 'ext')}
+							/>
+						</div>
+						<div className='filters'>
+							<label htmlFor='cyrillic-prefix-select'>Prefix</label>
+							<select
+								id='cyrillic-prefix-select'
+								value={prefixes.cyrillic.char}
+								onChange={(e) => setPrefixes((prev) => ({
+									...prev,
+									cyrillic: {...prev.cyrillic, char: e.target.value},
+								}))}
+							>
+								{(prefixes.cyrillic.cased ? casedPrefixOptions : uncasedPrefixOptions).map((option) => (
+									<option key={`cyrillic-${option.value}`} value={option.value}>
+										{option.label}
+									</option>
+								))}
+							</select>
+							<Checkbox
+								id='cyrillic-prefix-cased'
+								isChecked={prefixes.cyrillic.cased}
+								label='Cased prefix'
+								onChange={() => setPrefixes((prev) => ({
+									...prev,
+									cyrillic: {
+										...prev.cyrillic,
+										cased: !prev.cyrillic.cased,
+										char: prev.cyrillic.cased ? prev.cyrillic.char : prev.cyrillic.char.toLowerCase(),
+									},
+								}))}
+							/>
+						</div>
+					</ScriptSectionWithDiacritics>
 					{Object.keys(selectedCharacters)
-						.filter((key) => ![...CORE_CATEGORIES, 'cyrillic'].includes(key) && selectedCharacters[key as keyof typeof selectedCharacters]?.length > 0)
+						.filter((key) => ![...CORE_CATEGORIES, 'cyrillic'].includes(key))
 						.map((scriptKey) => (
-							<section key={scriptKey}>
-								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
-									<h3>{formatScriptGroupName(scriptKey)}</h3>
-								</div>
-								<CharactersContainer
-									charactersNumber={selectedCharacters[scriptKey as keyof typeof selectedCharacters]?.length ?? 0}
-									onAddSequence={() => handleOpenPicker({label: formatScriptGroupName(scriptKey), keys: [scriptKey]})}
-								>
-									<CharactersTable
-										entries={selectedCharactersWithSequences[scriptKey as keyof typeof selectedCharactersWithSequences] || []}
-										{...commonTableAttributes}
-									/>
-								</CharactersContainer>
-							</section>
+							<SimpleScriptSection
+								key={scriptKey}
+								title={formatScriptGroupName(scriptKey)}
+								entries={selectedCharactersWithSequences[scriptKey as keyof typeof selectedCharactersWithSequences] || []}
+								onAddSequence={() => handleOpenPicker({label: formatScriptGroupName(scriptKey), keys: [scriptKey]})}
+								{...commonTableAttributes}
+							/>
 						))}
 				</section>
 				<section>
@@ -1152,24 +759,12 @@ function App() {
 							);
 						})}
 					</div>
-					<section>
-						{hasAnyInGroup(['punctuation']) && (
-							<Fragment>
-								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
-									<h3>Punctuation</h3>
-								</div>
-								<CharactersContainer
-									charactersNumber={selectedCharacters.punctuation.length}
-									onAddSequence={() => handleOpenPicker({label: 'Punctuation', keys: ['punctuation']})}
-								>
-									<CharactersTable
-										entries={selectedCharactersWithSequences.punctuation}
-										{...commonTableAttributes}
-									/>
-								</CharactersContainer>
-							</Fragment>
-						)}
-					</section>
+					<SimpleScriptSection
+						title='Punctuation'
+						entries={selectedCharactersWithSequences.punctuation}
+						onAddSequence={() => handleOpenPicker({label: 'Punctuation', keys: ['punctuation']})}
+						{...commonTableAttributes}
+					/>
 					<section>
 						{hasAnyInGroup(['math_operators', 'math_number', 'math_alphanumerics']) && (
 							<Fragment>
@@ -1370,78 +965,30 @@ function App() {
 							</Fragment>
 						)}
 					</section>
-					<section>
-						{selectedCharacters.currency.length > 0 && (
-							<Fragment>
-								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
-									<h3>Currency</h3>
-								</div>
-								<CharactersContainer
-									charactersNumber={selectedCharacters.currency.length}
-									onAddSequence={() => handleOpenPicker({label: 'Currency', keys: ['currency']})}
-								>
-									<CharactersTable
-										entries={selectedCharactersWithSequences.currency}
-										{...commonTableAttributes}
-									/>
-								</CharactersContainer>
-							</Fragment>
-						)}
-					</section>
-					<section>
-						{selectedCharacters.emoji.length > 0 && (
-							<Fragment>
-								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
-									<h3>Emoji</h3>
-								</div>
-								<CharactersContainer
-									charactersNumber={selectedCharacters.emoji.length}
-									onAddSequence={() => handleOpenPicker({label: 'Emoji', keys: ['emoji']})}
-								>
-									<CharactersTable
-										entries={selectedCharactersWithSequences.emoji}
-										{...commonTableAttributes}
-									/>
-								</CharactersContainer>
-							</Fragment>
-						)}
-					</section>
-					<section>
-						{selectedCharacters.misc.length > 0 && (
-							<Fragment>
-								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
-									<h3>Miscellaneous</h3>
-								</div>
-								<CharactersContainer
-									charactersNumber={selectedCharacters.misc.length}
-									onAddSequence={() => handleOpenPicker({label: 'Miscellaneous', keys: ['misc']})}
-								>
-									<CharactersTable
-										entries={selectedCharactersWithSequences.misc}
-										{...commonTableAttributes}
-									/>
-								</CharactersContainer>
-							</Fragment>
-						)}
-					</section>
-					<section>
-						{selectedCharacters.format.length > 0 && (
-							<Fragment>
-								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
-									<h3>Format</h3>
-								</div>
-								<CharactersContainer
-									charactersNumber={selectedCharacters.format.length}
-									onAddSequence={() => handleOpenPicker({label: 'Format', keys: ['format']})}
-								>
-									<CharactersTable
-										entries={selectedCharactersWithSequences.format}
-										{...commonTableAttributes}
-									/>
-								</CharactersContainer>
-							</Fragment>
-						)}
-					</section>
+					<SimpleScriptSection
+						title='Currency'
+						entries={selectedCharactersWithSequences.currency}
+						onAddSequence={() => handleOpenPicker({label: 'Currency', keys: ['currency']})}
+						{...commonTableAttributes}
+					/>
+					<SimpleScriptSection
+						title='Emoji'
+						entries={selectedCharactersWithSequences.emoji}
+						onAddSequence={() => handleOpenPicker({label: 'Emoji', keys: ['emoji']})}
+						{...commonTableAttributes}
+					/>
+					<SimpleScriptSection
+						title='Miscellaneous'
+						entries={selectedCharactersWithSequences.misc}
+						onAddSequence={() => handleOpenPicker({label: 'Miscellaneous', keys: ['misc']})}
+						{...commonTableAttributes}
+					/>
+					<SimpleScriptSection
+						title='Format'
+						entries={selectedCharactersWithSequences.format}
+						onAddSequence={() => handleOpenPicker({label: 'Format', keys: ['format']})}
+						{...commonTableAttributes}
+					/>
 				</section>
 			</main>
 			<Footer

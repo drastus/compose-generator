@@ -1,5 +1,6 @@
-import {Fragment, useMemo} from 'react';
-import CharactersTable from './CharactersTable';
+import {Fragment, useMemo, useRef, useState} from 'react';
+import CharactersTable, {CharactersTableHandle} from './CharactersTable';
+import SequenceToolbar from './SequenceToolbar';
 import {CharWithSeq} from './types';
 
 type AddingModalProps = {
@@ -34,31 +35,41 @@ function AddingModal({
 		[entries, customSequences],
 	);
 
+	const tableRef = useRef<CharactersTableHandle>(null);
+	const [inputFocused, setInputFocused] = useState(false);
+
 	return (
 		<Fragment>
 			<div className='modal-add-sequence-table'>
 				<CharactersTable
+					ref={tableRef}
 					entries={entries}
 					allCharacters={allCharacters}
 					customSequences={customSequences}
 					onSequenceChange={handleSequenceChange}
 					onConflictDetection={onConflictDetection}
+					onFocusChange={setInputFocused}
 				/>
 			</div>
 			<div className='modal-add-sequence-footer'>
-				<button
-					type='button'
-					onClick={() => closeModal()}
-				>
-					Cancel
-				</button>
-				<button
-					type='button'
-					disabled={!hasPendingSequences}
-					onClick={handleApplySequences}
-				>
-					Apply
-				</button>
+				<div className={`modal-add-sequence-toolbar${inputFocused ? '' : ' modal-add-sequence-toolbar--hidden'}`}>
+					<SequenceToolbar onInsert={(char) => tableRef.current?.insertIntoFocused(char)}/>
+				</div>
+				<div className='modal-footer-buttons'>
+					<button
+						type='button'
+						onClick={() => closeModal()}
+					>
+						Cancel
+					</button>
+					<button
+						type='button'
+						disabled={!hasPendingSequences}
+						onClick={handleApplySequences}
+					>
+						Apply
+					</button>
+				</div>
 			</div>
 		</Fragment>
 	);

@@ -232,12 +232,29 @@ button {
 .modal-add-sequence-table {
 	max-height: 50vh;
 	overflow-y: auto;
-	margin-bottom: 1rem;
 }
 
 .modal-add-sequence-footer {
 	display: flex;
-	justify-content: flex-end;
+	justify-content: space-between;
+	align-items: center;
+	margin-top: 0.75rem;
+	padding-top: 0.5rem;
+	border-top: 1px solid var(--border);
+}
+
+.modal-add-sequence-toolbar .sequence-toolbar-container {
+	position: static;
+	box-shadow: none;
+	border: none;
+}
+
+.modal-add-sequence-toolbar--hidden {
+	visibility: hidden;
+}
+
+.modal-footer-buttons {
+	display: flex;
 	gap: 0.5rem;
 }
 

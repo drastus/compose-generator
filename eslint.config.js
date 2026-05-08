@@ -36,6 +36,7 @@ export default [
 			'@stylistic/object-curly-newline': ['error', {consistent: true}],
 			'@stylistic/arrow-parens': ['error', 'always'],
 			'react/jsx-no-leaked-render': 'off',
+			'react/require-default-props': 'off',
 			'react/jsx-uses-react': 'error',
 			'react/jsx-uses-vars': 'error',
 			'react/jsx-fragments': ['error', 'element'],
