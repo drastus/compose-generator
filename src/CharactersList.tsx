@@ -99,7 +99,7 @@ const CharactersList = forwardRef<CharactersListHandle, CharactersListProps>(
 						<th>Char</th>
 						<th>Sequence</th>
 						<th style={{width: '50%'}}>Name</th>
-						<th>Remove</th>
+						<th/>
 					</tr>
 				</thead>
 				<tbody>

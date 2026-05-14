@@ -208,7 +208,6 @@ export default function CharactersDiacriticsTable({
 			key: d,
 		}));
 
-		// Sort base letters alphabetically
 		const sortedBaseLetters = Array.from(baseLetterMap.values()).sort((a, b) => a.baseLetter.localeCompare(b.baseLetter));
 
 		return {

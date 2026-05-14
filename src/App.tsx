@@ -1,4 +1,4 @@
-import {Fragment, useState, useCallback, useMemo, useEffect} from 'react';
+import {Fragment, useState, useCallback, useMemo, useEffect, useDeferredValue} from 'react';
 import {CORE_CATEGORIES, latinPrefixLetters} from './constants/lists';
 import {defaultDiacriticMarks, scriptsGroups, symbolsGroups} from './constants/mappings';
 import {assignedRanges} from './data/assigned-ranges';
@@ -308,9 +308,10 @@ function App() {
 		setPendingConflictMap(new Map());
 	}, [customSequences, pendingEntries, pendingEntryGroups]);
 
+	const deferredSelectedCharacters = useDeferredValue(selectedCharacters);
 	const selectedCharactersWithSequences = useMemo(
-		() => applySequencesToCharacters(selectedCharacters, customSequences, diacriticMarks, prefixes),
-		[selectedCharacters, customSequences, diacriticMarks, prefixes],
+		() => applySequencesToCharacters(deferredSelectedCharacters, customSequences, diacriticMarks, prefixes),
+		[deferredSelectedCharacters, customSequences, diacriticMarks, prefixes],
 	);
 
 	const pendingEntriesWithConflicts = useMemo(() =>
@@ -816,157 +817,147 @@ function App() {
 									>
 										<div className='filters'>
 											<table>
-												<tr>
-													<td/>
-													<td>
-														<Checkbox
-															id='math-alphanumeric-symbols-bold'
-															isChecked={setSelection.math_alphanumerics.mb === true}
-															isIndeterminate={setSelection.math_alphanumerics.mb === undefined}
-															label='Bold'
-															description='Bold alphanumeric symbols.'
-															onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mb')}
-														/>
-													</td>
-													<td>
-														<Checkbox
-															id='math-alphanumeric-symbols-italic'
-															isChecked={setSelection.math_alphanumerics.mi === true}
-															isIndeterminate={setSelection.math_alphanumerics.mi === undefined}
-															label='Italic'
-															description='Italic alphanumeric symbols.'
-															onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mi')}
-														/>
-													</td>
-													<td>
-														<Checkbox
-															id='math-alphanumeric-symbols-bold-italic'
-															isChecked={setSelection.math_alphanumerics.mbi === true}
-															isIndeterminate={setSelection.math_alphanumerics.mbi === undefined}
-															label='Bold italic'
-															description='Bold italic alphanumeric symbols.'
-															onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mbi')}
-														/>
-													</td>
-												</tr>
-												<tr>
-													<td>
-														<Checkbox
-															id='math-alphanumeric-symbols-sans-serif'
-															isChecked={setSelection.math_alphanumerics.mss === true}
-															isIndeterminate={setSelection.math_alphanumerics.mss === undefined}
-															label='Sans-serif'
-															description='Sans-serif alphanumeric symbols.'
-															onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mss')}
-														/>
-													</td>
-													<td>
-														<Checkbox
-															id='math-alphanumeric-symbols-sans-serif-bold'
-															isChecked={setSelection.math_alphanumerics.mssb === true}
-															isIndeterminate={setSelection.math_alphanumerics.mssb === undefined}
-															label='Sans-serif bold'
-															description='Sans-serif bold alphanumeric symbols.'
-															onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mssb')}
-														/>
-													</td>
-													<td>
-														<Checkbox
-															id='math-alphanumeric-symbols-sans-serif-italic'
-															isChecked={setSelection.math_alphanumerics.mssi === true}
-															isIndeterminate={setSelection.math_alphanumerics.mssi === undefined}
-															label='Sans-serif italic'
-															description='Sans-serif italic alphanumeric symbols.'
-															onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mssi')}
-														/>
-													</td>
-													<td>
-														<Checkbox
-															id='math-alphanumeric-symbols-sans-serif-bold-italic'
-															isChecked={setSelection.math_alphanumerics.mssbi === true}
-															isIndeterminate={setSelection.math_alphanumerics.mssbi === undefined}
-															label='Sans-serif bold italic'
-															description='Sans-serif bold italic alphanumeric symbols.'
-															onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mssbi')}
-														/>
-													</td>
-												</tr>
-												<tr>
-													<td>
-														<Checkbox
-															id='math-alphanumeric-symbols-script'
-															isChecked={setSelection.math_alphanumerics.ms === true}
-															isIndeterminate={setSelection.math_alphanumerics.ms === undefined}
-															label='Script'
-															description='Script alphanumeric symbols.'
-															onChange={() => handleSetSelectionToggle('math_alphanumerics', 'ms')}
-														/>
-													</td>
-													<td>
-														<Checkbox
-															id='math-alphanumeric-symbols-script-bold'
-															isChecked={setSelection.math_alphanumerics.mbs === true}
-															isIndeterminate={setSelection.math_alphanumerics.mbs === undefined}
-															label='Script bold'
-															description='Script bold alphanumeric symbols.'
-															onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mbs')}
-														/>
-													</td>
-												</tr>
-												<tr>
-													<td>
-														<Checkbox
-															id='math-alphanumeric-symbols-fraktur'
-															isChecked={setSelection.math_alphanumerics.mf === true}
-															isIndeterminate={setSelection.math_alphanumerics.mf === undefined}
-															label='Fraktur'
-															description='Fraktur alphanumeric symbols.'
-															onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mf')}
-														/>
-													</td>
-													<td>
-														<Checkbox
-															id='math-alphanumeric-symbols-fraktur-bold'
-															isChecked={setSelection.math_alphanumerics.mbf === true}
-															isIndeterminate={setSelection.math_alphanumerics.mbf === undefined}
-															label='Fraktur bold'
-															description='Fraktur bold alphanumeric symbols.'
-															onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mbf')}
-														/>
-													</td>
-												</tr>
-												<tr>
-													<td>
-														<Checkbox
-															id='math-alphanumeric-symbols-monospace'
-															isChecked={setSelection.math_alphanumerics.mm === true}
-															isIndeterminate={setSelection.math_alphanumerics.mm === undefined}
-															label='Monospace'
-															description='Monospace alphanumeric symbols.'
-															onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mm')}
-														/>
-													</td>
-												</tr>
-												<tr>
-													<td>
-														<Checkbox
-															id='math-alphanumeric-symbols-double-struck'
-															isChecked={setSelection.math_alphanumerics.mds === true}
-															isIndeterminate={setSelection.math_alphanumerics.mds === undefined}
-															label='Double-struck'
-															description='Double-struck alphanumeric symbols.'
-															onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mds')}
-														/>
-														<Checkbox
-															id='math-alphanumeric-symbols-double-struck-base'
-															isChecked={setSelection.math_alphanumerics.mds_base === true}
-															isIndeterminate={setSelection.math_alphanumerics.mds_base === undefined}
-															label='Base double-struck'
-															description='Number sets symbols.'
-															onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mds_base')}
-														/>
-													</td>
-												</tr>
+												<tbody>
+													<tr>
+														<td/>
+														<td>
+															<Checkbox
+																id='math-alphanumeric-symbols-bold'
+																isChecked={setSelection.math_alphanumerics.mb === true}
+																isIndeterminate={setSelection.math_alphanumerics.mb === undefined}
+																label='Bold'
+																onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mb')}
+															/>
+														</td>
+														<td>
+															<Checkbox
+																id='math-alphanumeric-symbols-italic'
+																isChecked={setSelection.math_alphanumerics.mi === true}
+																isIndeterminate={setSelection.math_alphanumerics.mi === undefined}
+																label='Italic'
+																onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mi')}
+															/>
+														</td>
+														<td>
+															<Checkbox
+																id='math-alphanumeric-symbols-bold-italic'
+																isChecked={setSelection.math_alphanumerics.mbi === true}
+																isIndeterminate={setSelection.math_alphanumerics.mbi === undefined}
+																label='Bold italic'
+																onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mbi')}
+															/>
+														</td>
+													</tr>
+													<tr>
+														<td>
+															<Checkbox
+																id='math-alphanumeric-symbols-sans-serif'
+																isChecked={setSelection.math_alphanumerics.mss === true}
+																isIndeterminate={setSelection.math_alphanumerics.mss === undefined}
+																label='Sans-serif'
+																onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mss')}
+															/>
+														</td>
+														<td>
+															<Checkbox
+																id='math-alphanumeric-symbols-sans-serif-bold'
+																isChecked={setSelection.math_alphanumerics.mssb === true}
+																isIndeterminate={setSelection.math_alphanumerics.mssb === undefined}
+																label='Sans-serif bold'
+																onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mssb')}
+															/>
+														</td>
+														<td>
+															<Checkbox
+																id='math-alphanumeric-symbols-sans-serif-italic'
+																isChecked={setSelection.math_alphanumerics.mssi === true}
+																isIndeterminate={setSelection.math_alphanumerics.mssi === undefined}
+																label='Sans-serif italic'
+																onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mssi')}
+															/>
+														</td>
+														<td>
+															<Checkbox
+																id='math-alphanumeric-symbols-sans-serif-bold-italic'
+																isChecked={setSelection.math_alphanumerics.mssbi === true}
+																isIndeterminate={setSelection.math_alphanumerics.mssbi === undefined}
+																label='Sans-serif bold italic'
+																onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mssbi')}
+															/>
+														</td>
+													</tr>
+													<tr>
+														<td>
+															<Checkbox
+																id='math-alphanumeric-symbols-script'
+																isChecked={setSelection.math_alphanumerics.ms === true}
+																isIndeterminate={setSelection.math_alphanumerics.ms === undefined}
+																label='Script'
+																onChange={() => handleSetSelectionToggle('math_alphanumerics', 'ms')}
+															/>
+														</td>
+														<td>
+															<Checkbox
+																id='math-alphanumeric-symbols-script-bold'
+																isChecked={setSelection.math_alphanumerics.mbs === true}
+																isIndeterminate={setSelection.math_alphanumerics.mbs === undefined}
+																label='Script bold'
+																onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mbs')}
+															/>
+														</td>
+													</tr>
+													<tr>
+														<td>
+															<Checkbox
+																id='math-alphanumeric-symbols-fraktur'
+																isChecked={setSelection.math_alphanumerics.mf === true}
+																isIndeterminate={setSelection.math_alphanumerics.mf === undefined}
+																label='Fraktur'
+																onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mf')}
+															/>
+														</td>
+														<td>
+															<Checkbox
+																id='math-alphanumeric-symbols-fraktur-bold'
+																isChecked={setSelection.math_alphanumerics.mbf === true}
+																isIndeterminate={setSelection.math_alphanumerics.mbf === undefined}
+																label='Fraktur bold'
+																onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mbf')}
+															/>
+														</td>
+													</tr>
+													<tr>
+														<td>
+															<Checkbox
+																id='math-alphanumeric-symbols-monospace'
+																isChecked={setSelection.math_alphanumerics.mm === true}
+																isIndeterminate={setSelection.math_alphanumerics.mm === undefined}
+																label='Monospace'
+																onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mm')}
+															/>
+														</td>
+													</tr>
+													<tr>
+														<td>
+															<Checkbox
+																id='math-alphanumeric-symbols-double-struck'
+																isChecked={setSelection.math_alphanumerics.mds === true}
+																isIndeterminate={setSelection.math_alphanumerics.mds === undefined}
+																label='Double-struck'
+																onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mds')}
+															/>
+															<Checkbox
+																id='math-alphanumeric-symbols-double-struck-base'
+																isChecked={setSelection.math_alphanumerics.mds_base === true}
+																isIndeterminate={setSelection.math_alphanumerics.mds_base === undefined}
+																label='Base double-struck'
+																description='Number sets symbols.'
+																style={{marginLeft: 24}}
+																onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mds_base')}
+															/>
+														</td>
+													</tr>
+												</tbody>
 											</table>
 										</div>
 										<div className='view-toggle'>

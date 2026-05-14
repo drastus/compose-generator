@@ -7,6 +7,7 @@ function Checkbox({
 	label,
 	description,
 	onChange,
+	style = {},
 }: {
 	readonly id: string,
 	readonly isChecked: boolean,
@@ -14,6 +15,7 @@ function Checkbox({
 	readonly label: string,
 	readonly description?: string,
 	readonly onChange: () => void,
+	readonly style?: CSSProperties,
 }) {
 	const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -24,7 +26,7 @@ function Checkbox({
 	}, [isIndeterminate, isChecked]);
 
 	return (
-		<div style={{marginBottom: '0.5rem'}}>
+		<div style={{marginBottom: '0.5rem', ...style}}>
 			<input
 				ref={inputRef}
 				id={id}

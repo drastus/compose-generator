@@ -132,7 +132,7 @@ export function applySequencesToCharacters(
 						const baseEntry = getMathAlphanumericSymbolBase(entry);
 						if (baseEntry) {
 							let preprefix = scriptPrefixes[entry.template[0] as keyof typeof scriptPrefixes];
-							const hasStandardGreekLetter = GREEK_LETTERS.includes(entry.template[2].split(' ')[0]);
+							const hasStandardGreekLetter = [...GREEK_LETTERS, 'DIGAMMA'].includes(entry.template[2].split(' ')[0]);
 							if (hasStandardGreekLetter || [0x03C2, 0x2202].includes(baseEntry.cp)) {
 								preprefix = preprefix.charAt(0).toUpperCase() + preprefix.slice(1);
 							}

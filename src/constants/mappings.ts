@@ -9,6 +9,7 @@ import {
 	DIAERESIS,
 	DIALYTIKA,
 	GRAVE,
+	HORN,
 	MB,
 	MBF,
 	MBI,
@@ -64,8 +65,7 @@ export const defaultDiacriticMarks: DiacriticMark[] = [
 	{name: 'caron', mark: 'ˇ', key: '<'},
 	{name: 'dot below', mark: '̣', key: '!'},
 	{name: 'hook above', mark: '̉', key: '?'},
-	{name: 'hook', mark: '̡', key: '3'},
-	{name: 'horn', mark: '̛', key: '9'},
+	{name: 'hook', mark: '̡', key: '9'},
 	{name: 'inverted breve', mark: '̑', key: ')'},
 	{name: 'double grave', mark: '̏', key: '``'},
 	{name: 'double acute', mark: '˝', key: '"'},
@@ -85,8 +85,9 @@ export const specialChars: SpecialChar[] = [
 
 export const mapDiacriticParts = (parts: string[]) => (
 	parts.map((part) => {
+		if (part === HORN) return 'hook';
 		if (part === DASIA) return 'ogonek';
-		if (part === PSILI) return 'horn';
+		if (part === PSILI) return 'hook'; // prev. mapped to horn
 		if (part === DIALYTIKA || part === DIAERESIS) return 'diaeresis';
 		if (part === VARIA || part === GRAVE) return 'grave';
 		if (part === OXIA || part === TONOS || part === ACUTE) return 'acute';
@@ -101,10 +102,10 @@ export const mapDiacriticParts = (parts: string[]) => (
 export const scriptPrefixes = {
 	[DIA]: 'd',
 	[COMB]: '&',
-	[MBS]: 's*',
-	[MS]: 's',
-	[MBF]: 'f*',
-	[MF]: 'f',
+	[MBS]: 'ms*',
+	[MS]: 'ms',
+	[MBF]: 'mf*',
+	[MF]: 'mf',
 	[MDS]: 'm2',
 	[MSSBI]: 'm0*/',
 	[MSSB]: 'm0*',
@@ -113,7 +114,7 @@ export const scriptPrefixes = {
 	[MBI]: 'm*/',
 	[MB]: 'm*',
 	[MI]: 'm/',
-	[MM]: 'm',
+	[MM]: 'm1',
 };
 
 export const groupsToUnicodeBlocks = {
