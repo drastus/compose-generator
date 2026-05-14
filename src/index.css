@@ -279,19 +279,89 @@ button {
 	font-weight: 500;
 }
 
-/* Conflict styles */
-.conflict-input {
-	border-color: #dc2626 !important;
-	background-color: #fee2e2 !important;
+/* Sequence input — focusable div with per-key chips */
+.sequence-input {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-wrap: wrap;
+	gap: 2px;
+	min-width: calc(2.8em + 16px);
+	min-height: 28px;
+	padding: 3px 6px;
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	background-color: var(--bg-secondary);
+	cursor: text;
+	outline: none;
+	font-family: ui-monospace;
+	font-size: 0.85em;
+	vertical-align: middle;
+}
+
+.sequence-input--focused {
+	border-color: #4f46e5;
+	box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+}
+
+.sequence-input--conflict {
+	border-color: #dc2626;
+	background-color: #fee2e2;
 }
 
 @media (prefers-color-scheme: dark) {
-	.conflict-input {
-		background-color: #450a0a !important;
-		border-color: #dc2626 !important;
+	.sequence-input--conflict {
+		background-color: #450a0a;
+		border-color: #dc2626;
 	}
 }
 
+.sequence-input--conflict.sequence-input--focused {
+	box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.25);
+}
+
+.sequence-input__chip {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 1.4em;
+	height: 1.6em;
+	padding: 0 4px;
+	border: 1px solid var(--border);
+	border-radius: 4px;
+	background-color: var(--bg-primary);
+	color: var(--text-primary);
+	user-select: none;
+}
+
+.sequence-input__chip--special {
+	background-color: #e0e7ff;
+	border-color: #6366f1;
+	color: #3730a3;
+}
+
+@media (prefers-color-scheme: dark) {
+	.sequence-input__chip--special {
+		background-color: #1e1b4b;
+		border-color: #6366f1;
+		color: #c7d2fe;
+	}
+}
+
+.sequence-input__caret {
+	display: inline-block;
+	width: 1px;
+	height: 1.4em;
+	background: var(--text-primary);
+	animation: sequence-input-caret-blink 1s step-end infinite;
+}
+
+@keyframes sequence-input-caret-blink {
+	0%, 50% { opacity: 1; }
+	50.01%, 100% { opacity: 0; }
+}
+
+/* Conflict styles */
 .conflict-tooltip {
 	position: relative;
 	display: inline-block;
@@ -474,11 +544,16 @@ button {
 	cursor: help;
 }
 
-.diacritics-input {
+.sequence-input.diacritics-input {
 	min-width: 50px;
-	max-width: 70px;
+	max-width: 90px;
 	font-size: 0.75em;
 	padding: 2px 4px;
+}
+
+.sequence-input.diacritics-input .sequence-input__chip {
+	min-width: 1.2em;
+	height: 1.4em;
 }
 
 .view-toggle {

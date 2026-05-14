@@ -2,6 +2,7 @@ import {useState, useRef, useMemo, Fragment} from 'react';
 import {CharWithSeq, NameEntry} from './types';
 import SequenceToolbar from './SequenceToolbar';
 import CharactersList from './CharactersList';
+import SequenceInput, {SequenceInputHandle} from './SequenceInput';
 import {LL, GL, CL, C} from './constants/strings';
 
 function formatCodePoint(cp: number): string {
@@ -47,25 +48,7 @@ export default function CharactersDiacriticsTable({
 }: CharactersDiacriticsTableProps) {
 	const [focusedInput, setFocusedInput] = useState<string | null>(null);
 	const [touchedInputs, setTouchedInputs] = useState<Set<string>>(new Set());
-	const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
-
-	const handleInsertChar = (cpKey: string, char: string) => {
-		const input = inputRefs.current.get(cpKey);
-		if (!input) return;
-
-		const start = input.selectionStart ?? 0;
-		const end = input.selectionEnd ?? 0;
-		const customSeq = customSequences.find((cs) => cs.key === cpKey)?.seq ?? '';
-		const newValue = customSeq.slice(0, start) + char + customSeq.slice(end);
-		onSequenceChange(cpKey, newValue);
-		setTouchedInputs((prev) => new Set(prev).add(cpKey));
-
-		setTimeout(() => {
-			const newPos = start + char.length;
-			input.setSelectionRange(newPos, newPos);
-			input.focus();
-		}, 0);
-	};
+	const inputRefs = useRef<Map<string, SequenceInputHandle>>(new Map());
 
 	const getConflictTooltip = (conflicts: number[] | undefined) => {
 		if (!conflicts || conflicts.length === 0) return null;
@@ -236,57 +219,36 @@ export default function CharactersDiacriticsTable({
 					{codePointChar(char.cp)}
 				</div>
 				<div className='sequence-input-wrapper'>
-					{hasConflict
-						? (
-							<div className='conflict-tooltip'>
-								<input
-									ref={(el) => {
-										if (el) inputRefs.current.set(key, el);
-									}}
-									type='text'
-									value={displayValue}
-									className='key-input conflict-input diacritics-input'
-									onChange={(ev) => {
-										onSequenceChange(key, ev.target.value);
-										setTouchedInputs((prev) => new Set(prev).add(key));
-									}}
-									onFocus={() => setFocusedInput(key)}
-									onBlur={() => {
-										setFocusedInput(null);
-										const currentSeq = inputRefs.current.get(key)?.value ?? '';
-										if (currentSeq) onConflictDetection?.(key, currentSeq);
-									}}
-								/>
-								<span className='conflict-tooltip-text'>
-									Conflicts with:
-									{tooltipText?.map((item) => (
-										<div key={item.cp}>{item.text}</div>
-									))}
-								</span>
-							</div>
-						)
-						: (
-							<input
-								ref={(el) => {
-									if (el) inputRefs.current.set(key, el);
-								}}
-								type='text'
-								value={displayValue}
-								className='key-input diacritics-input'
-								onChange={(ev) => {
-									onSequenceChange(key, ev.target.value);
-									setTouchedInputs((prev) => new Set(prev).add(key));
-								}}
-								onFocus={() => setFocusedInput(key)}
-								onBlur={() => {
-									setFocusedInput(null);
-									const currentSeq = inputRefs.current.get(key)?.value ?? '';
-									if (currentSeq) onConflictDetection?.(key, currentSeq);
-								}}
-							/>
+					{/* conflict-tooltip wrapper must always be rendered to prevent remounting SequenceInput on hasConflict changes */}
+					<span className='conflict-tooltip'>
+						<SequenceInput
+							ref={(el) => {
+								if (el) inputRefs.current.set(key, el);
+							}}
+							value={displayValue}
+							hasConflict={hasConflict}
+							className='diacritics-input'
+							onChange={(next) => {
+								onSequenceChange(key, next);
+								setTouchedInputs((prev) => new Set(prev).add(key));
+							}}
+							onFocus={() => setFocusedInput(key)}
+							onBlur={(current) => {
+								setFocusedInput(null);
+								if (current) onConflictDetection?.(key, current);
+							}}
+						/>
+						{hasConflict && tooltipText && (
+							<span className='conflict-tooltip-text'>
+								Conflicts with:
+								{tooltipText.map((item) => (
+									<div key={item.cp}>{item.text}</div>
+								))}
+							</span>
 						)}
+					</span>
 					{focusedInput === key && (
-						<SequenceToolbar onInsert={(char) => handleInsertChar(key, char)}/>
+						<SequenceToolbar onInsert={(ch) => inputRefs.current.get(key)?.insertChar(ch)}/>
 					)}
 				</div>
 			</div>
