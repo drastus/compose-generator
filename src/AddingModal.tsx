@@ -57,6 +57,7 @@ function AddingModal({
 				</div>
 				<div className='modal-footer-buttons'>
 					<button
+						className='secondary'
 						type='button'
 						onClick={() => closeModal()}
 					>

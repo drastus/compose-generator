@@ -132,6 +132,9 @@ const CharactersList = forwardRef<CharactersListHandle, CharactersListProps>(
 								<td>
 									{onRemoveSequence && (
 										<button
+											aria-label='Remove sequence'
+											className='modal-close-button'
+											title='Remove sequence'
 											type='button'
 											onClick={() => onRemoveSequence(key)}
 										>

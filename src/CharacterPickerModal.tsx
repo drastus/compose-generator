@@ -292,7 +292,7 @@ function CharacterPickerModal({closeModal, onConfirm, restrictToSection, selecte
 					{pickedCps.size > 0 ? `${pickedCps.size} character${pickedCps.size === 1 ? '' : 's'} selected` : ''}
 				</span>
 				<div className='picker-footer-actions'>
-					<button type='button' onClick={handleClose}>Cancel</button>
+					<button className='secondary' type='button' onClick={handleClose}>Cancel</button>
 					<button
 						type='button'
 						disabled={pickedCps.size === 0}

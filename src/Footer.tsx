@@ -1,3 +1,24 @@
+import feather from 'feather-icons';
+
+function FeatherIcon({name}: {readonly name: string}) {
+	const icon = feather.icons[name];
+	return (
+		<svg
+			// eslint-disable-next-line react/no-danger
+			dangerouslySetInnerHTML={{__html: icon.contents}}
+			fill='none'
+			height='18'
+			stroke='currentColor'
+			strokeLinecap='round'
+			strokeLinejoin='round'
+			strokeWidth='2'
+			viewBox='0 0 24 24'
+			width='18'
+			xmlns='http://www.w3.org/2000/svg'
+		/>
+	);
+}
+
 export default function Footer({
 	selectedCount,
 	conflictCount,
@@ -23,25 +44,31 @@ export default function Footer({
 			</div>
 			<div className='footer-actions'>
 				<button
+					aria-label='Add sequence'
+					className='footer-icon-btn secondary'
+					title='Add sequence'
 					type='button'
-					className='generate-button secondary'
 					onClick={onAddAnyCharacter}
 				>
-					Add sequence
+					<FeatherIcon name='plus'/>
 				</button>
 				<button
+					aria-label='Preview'
+					className='footer-icon-btn secondary'
+					title='Preview'
 					type='button'
-					className='generate-button secondary'
 					onClick={onPreview}
 				>
-					Preview
+					<FeatherIcon name='eye'/>
 				</button>
 				<button
+					aria-label='Save'
+					className='footer-icon-btn'
+					title='Save'
 					type='button'
-					className='generate-button'
 					onClick={onGenerate}
 				>
-					Generate
+					<FeatherIcon name='save'/>
 				</button>
 			</div>
 		</footer>

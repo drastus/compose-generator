@@ -67,7 +67,7 @@ export const defaultDiacriticMarks: DiacriticMark[] = [
 	{name: 'hook above', mark: '̉', key: '?'},
 	{name: 'hook', mark: '̡', key: '9'},
 	{name: 'inverted breve', mark: '̑', key: ')'},
-	{name: 'double grave', mark: '̏', key: '``'},
+	{name: 'double grave', mark: '̏', key: '2`'},
 	{name: 'double acute', mark: '˝', key: '"'},
 	{name: 'comma below', mark: '̦', key: ','},
 	{name: 'ypogegrammeni', mark: 'ͅ', key: '_i'},
