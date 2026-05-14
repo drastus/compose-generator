@@ -8,6 +8,7 @@ export default [
 		ignores: [
 			'**/.debris/**',
 			'dist/**',
+			'dist-standalone/**',
 			'build/**',
 		],
 	},

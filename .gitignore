@@ -1,6 +1,7 @@
 node_modules
 /data
 /dist
+/dist-standalone
 .debris
 .megaignore
 .eslintcache
