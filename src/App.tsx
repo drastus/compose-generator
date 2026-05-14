@@ -502,84 +502,79 @@ function App() {
 				<h1>Compose Generator</h1>
 				<section>
 					<h2>Scripts</h2>
-					<div className='filters'>
-						{scriptsGroups.map((g) => {
-							const id = `script-${g.label.toLowerCase().replace(/\s+/g, '-')}`;
-							return (
-								<div key={g.label} style={{marginBottom: '0.5rem'}}>
-									<input
-										id={id}
-										type='checkbox'
-										checked={isGroupChecked(g.keys)}
-										onChange={() => handleGroupToggle(g.keys)}
-									/>
-									<label htmlFor={id} style={{cursor: 'pointer'}}>
-										{g.label}
-									</label>
-									<div className='description'>{g.description}</div>
+					<div className='scripts-layout'>
+						<div className='filters'>
+							{scriptsGroups.map((g) => {
+								const id = `script-${g.label.toLowerCase().replace(/\s+/g, '-')}`;
+								return (
+									<div key={g.label} style={{marginBottom: '0.5rem'}}>
+										<input
+											id={id}
+											type='checkbox'
+											checked={isGroupChecked(g.keys)}
+											onChange={() => handleGroupToggle(g.keys)}
+										/>
+										<label htmlFor={id} style={{cursor: 'pointer'}}>
+											{g.label}
+										</label>
+										<div className='description'>{g.description}</div>
+									</div>
+								);
+							})}
+						</div>
+						{(() => {
+							const filtered = diacriticMarks
+								.map((mark, index) => ({mark, index}))
+								.filter(({mark}) => mark.name !== 'ypogegrammeni' || setSelection.greek.historic !== false);
+							const mid = Math.ceil(filtered.length / 2);
+							return [filtered.slice(0, mid), filtered.slice(mid)].map((col, colIdx) => (
+								<div key={colIdx} className='diacritic-marks-col'>
+									{col.map(({mark, index}) => (
+										<div key={mark.name} className='diacritic-mark-item'>
+											<span className='diacritic-mark-name'>{mark.name}</span>
+											<span className='diacritic-mark-char'>{mark.mark}</span>
+											<input
+												type='text'
+												value={mark.key}
+												maxLength={2}
+												className='key-input'
+												onChange={(e) => handleDiacriticKeyChange(index, e.target.value)}
+											/>
+										</div>
+									))}
 								</div>
-							);
-						})}
+							));
+						})()}
 					</div>
 					<section>
-						<h3>Diacritic marks</h3>
-						<CharactersContainer
-							charactersNumber={selectedCharacters.modifier.length + selectedCharacters.combining.length}
-							onAddSequence={() => handleOpenPicker({label: 'Diacritic marks', keys: ['modifier', 'combining']})}
-						>
-							<table className='diacritic-table'>
-								<thead>
-									<tr>
-										<th>Name</th>
-										<th>Mark</th>
-										<th>Key</th>
-									</tr>
-								</thead>
-								<tbody>
-									{diacriticMarks.filter((mark) => mark.name !== 'ypogegrammeni' || setSelection.greek.historic !== false).map((mark, index) => (
-										<tr key={mark.name}>
-											<td>{mark.name}</td>
-											<td>{mark.mark}</td>
-											<td>
-												<input
-													type='text'
-													value={mark.key}
-													maxLength={2}
-													className='key-input'
-													onChange={(e) => handleDiacriticKeyChange(index, e.target.value)}
-												/>
-											</td>
-										</tr>
-									))}
-								</tbody>
-							</table>
-							<section>
-								{selectedCharacters.modifier.length > 0 && (
-									<Fragment>
-										<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
-											<h3>Modifier letters</h3>
-										</div>
-										<CharactersList
-											entries={selectedCharactersWithSequences.modifier}
-											{...commonTableAttributes}
-										/>
-									</Fragment>
-								)}
-							</section>
-							<section>
-								{selectedCharacters.combining.length > 0 && (
-									<Fragment>
-										<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
-											<h3>Combining diacritical marks</h3>
-										</div>
-										<CharactersList
-											entries={selectedCharactersWithSequences.combining}
-											{...commonTableAttributes}
-										/>
-									</Fragment>
-								)}
-							</section>
-						</CharactersContainer>
+						{selectedCharacters.modifier.length > 0 && (
+							<CharactersContainer
+								header='Modifier letters'
+								charactersNumber={selectedCharacters.modifier.length}
+								conflictCount={selectedCharactersWithSequences.modifier.filter((e) => e.conflicts && e.conflicts.length > 0).length}
+								onAddSequence={() => handleOpenPicker({label: 'Modifier letters', keys: ['modifier']})}
+							>
+								<CharactersList
+									entries={selectedCharactersWithSequences.modifier}
+									{...commonTableAttributes}
+								/>
+							</CharactersContainer>
+						)}
+					</section>
+					<section>
+						{selectedCharacters.combining.length > 0 && (
+							<CharactersContainer
+								header='Combining diacritical marks'
+								charactersNumber={selectedCharacters.combining.length}
+								conflictCount={selectedCharactersWithSequences.combining.filter((e) => e.conflicts && e.conflicts.length > 0).length}
+								onAddSequence={() => handleOpenPicker({label: 'Combining diacritical marks', keys: ['combining']})}
+							>
+								<CharactersList
+									entries={selectedCharactersWithSequences.combining}
+									{...commonTableAttributes}
+								/>
+							</CharactersContainer>
+						)}
 					</section>
 					<ScriptSectionWithDiacritics
 						id='latin'
@@ -687,12 +682,12 @@ function App() {
 					</ScriptSectionWithDiacritics>
 					<ScriptSectionWithDiacritics
 						id='cyrillic'
-						title='Cyrillic alphabet'
+						title='Cyrillic'
 						entries={selectedCharactersWithSequences.cyrillic ?? []}
 						selectedCharacters={selectedCharacters.cyrillic ?? []}
 						isDiacriticsView={useDiacriticsView.cyrillic}
 						onDiacriticsViewChange={(v) => setUseDiacriticsView((prev) => ({...prev, cyrillic: v}))}
-						onAddSequence={() => handleOpenPicker({label: 'Cyrillic alphabet', keys: ['cyrillic']})}
+						onAddSequence={() => handleOpenPicker({label: 'Cyrillic', keys: ['cyrillic']})}
 						{...commonTableAttributes}
 					>
 						<div className='filters'>
@@ -782,14 +777,12 @@ function App() {
 					<section>
 						{hasAnyInGroup(['math_operators', 'math_number', 'math_alphanumerics']) && (
 							<Fragment>
-								<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
-									<h3>Mathematical symbols</h3>
-								</div>
 								<section>
-									<h4>Operators</h4>
 									<CharactersContainer
+										header='Mathematical operators'
 										charactersNumber={selectedCharacters.math_operators.length}
-										onAddSequence={() => handleOpenPicker({label: 'Operators', keys: ['math_operators']})}
+										conflictCount={selectedCharactersWithSequences.math_operators.filter((e) => e.conflicts && e.conflicts.length > 0).length}
+										onAddSequence={() => handleOpenPicker({label: 'Mathematical operators', keys: ['math_operators']})}
 									>
 										<CharactersList
 											entries={selectedCharactersWithSequences.math_operators}
@@ -798,9 +791,10 @@ function App() {
 									</CharactersContainer>
 								</section>
 								<section>
-									<h4>Numbers</h4>
 									<CharactersContainer
+										header='Numbers'
 										charactersNumber={selectedCharacters.math_number.length}
+										conflictCount={selectedCharactersWithSequences.math_number.filter((e) => e.conflicts && e.conflicts.length > 0).length}
 										onAddSequence={() => handleOpenPicker({label: 'Numbers', keys: ['math_number']})}
 									>
 										<CharactersList
@@ -810,9 +804,10 @@ function App() {
 									</CharactersContainer>
 								</section>
 								<section>
-									<h4>Alphanumeric symbols</h4>
 									<CharactersContainer
+										header='Alphanumeric symbols'
 										charactersNumber={selectedCharacters.math_alphanumerics.length}
+										conflictCount={selectedCharactersWithSequences.math_alphanumerics.filter((e) => e.conflicts && e.conflicts.length > 0).length}
 										onAddSequence={() => handleOpenPicker({label: 'Alphanumeric symbols', keys: ['math_alphanumerics']})}
 									>
 										<div className='filters'>

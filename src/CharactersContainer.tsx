@@ -1,12 +1,14 @@
 import {useEffect, useRef, useState, MouseEvent, ReactNode} from 'react';
 
 type CharactersContainerProps = {
+	readonly header?: string,
 	readonly charactersNumber: number,
+	readonly conflictCount?: number,
 	readonly onAddSequence: () => void,
 	readonly children: ReactNode,
 };
 
-export default function CharactersContainer({charactersNumber, onAddSequence, children}: CharactersContainerProps) {
+export default function CharactersContainer({header, charactersNumber, conflictCount, onAddSequence, children}: CharactersContainerProps) {
 	const [isExpanded, setIsExpanded] = useState(false);
 	const [isFullyExpanded, setIsFullyExpanded] = useState(false);
 	const [contentHeight, setContentHeight] = useState(0);
@@ -43,7 +45,15 @@ export default function CharactersContainer({charactersNumber, onAddSequence, ch
 				<span style={{transition: 'transform 0.5s', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0)'}}>
 					▶
 				</span>
-				<span>{charactersNumber} character{charactersNumber === 1 ? '' : 's'}</span>
+				{header && <h3 className='container-header'>{header}</h3>}
+				<span>
+					{charactersNumber} character{charactersNumber === 1 ? '' : 's'}
+					{conflictCount !== undefined && conflictCount > 0 && (
+						<span className='footer-conflict-count'>
+							{' • '}{conflictCount} {conflictCount === 1 ? 'conflict' : 'conflicts'}
+						</span>
+					)}
+				</span>
 				<button
 					type='button'
 					style={{

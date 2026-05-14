@@ -35,12 +35,10 @@ export default function ScriptSectionWithDiacritics({
 }: Props) {
 	if (entries.length === 0) return null;
 	const toggleId = `${id}-view-toggle`;
+	const conflictCount = entries.filter((e) => e.conflicts && e.conflicts.length > 0).length;
 	return (
 		<section>
-			<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
-				<h3>{title}</h3>
-			</div>
-			<CharactersContainer charactersNumber={entries.length} onAddSequence={onAddSequence}>
+			<CharactersContainer header={title} charactersNumber={entries.length} conflictCount={conflictCount} onAddSequence={onAddSequence}>
 				{children}
 				<div className='view-toggle'>
 					<label htmlFor={toggleId}>

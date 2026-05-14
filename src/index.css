@@ -48,6 +48,7 @@ body {
 h1 { margin: 0 0 16px; font-size: 28px; }
 h2 { margin: 24px 0 8px; font-size: 20px; }
 h3 { margin: 16px 0 8px; font-size: 16px; }
+h3.container-header { margin: 0; min-width: 14em; }
 
 .description {
     font-size: 0.9em;
@@ -138,27 +139,50 @@ th {
 	font-size: 0.85em;
 }
 
-.diacritic-table {
-	width: 100%;
-	border-collapse: collapse;
+.scripts-layout {
+	display: flex;
+	align-items: flex-start;
+	gap: 16px;
 	margin: 1rem 0;
 }
-.diacritic-table th, .diacritic-table td {
-	border: 1px solid #ddd;
-	padding: 4px 8px;
-	text-align: left;
+
+.scripts-layout > .filters {
+	margin: 0;
 }
-.diacritic-table th {
-	font-weight: 600;
+
+.diacritic-marks-col {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-size: 14px;
 }
-.diacritic-table tr:nth-child(even) {
-	background-color: var(--bg-primary);
+
+.diacritic-marks-col + .diacritic-marks-col {
+	margin-left: 16px;
 }
-.key-input {
-	min-width: 60px;
-	max-width: 100px;
+
+.diacritic-mark-item {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.diacritic-mark-name {
+	flex: 3;
+	min-width: 0;
+	color: var(--text-secondary);
+}
+
+.diacritic-mark-char {
+	flex: 1;
 	text-align: center;
-	padding: 4px 8px;
+}
+
+.key-input {
+	flex: 1;
+	min-width: 0;
+	text-align: center;
+	padding: 4px 2px;
 	border: 1px solid var(--border);
 	border-radius: 6px;
 	background-color: var(--bg-secondary);

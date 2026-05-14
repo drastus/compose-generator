@@ -17,12 +17,10 @@ type Props = TableSharedProps & {
 
 export default function SimpleScriptSection({title, entries, onAddSequence, ...tableProps}: Props) {
 	if (entries.length === 0) return null;
+	const conflictCount = entries.filter((e) => e.conflicts && e.conflicts.length > 0).length;
 	return (
 		<section>
-			<div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem'}}>
-				<h3>{title}</h3>
-			</div>
-			<CharactersContainer charactersNumber={entries.length} onAddSequence={onAddSequence}>
+			<CharactersContainer header={title} charactersNumber={entries.length} conflictCount={conflictCount} onAddSequence={onAddSequence}>
 				<CharactersList
 					entries={entries}
 					{...tableProps}
