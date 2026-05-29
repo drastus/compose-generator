@@ -45,6 +45,7 @@ export default function ScriptSectionWithDiacritics({
 						<input
 							id={toggleId}
 							type='checkbox'
+							role='switch'
 							checked={isDiacriticsView}
 							onChange={(e) => onDiacriticsViewChange(e.target.checked)}
 						/>

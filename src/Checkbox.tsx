@@ -1,4 +1,6 @@
-import {useEffect, useRef} from 'react';
+import {CSSProperties, useEffect, useRef} from 'react';
+
+const emptyStyle: CSSProperties = {};
 
 function Checkbox({
 	id,
@@ -7,7 +9,7 @@ function Checkbox({
 	label,
 	description,
 	onChange,
-	style = {},
+	style = emptyStyle,
 }: {
 	readonly id: string,
 	readonly isChecked: boolean,
@@ -27,16 +29,18 @@ function Checkbox({
 
 	return (
 		<div style={{marginBottom: '0.5rem', ...style}}>
-			<input
-				ref={inputRef}
-				id={id}
-				type='checkbox'
-				checked={isChecked}
-				onChange={onChange}
-			/>
-			<label htmlFor={id} style={{cursor: 'pointer'}}>
-				{label}
-			</label>
+			<div style={{display: 'flex', alignItems: 'center', gap: '0 0.5rem'}}>
+				<input
+					ref={inputRef}
+					id={id}
+					type='checkbox'
+					checked={isChecked}
+					onChange={onChange}
+				/>
+				<label htmlFor={id} style={{cursor: 'pointer'}}>
+					{label}
+				</label>
+			</div>
 			{description && <div className='description'>{description}</div>}
 		</div>
 	);

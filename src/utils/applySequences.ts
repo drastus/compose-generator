@@ -1,10 +1,11 @@
 import {C, COMB, DIA, GREEK_LETTERS} from '../constants/strings';
 import {
+	MATH_FLAGS,
+	composeMathPrefix,
 	defaultDiacriticMarkKeys,
 	defaultDiacriticMarks,
 	defaultPrefixes,
 	mapDiacriticParts,
-	scriptPrefixes,
 } from '../constants/mappings';
 import {characters as mainCharacters} from '../data/names';
 import {CharWithSeq, DiacriticMark, NameEntry} from '../types';
@@ -72,24 +73,29 @@ export function applySequencesToCharacters(
 				seq = customSeq;
 			} else if (entry.defaultSeq) {
 				let baseSeq = entry.defaultSeq;
-				if (['greek', 'cyrillic'].includes(groupKey)) {
-					baseSeq = prefixes[groupKey as keyof typeof prefixes].cased ? entry.defaultSeq : (entry.altSeq ?? entry.defaultSeq);
+				if (groupKey === 'greek') {
+					baseSeq = prefixes.greek.cased ? entry.defaultSeq : (entry.altSeq ?? entry.defaultSeq);
+				} else if (groupKey === 'cyrillic') {
+					baseSeq = prefixes.cyrillic.cased ? entry.defaultSeq : (entry.altSeq ?? entry.defaultSeq);
 				}
 				let newSeq = baseSeq ?? '';
-				if (['greek', 'cyrillic'].includes(groupKey) && newSeq.length > 0 && newSeq[0].toLowerCase() === defaultPrefixes[groupKey as keyof typeof defaultPrefixes].char) {
+				if ((groupKey === 'greek' || groupKey === 'cyrillic') && newSeq.length > 0 && newSeq[0].toLowerCase() === defaultPrefixes[groupKey].char) {
+					const gk = groupKey as 'greek' | 'cyrillic';
 					let coreSeq = newSeq.slice(1);
 					if (coreSeq.length > 1 && defaultDiacriticMarkKeys.includes(coreSeq[0])) {
 						const diacriticMarkName = defaultDiacriticMarks.find((mark) => mark.key === coreSeq[0])!.name;
 						const diacriticMarkKey = diacriticMarksParam.find((mark) => mark.name === diacriticMarkName)!.key;
 						coreSeq = diacriticMarkKey + coreSeq.slice(1);
 					}
-					if (newSeq.startsWith(defaultPrefixes[groupKey as keyof typeof defaultPrefixes].char)) {
-						newSeq = prefixes[groupKey as keyof typeof prefixes].char + coreSeq;
+					if (newSeq.startsWith(defaultPrefixes[gk].char)) {
+						newSeq = prefixes[gk].char + coreSeq;
 					} else {
-						newSeq = prefixes[groupKey as keyof typeof prefixes].cased
-							? prefixes[groupKey as keyof typeof prefixes].char.toUpperCase() + coreSeq
-							: prefixes[groupKey as keyof typeof prefixes].char + '\\' + coreSeq;
+						newSeq = prefixes[gk].cased
+							? prefixes[gk].char.toUpperCase() + coreSeq
+							: prefixes[gk].char + '\\' + coreSeq;
 					}
+				} else if (groupKey === 'currency' && newSeq.length > 0 && newSeq[0] === '=') {
+					newSeq = prefixes.currency.char + newSeq.slice(1);
 				}
 				seq = newSeq;
 			} else if (
@@ -98,7 +104,7 @@ export function applySequencesToCharacters(
 					&& (entry.template[0].endsWith('LETTER') || entry.template[0].startsWith('MATHEMATICAL'))
 					&& (entry.template[2].length === 1 || entry.template[0] === 'GREEK LETTER' || entry.template[0] === 'CYRILLIC LETTER')
 				) || (
-					Object.keys(scriptPrefixes).includes(entry.template[0])
+					entry.template[0] in MATH_FLAGS || entry.template[0] === DIA || entry.template[0] === COMB
 				))
 			) {
 				const diacriticParts = entry.template.slice([DIA, COMB].includes(entry.template[0]) ? 1 : 3)
@@ -131,7 +137,8 @@ export function applySequencesToCharacters(
 					} else if (groupKey === 'math_alphanumerics' && entry.template[2].length > 1) {
 						const baseEntry = getMathAlphanumericSymbolBase(entry);
 						if (baseEntry) {
-							let preprefix = scriptPrefixes[entry.template[0] as keyof typeof scriptPrefixes];
+							const flags = MATH_FLAGS[entry.template[0]];
+							let preprefix = composeMathPrefix(prefixes.math, flags ?? {});
 							const hasStandardGreekLetter = [...GREEK_LETTERS, 'DIGAMMA'].includes(entry.template[2].split(' ')[0]);
 							if (hasStandardGreekLetter || [0x03C2, 0x2202].includes(baseEntry.cp)) {
 								preprefix = preprefix.charAt(0).toUpperCase() + preprefix.slice(1);
@@ -142,8 +149,12 @@ export function applySequencesToCharacters(
 						}
 					} else {
 						let prefix = '';
-						if (Object.keys(scriptPrefixes).includes(entry.template[0])) {
-							prefix = scriptPrefixes[entry.template[0] as keyof typeof scriptPrefixes];
+						if (entry.template[0] === DIA) {
+							prefix = prefixes.dia.char;
+						} else if (entry.template[0] === COMB) {
+							prefix = prefixes.comb.char;
+						} else if (entry.template[0] in MATH_FLAGS) {
+							prefix = composeMathPrefix(prefixes.math, MATH_FLAGS[entry.template[0]]);
 						}
 						let baseLetter = [DIA, COMB].includes(entry.template[0]) ? '' : entry.template[2];
 						if (entry.template[1] === 'SMALL') {

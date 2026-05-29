@@ -2,10 +2,8 @@ import {
 	ACUTE,
 	BREVE,
 	CIRCUMFLEX,
-	COMB,
 	DASIA,
 	DESCENDER,
-	DIA,
 	DIAERESIS,
 	DIALYTIKA,
 	GRAVE,
@@ -34,19 +32,77 @@ import {
 } from './strings';
 import {DiacriticMark, SpecialChar} from '../types';
 
-export const scriptsGroups: {label: string; keys: string[]; description: string}[] = [
-	{label: 'Modifier letters', keys: ['modifier'], description: 'Spacing modifier letters used for phonetic/diacritic purposes.'},
-	{label: 'Combining diacritical marks', keys: ['combining'], description: 'Non-spacing combining marks to modify preceding characters.'},
-	{label: 'Latin alphabet', keys: ['latin'], description: 'Basic and extended Latin letters commonly used in European languages.'},
-	{label: 'Greek alphabet', keys: ['greek'], description: 'Greek letters including basic forms.'},
-	{label: 'Cyrillic alphabet', keys: ['cyrillic'], description: 'Cyrillic letters used by Slavic and other languages.'},
+export type MathFlags = {
+	bold?: boolean;
+	italic?: boolean;
+	sansSerif?: boolean;
+	script?: boolean;
+	fraktur?: boolean;
+	monospace?: boolean;
+	doubleStruck?: boolean;
+};
+
+export const MATH_FLAGS: Record<string, MathFlags> = {
+	[MB]: {bold: true},
+	[MI]: {italic: true},
+	[MBI]: {bold: true, italic: true},
+	[MS]: {script: true},
+	[MBS]: {script: true, bold: true},
+	[MF]: {fraktur: true},
+	[MBF]: {fraktur: true, bold: true},
+	[MDS]: {doubleStruck: true},
+	[MSS]: {sansSerif: true},
+	[MSSB]: {sansSerif: true, bold: true},
+	[MSSI]: {sansSerif: true, italic: true},
+	[MSSBI]: {sansSerif: true, bold: true, italic: true},
+	[MM]: {monospace: true},
+};
+
+type MathPrefixes = {
+	bold: string;
+	italic: string;
+	sansSerif: string;
+	script: string;
+	fraktur: string;
+	monospace: string;
+	doubleStruck: string;
+};
+
+export function composeMathPrefix(math: MathPrefixes, flags: MathFlags): string {
+	let base = '';
+	if (flags.sansSerif) base = math.sansSerif;
+	else if (flags.script) base = math.script;
+	else if (flags.fraktur) base = math.fraktur;
+	else if (flags.monospace) base = math.monospace;
+	else if (flags.doubleStruck) base = math.doubleStruck;
+
+	if (flags.bold) {
+		base = base === '' ? math.bold : base + math.bold[math.bold.length - 1];
+	}
+
+	if (flags.italic) {
+		base = base === '' ? math.italic : base + math.italic[math.italic.length - 1];
+	}
+
+	return base;
+}
+
+export const scriptsGroups: {label: string; key: string; description: string}[] = [
+	{label: 'Modifier letters', key: 'modifier', description: 'Spacing modifier letters used for phonetic/diacritic purposes.'},
+	{label: 'Combining diacritical marks', key: 'combining', description: 'Non-spacing combining marks to modify preceding characters.'},
+	{label: 'Latin alphabet', key: 'latin', description: 'Basic and extended Latin letters commonly used in European languages.'},
+	{label: 'Greek alphabet', key: 'greek', description: 'Greek letters including basic forms.'},
+	{label: 'Cyrillic alphabet', key: 'cyrillic', description: 'Cyrillic letters used by Slavic and other languages.'},
 ];
-export const symbolsGroups: {label: string; keys: string[]; description: string}[] = [
-	{label: 'Punctuation', keys: ['punctuation'], description: 'Common punctuation including separators (space-like) and general marks.'},
-	{label: 'Mathematical symbols', keys: ['math_operators', 'math_number', 'math_alphanumerics'], description: 'Operators and number-related math symbols.'},
-	{label: 'Currency', keys: ['currency'], description: 'Currency signs such as €, £, ¥.'},
-	{label: 'Miscellaneous', keys: ['misc'], description: 'Various symbols that do not fit other categories.'},
-	{label: 'Format', keys: ['format'], description: 'Invisible formatting and control characters.'},
+export const symbolsGroups: {label: string; key: string; description: string}[] = [
+	{label: 'Punctuation', key: 'punctuation', description: 'Common punctuation including separators (space-like) and general marks.'},
+	{label: 'Mathematical operators', key: 'math_operators', description: 'Mathematical operator symbols.'},
+	{label: 'Numbers', key: 'math_number', description: 'Number-related math symbols including superscripts, subscripts, and number forms.'},
+	{label: 'Alphanumeric symbols', key: 'math_alphanumerics', description: 'Mathematical alphanumeric symbols in various styles (bold, italic, script, etc.).'},
+	{label: 'Currency', key: 'currency', description: 'Currency signs such as €, £, ¥.'},
+	{label: 'Emoji', key: 'emoji', description: 'Emoji and pictographic symbols.'},
+	{label: 'Miscellaneous', key: 'misc', description: 'Various symbols that do not fit other categories.'},
+	{label: 'Format', key: 'format', description: 'Invisible formatting and control characters.'},
 ];
 
 export const defaultDiacriticMarks: DiacriticMark[] = [
@@ -98,24 +154,6 @@ export const mapDiacriticParts = (parts: string[]) => (
 		return part.toLowerCase().replace('_', ' ');
 	})
 );
-
-export const scriptPrefixes = {
-	[DIA]: 'd',
-	[COMB]: '&',
-	[MBS]: 'ms*',
-	[MS]: 'ms',
-	[MBF]: 'mf*',
-	[MF]: 'mf',
-	[MDS]: 'm2',
-	[MSSBI]: 'm0*/',
-	[MSSB]: 'm0*',
-	[MSSI]: 'm0/',
-	[MSS]: 'm0',
-	[MBI]: 'm*/',
-	[MB]: 'm*',
-	[MI]: 'm/',
-	[MM]: 'm1',
-};
 
 export const groupsToUnicodeBlocks = {
 	diacritics: [
@@ -200,6 +238,18 @@ export const groupsToUnicodeBlocks = {
 export const defaultPrefixes = {
 	greek: {char: 'g', cased: true},
 	cyrillic: {char: 'c', cased: true},
+	dia: {char: 'd'},
+	comb: {char: '&'},
+	currency: {char: '='},
+	math: {
+		bold: 'm*',
+		italic: 'm/',
+		sansSerif: 'm0',
+		script: 'ms',
+		fraktur: 'mf',
+		monospace: 'm1',
+		doubleStruck: 'm2',
+	},
 };
 
 export const keySymNames: Record<string, string> = {

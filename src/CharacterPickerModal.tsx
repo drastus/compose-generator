@@ -8,7 +8,7 @@ import {blockToGroup} from './utils/blockToGroup';
 type CharacterPickerModalProps = {
 	readonly closeModal: () => void;
 	readonly onConfirm: (_cps: number[]) => void;
-	readonly restrictToSection?: {label: string; keys: string[]};
+	readonly restrictToSection?: {label: string; key: string};
 	readonly selectedCps: Set<number>;
 	readonly availableCharacters: Record<string, NameEntry[]>;
 	readonly onAvailableCharactersChange: (_characters: Record<string, NameEntry[]>) => void;
@@ -89,13 +89,11 @@ function CharacterPickerModal({closeModal, onConfirm, restrictToSection, selecte
 		if (!restrictToSection) return null;
 
 		const names = new Set<string>();
-		for (const key of restrictToSection.keys) {
-			const blocks = groupsToUnicodeBlocks[key as keyof typeof groupsToUnicodeBlocks] ?? [];
-			for (const [blockName] of blocks) {
-				// Only add block names that actually exist in assignedRanges
-				if (assignedRanges.some(([name]) => name === blockName)) {
-					names.add(blockName as string);
-				}
+		const blocks = groupsToUnicodeBlocks[restrictToSection.key as keyof typeof groupsToUnicodeBlocks] ?? [];
+		for (const [blockName] of blocks) {
+			// Only add block names that actually exist in assignedRanges
+			if (assignedRanges.some(([name]) => name === blockName)) {
+				names.add(blockName as string);
 			}
 		}
 		return names;

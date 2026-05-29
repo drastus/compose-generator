@@ -74,7 +74,7 @@ export default function CharactersContainer({header, charactersNumber, conflictC
 			<div
 				ref={contentRef}
 				style={{
-					maxHeight: isExpanded ? `${contentHeight}px` : '0',
+					maxHeight: isFullyExpanded ? 'none' : isExpanded ? `${contentHeight}px` : '0',
 					overflow: isFullyExpanded ? 'unset' : 'hidden',
 					transition: 'max-height 0.5s ease-in-out',
 				}}

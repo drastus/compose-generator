@@ -1,5 +1,5 @@
 import {Fragment, useState, useCallback, useMemo, useEffect, useDeferredValue} from 'react';
-import {CORE_CATEGORIES, latinPrefixLetters} from './constants/lists';
+import {CORE_CATEGORIES} from './constants/lists';
 import {defaultDiacriticMarks, scriptsGroups, symbolsGroups} from './constants/mappings';
 import {assignedRanges} from './data/assigned-ranges';
 import {characters as mainCharacters} from './data/names';
@@ -16,24 +16,12 @@ import CharactersContainer from './CharactersContainer';
 import CharactersList from './CharactersList';
 import CharactersMathStylesTable from './CharactersMathStylesTable';
 import Checkbox from './Checkbox';
+import PrefixDisclosure from './PrefixDisclosure';
 import ScriptSectionWithDiacritics from './ScriptSectionWithDiacritics';
 import SimpleScriptSection from './SimpleScriptSection';
 import Footer from './Footer';
 import Modal from './Modal';
 import './index.css';
-
-const casedPrefixOptions = latinPrefixLetters.map((letter) => {
-	const upper = letter.toUpperCase();
-	return {value: letter, label: `${letter} / ${upper}`};
-});
-
-const uncasedPrefixOptions = latinPrefixLetters.flatMap((letter) => {
-	const upper = letter.toUpperCase();
-	return [
-		{value: letter, label: letter},
-		{value: upper, label: upper},
-	];
-});
 
 const formatScriptGroupName = (groupName: string): string => groupName
 	.split('_')
@@ -62,8 +50,7 @@ const initialSetSelection: SetSelectionState = {
 		ms: false,
 		mbf: false,
 		mf: false,
-		mds: undefined,
-		mds_base: true,
+		mds: false,
 		mssbi: false,
 		mssb: false,
 		mssi: false,
@@ -99,7 +86,7 @@ function App() {
 	const [modalContent, setModalContent] = useState('');
 	const [modalMode, setModalMode] = useState<'preview' | 'addSequence' | null>(null);
 	const [pickerOpen, setPickerOpen] = useState(false);
-	const [pickerSection, setPickerSection] = useState<{label: string; keys: string[]} | undefined>(undefined);
+	const [pickerSection, setPickerSection] = useState<{label: string; key: string} | undefined>(undefined);
 	const [pendingEntries, setPendingEntries] = useState<NameEntry[]>([]);
 	const [pendingEntryGroups, setPendingEntryGroups] = useState<Map<number, string>>(new Map());
 	const [pendingConflictMap, setPendingConflictMap] = useState<Map<number, number[]>>(new Map());
@@ -197,6 +184,15 @@ function App() {
 		});
 	}, []);
 
+	const handleMathAlphanumericsSelectAll = useCallback((toEnable: boolean) => {
+		setSelectedCharacters((prev) => ({
+			...prev,
+			math_alphanumerics: toEnable
+				? (availableCharacters.math_alphanumerics ?? [])
+				: [],
+		}));
+	}, [availableCharacters]);
+
 	const handleSequenceChange = useCallback((cpKey: string, seq: string) => {
 		setCustomSequences((prev) => {
 			const withoutCurrent = prev.filter((cs) => cs.key !== cpKey);
@@ -226,7 +222,7 @@ function App() {
 		(keys: (keyof typeof defaultCharacters)[]) => keys.some((k) => selectedCharacters[k]?.length > 0)
 	), [selectedCharacters]);
 
-	const handleOpenPicker = useCallback((section?: {label: string; keys: string[]}) => {
+	const handleOpenPicker = useCallback((section?: {label: string; key: string}) => {
 		setPickerSection(section);
 		setPickerOpen(true);
 	}, []);
@@ -502,49 +498,63 @@ function App() {
 				<h1>Compose Generator</h1>
 				<section>
 					<h2>Scripts</h2>
-					<div className='scripts-layout'>
-						<div className='filters'>
-							{scriptsGroups.map((g) => {
-								const id = `script-${g.label.toLowerCase().replace(/\s+/g, '-')}`;
-								return (
-									<div key={g.label} style={{marginBottom: '0.5rem'}}>
+					<details className='section-disclosure'>
+						<summary>Diacritic prefixes</summary>
+						<div className='scripts-layout'>
+							{(() => {
+								const filtered = diacriticMarks
+									.map((mark, index) => ({mark, index}))
+									.filter(({mark}) => mark.name !== 'ypogegrammeni' || setSelection.greek.historic !== false);
+								const mid = Math.ceil(filtered.length / 2);
+								return [filtered.slice(0, mid), filtered.slice(mid)].map((col, colIdx) => (
+									<div key={colIdx === 0 ? 'col-a' : 'col-b'} className='diacritic-marks-col'>
+										{col.map(({mark, index}) => (
+											<div key={mark.name} className='diacritic-mark-item'>
+												<span className='diacritic-mark-name'>{mark.name}</span>
+												<span className='diacritic-mark-char'>{mark.mark}</span>
+												<input
+													type='text'
+													value={mark.key}
+													maxLength={2}
+													className='key-input'
+													onChange={(e) => handleDiacriticKeyChange(index, e.target.value)}
+												/>
+											</div>
+										))}
+									</div>
+								));
+							})()}
+						</div>
+					</details>
+					<div className='filters'>
+						{scriptsGroups.map((g) => {
+							const id = `script-${g.label.toLowerCase().replace(/\s+/g, '-')}`;
+							const prefixKey = g.key === 'modifier' ? 'dia' : g.key === 'combining' ? 'comb' : g.key;
+							const hasPrefixDisclosure = ['dia', 'comb', 'greek', 'cyrillic'].includes(prefixKey);
+							return (
+								<div key={g.label} className='script-filter-row'>
+									<div>
 										<input
 											id={id}
 											type='checkbox'
-											checked={isGroupChecked(g.keys)}
-											onChange={() => handleGroupToggle(g.keys)}
+											checked={isGroupChecked([g.key])}
+											onChange={() => handleGroupToggle([g.key])}
 										/>
 										<label htmlFor={id} style={{cursor: 'pointer'}}>
 											{g.label}
 										</label>
-										<div className='description'>{g.description}</div>
-									</div>
-								);
-							})}
-						</div>
-						{(() => {
-							const filtered = diacriticMarks
-								.map((mark, index) => ({mark, index}))
-								.filter(({mark}) => mark.name !== 'ypogegrammeni' || setSelection.greek.historic !== false);
-							const mid = Math.ceil(filtered.length / 2);
-							return [filtered.slice(0, mid), filtered.slice(mid)].map((col, colIdx) => (
-								<div key={colIdx} className='diacritic-marks-col'>
-									{col.map(({mark, index}) => (
-										<div key={mark.name} className='diacritic-mark-item'>
-											<span className='diacritic-mark-name'>{mark.name}</span>
-											<span className='diacritic-mark-char'>{mark.mark}</span>
-											<input
-												type='text'
-												value={mark.key}
-												maxLength={2}
-												className='key-input'
-												onChange={(e) => handleDiacriticKeyChange(index, e.target.value)}
+										{hasPrefixDisclosure && (
+											<PrefixDisclosure
+												scriptKey={prefixKey as 'dia' | 'comb' | 'greek' | 'cyrillic'}
+												prefixes={prefixes}
+												setPrefixes={setPrefixes}
 											/>
-										</div>
-									))}
+										)}
+									</div>
+									<div className='description'>{g.description}</div>
 								</div>
-							));
-						})()}
+							);
+						})}
 					</div>
 					<section>
 						{selectedCharacters.modifier.length > 0 && (
@@ -552,7 +562,7 @@ function App() {
 								header='Modifier letters'
 								charactersNumber={selectedCharacters.modifier.length}
 								conflictCount={selectedCharactersWithSequences.modifier.filter((e) => e.conflicts && e.conflicts.length > 0).length}
-								onAddSequence={() => handleOpenPicker({label: 'Modifier letters', keys: ['modifier']})}
+								onAddSequence={() => handleOpenPicker({label: 'Modifier letters', key: 'modifier'})}
 							>
 								<CharactersList
 									entries={selectedCharactersWithSequences.modifier}
@@ -567,7 +577,7 @@ function App() {
 								header='Combining diacritical marks'
 								charactersNumber={selectedCharacters.combining.length}
 								conflictCount={selectedCharactersWithSequences.combining.filter((e) => e.conflicts && e.conflicts.length > 0).length}
-								onAddSequence={() => handleOpenPicker({label: 'Combining diacritical marks', keys: ['combining']})}
+								onAddSequence={() => handleOpenPicker({label: 'Combining diacritical marks', key: 'combining'})}
 							>
 								<CharactersList
 									entries={selectedCharactersWithSequences.combining}
@@ -583,7 +593,7 @@ function App() {
 						selectedCharacters={selectedCharacters.latin}
 						isDiacriticsView={useDiacriticsView.latin}
 						onDiacriticsViewChange={(v) => setUseDiacriticsView((prev) => ({...prev, latin: v}))}
-						onAddSequence={() => handleOpenPicker({label: 'Latin', keys: ['latin']})}
+						onAddSequence={() => handleOpenPicker({label: 'Latin', key: 'latin'})}
 						{...commonTableAttributes}
 					>
 						<div className='filters'>
@@ -620,7 +630,7 @@ function App() {
 						selectedCharacters={selectedCharacters.greek}
 						isDiacriticsView={useDiacriticsView.greek}
 						onDiacriticsViewChange={(v) => setUseDiacriticsView((prev) => ({...prev, greek: v}))}
-						onAddSequence={() => handleOpenPicker({label: 'Greek', keys: ['greek']})}
+						onAddSequence={() => handleOpenPicker({label: 'Greek', key: 'greek'})}
 						{...commonTableAttributes}
 					>
 						<div className='filters'>
@@ -649,36 +659,6 @@ function App() {
 								onChange={() => handleSetSelectionToggle('greek', 'historic')}
 							/>
 						</div>
-						<div className='filters'>
-							<label htmlFor='greek-prefix-select'>Prefix</label>
-							<select
-								id='greek-prefix-select'
-								value={prefixes.greek.char}
-								onChange={(e) => setPrefixes((prev) => ({
-									...prev,
-									greek: {...prev.greek, char: e.target.value},
-								}))}
-							>
-								{(prefixes.greek.cased ? casedPrefixOptions : uncasedPrefixOptions).map((option) => (
-									<option key={`greek-${option.value}`} value={option.value}>
-										{option.label}
-									</option>
-								))}
-							</select>
-							<Checkbox
-								id='greek-prefix-cased'
-								isChecked={prefixes.greek.cased}
-								label='Cased prefix'
-								onChange={() => setPrefixes((prev) => ({
-									...prev,
-									greek: {
-										...prev.greek,
-										cased: !prev.greek.cased,
-										char: prev.greek.cased ? prev.greek.char : prev.greek.char.toLowerCase(),
-									},
-								}))}
-							/>
-						</div>
 					</ScriptSectionWithDiacritics>
 					<ScriptSectionWithDiacritics
 						id='cyrillic'
@@ -687,7 +667,7 @@ function App() {
 						selectedCharacters={selectedCharacters.cyrillic ?? []}
 						isDiacriticsView={useDiacriticsView.cyrillic}
 						onDiacriticsViewChange={(v) => setUseDiacriticsView((prev) => ({...prev, cyrillic: v}))}
-						onAddSequence={() => handleOpenPicker({label: 'Cyrillic', keys: ['cyrillic']})}
+						onAddSequence={() => handleOpenPicker({label: 'Cyrillic', key: 'cyrillic'})}
 						{...commonTableAttributes}
 					>
 						<div className='filters'>
@@ -708,36 +688,6 @@ function App() {
 								onChange={() => handleSetSelectionToggle('cyrillic', 'ext')}
 							/>
 						</div>
-						<div className='filters'>
-							<label htmlFor='cyrillic-prefix-select'>Prefix</label>
-							<select
-								id='cyrillic-prefix-select'
-								value={prefixes.cyrillic.char}
-								onChange={(e) => setPrefixes((prev) => ({
-									...prev,
-									cyrillic: {...prev.cyrillic, char: e.target.value},
-								}))}
-							>
-								{(prefixes.cyrillic.cased ? casedPrefixOptions : uncasedPrefixOptions).map((option) => (
-									<option key={`cyrillic-${option.value}`} value={option.value}>
-										{option.label}
-									</option>
-								))}
-							</select>
-							<Checkbox
-								id='cyrillic-prefix-cased'
-								isChecked={prefixes.cyrillic.cased}
-								label='Cased prefix'
-								onChange={() => setPrefixes((prev) => ({
-									...prev,
-									cyrillic: {
-										...prev.cyrillic,
-										cased: !prev.cyrillic.cased,
-										char: prev.cyrillic.cased ? prev.cyrillic.char : prev.cyrillic.char.toLowerCase(),
-									},
-								}))}
-							/>
-						</div>
 					</ScriptSectionWithDiacritics>
 					{Object.keys(selectedCharacters)
 						.filter((key) => ![...CORE_CATEGORIES, 'cyrillic'].includes(key))
@@ -746,7 +696,7 @@ function App() {
 								key={scriptKey}
 								title={formatScriptGroupName(scriptKey)}
 								entries={selectedCharactersWithSequences[scriptKey as keyof typeof selectedCharactersWithSequences] || []}
-								onAddSequence={() => handleOpenPicker({label: formatScriptGroupName(scriptKey), keys: [scriptKey]})}
+								onAddSequence={() => handleOpenPicker({label: formatScriptGroupName(scriptKey), key: scriptKey})}
 								{...commonTableAttributes}
 							/>
 						))}
@@ -756,14 +706,92 @@ function App() {
 					<div className='filters'>
 						{symbolsGroups.map((g) => {
 							const id = `symbol-${g.label.toLowerCase().replace(/\s+/g, '-')}`;
+							if (g.key === 'math_alphanumerics') {
+								return (
+									<div key={g.label} className='script-filter-row'>
+										<div>
+											<input
+												id={id}
+												type='checkbox'
+												checked={isGroupChecked([g.key])}
+												onChange={() => handleGroupToggle([g.key])}
+											/>
+											<label htmlFor={id} style={{cursor: 'pointer'}}>{g.label}</label>
+											<details className='inline-prefix'>
+												<summary>Prefixes</summary>
+												<div className='math-prefixes-grid'>
+													{(
+														[
+															['bold', 'Bold'],
+															['italic', 'Italic'],
+															['sansSerif', 'Sans-serif'],
+															['script', 'Script'],
+															['fraktur', 'Fraktur'],
+															['monospace', 'Monospace'],
+															['doubleStruck', 'Double-struck'],
+														] as const
+													).map(([key, label]) => (
+														<Fragment key={key}>
+															<label htmlFor={`math-prefix-${key}`}>{label}</label>
+															<input
+																id={`math-prefix-${key}`}
+																type='text'
+																className='key-input'
+																value={prefixes.math[key]}
+																maxLength={4}
+																onChange={(e) => setPrefixes((prev) => ({
+																	...prev,
+																	math: {...prev.math, [key]: e.target.value},
+																}))}
+															/>
+														</Fragment>
+													))}
+												</div>
+											</details>
+										</div>
+										<div className='description'>{g.description}</div>
+									</div>
+								);
+							}
+							if (g.key === 'currency') {
+								return (
+									<div key={g.label} className='script-filter-row'>
+										<div>
+											<input
+												id={id}
+												type='checkbox'
+												checked={isGroupChecked([g.key])}
+												onChange={() => handleGroupToggle([g.key])}
+											/>
+											<label htmlFor={id} style={{cursor: 'pointer'}}>{g.label}</label>
+											<details className='inline-prefix'>
+												<summary>Prefix</summary>
+												<div className='inline-prefix-content'>
+													<input
+														type='text'
+														className='key-input'
+														maxLength={2}
+														value={prefixes.currency.char}
+														onChange={(e) => setPrefixes((prev) => ({
+															...prev,
+															currency: {char: e.target.value},
+														}))}
+													/>
+												</div>
+											</details>
+										</div>
+										<div className='description'>{g.description}</div>
+									</div>
+								);
+							}
 							return (
 								<Checkbox
 									key={g.label}
 									id={id}
-									isChecked={isGroupChecked(g.keys)}
+									isChecked={isGroupChecked([g.key])}
 									label={g.label}
 									description={g.description}
-									onChange={() => handleGroupToggle(g.keys)}
+									onChange={() => handleGroupToggle([g.key])}
 								/>
 							);
 						})}
@@ -771,7 +799,7 @@ function App() {
 					<SimpleScriptSection
 						title='Punctuation'
 						entries={selectedCharactersWithSequences.punctuation}
-						onAddSequence={() => handleOpenPicker({label: 'Punctuation', keys: ['punctuation']})}
+						onAddSequence={() => handleOpenPicker({label: 'Punctuation', key: 'punctuation'})}
 						{...commonTableAttributes}
 					/>
 					<section>
@@ -782,7 +810,7 @@ function App() {
 										header='Mathematical operators'
 										charactersNumber={selectedCharacters.math_operators.length}
 										conflictCount={selectedCharactersWithSequences.math_operators.filter((e) => e.conflicts && e.conflicts.length > 0).length}
-										onAddSequence={() => handleOpenPicker({label: 'Mathematical operators', keys: ['math_operators']})}
+										onAddSequence={() => handleOpenPicker({label: 'Mathematical operators', key: 'math_operators'})}
 									>
 										<CharactersList
 											entries={selectedCharactersWithSequences.math_operators}
@@ -795,7 +823,7 @@ function App() {
 										header='Numbers'
 										charactersNumber={selectedCharacters.math_number.length}
 										conflictCount={selectedCharactersWithSequences.math_number.filter((e) => e.conflicts && e.conflicts.length > 0).length}
-										onAddSequence={() => handleOpenPicker({label: 'Numbers', keys: ['math_number']})}
+										onAddSequence={() => handleOpenPicker({label: 'Numbers', key: 'math_number'})}
 									>
 										<CharactersList
 											entries={selectedCharactersWithSequences.math_number}
@@ -808,13 +836,33 @@ function App() {
 										header='Alphanumeric symbols'
 										charactersNumber={selectedCharacters.math_alphanumerics.length}
 										conflictCount={selectedCharactersWithSequences.math_alphanumerics.filter((e) => e.conflicts && e.conflicts.length > 0).length}
-										onAddSequence={() => handleOpenPicker({label: 'Alphanumeric symbols', keys: ['math_alphanumerics']})}
+										onAddSequence={() => handleOpenPicker({label: 'Alphanumeric symbols', key: 'math_alphanumerics'})}
 									>
+										<p className='description'>
+											Mathematical alphanumeric symbols are Unicode characters duplicating Latin letters, Greek
+											letters, and digits in styled variants (bold, italic, script, …). Use them sparingly —
+											they are meant for plain-text math like &ldquo;ℝ ⊆ ℂ&rdquo; or &ldquo;𝐀 = 𝐁 ⋅ 𝐂&rdquo;,
+											and most rendering software ignores their styling. By default only common number-set symbols
+											(ℕ ℤ ℚ ℝ ℂ ℍ) are selected.
+										</p>
 										<div className='filters'>
 											<table>
 												<tbody>
 													<tr>
-														<td/>
+														<td>
+															{(() => {
+																const allSelected = Object.values(setSelection.math_alphanumerics).every((v) => v === true);
+																return (
+																	<button
+																		type='button'
+																		className='select-all-btn'
+																		onClick={() => handleMathAlphanumericsSelectAll(!allSelected)}
+																	>
+																		{allSelected ? 'Unselect all' : 'Select all'}
+																	</button>
+																);
+															})()}
+														</td>
 														<td>
 															<Checkbox
 																id='math-alphanumeric-symbols-bold'
@@ -941,15 +989,6 @@ function App() {
 																label='Double-struck'
 																onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mds')}
 															/>
-															<Checkbox
-																id='math-alphanumeric-symbols-double-struck-base'
-																isChecked={setSelection.math_alphanumerics.mds_base === true}
-																isIndeterminate={setSelection.math_alphanumerics.mds_base === undefined}
-																label='Base double-struck'
-																description='Number sets symbols.'
-																style={{marginLeft: 24}}
-																onChange={() => handleSetSelectionToggle('math_alphanumerics', 'mds_base')}
-															/>
 														</td>
 													</tr>
 												</tbody>
@@ -960,10 +999,11 @@ function App() {
 												<input
 													id='math-alphanumerics-view-toggle'
 													type='checkbox'
+													role='switch'
 													checked={useMathStylesView}
 													onChange={(e) => setUseMathStylesView(e.target.checked)}
 												/>
-												{'  '}
+												{' '}
 												Math styles table view
 											</label>
 										</div>
@@ -989,25 +1029,25 @@ function App() {
 					<SimpleScriptSection
 						title='Currency'
 						entries={selectedCharactersWithSequences.currency}
-						onAddSequence={() => handleOpenPicker({label: 'Currency', keys: ['currency']})}
+						onAddSequence={() => handleOpenPicker({label: 'Currency', key: 'currency'})}
 						{...commonTableAttributes}
 					/>
 					<SimpleScriptSection
 						title='Emoji'
 						entries={selectedCharactersWithSequences.emoji}
-						onAddSequence={() => handleOpenPicker({label: 'Emoji', keys: ['emoji']})}
+						onAddSequence={() => handleOpenPicker({label: 'Emoji', key: 'emoji'})}
 						{...commonTableAttributes}
 					/>
 					<SimpleScriptSection
 						title='Miscellaneous'
 						entries={selectedCharactersWithSequences.misc}
-						onAddSequence={() => handleOpenPicker({label: 'Miscellaneous', keys: ['misc']})}
+						onAddSequence={() => handleOpenPicker({label: 'Miscellaneous', key: 'misc'})}
 						{...commonTableAttributes}
 					/>
 					<SimpleScriptSection
 						title='Format'
 						entries={selectedCharactersWithSequences.format}
-						onAddSequence={() => handleOpenPicker({label: 'Format', keys: ['format']})}
+						onAddSequence={() => handleOpenPicker({label: 'Format', key: 'format'})}
 						{...commonTableAttributes}
 					/>
 				</section>
