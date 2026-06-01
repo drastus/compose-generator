@@ -419,6 +419,7 @@ const sets = {
 			[0x2300, 0x2300], // diameter
 		],
 	},
+	music: {},
 	format: {
 		base: [
 			[0x00AD, 0x200D],
@@ -519,7 +520,10 @@ import {${clImport}} from '../constants/strings';
 	};
 
 	const addEntries = (key: string, entries: {cp: number; name: string; cat?: string}[]) => {
-		if (entries.length === 0) return;
+		if (entries.length === 0) {
+			lines.push(`const ${key}: NameEntry[] = [];\n`);
+			return;
+		}
 
 		lines.push(`const ${key}: NameEntry[] = [`);
 		for (const {cp, name, cat} of entries) {
@@ -609,10 +613,7 @@ import {${clImport}} from '../constants/strings';
 	};
 
 	for (const category of categories) {
-		const categoryData = built[category];
-		if (Array.isArray(categoryData)) {
-			addEntries(category, categoryData);
-		}
+		addEntries(category, built[category] ?? []);
 	}
 
 	lines.push(`export const characters: Record<string, NameEntry[]> = {${categories.join(', ')}};\n`);

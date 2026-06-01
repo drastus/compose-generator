@@ -156,6 +156,19 @@ export const mapDiacriticParts = (parts: string[]) => (
 );
 
 export const groupsToUnicodeBlocks = {
+	modifier: [
+		['Spacing Modifier Letters', [[0x02B0, 0x02FF]]],
+		['Modifier Tone Letters', [[0xA700, 0xA71F]]],
+		['Phonetic Extensions', [[0x1D00, 0x1D7F]]],
+		['Phonetic Extensions Supplement', [[0x1D80, 0x1DBF]]],
+	],
+	combining: [
+		['Combining Diacritical Marks', [[0x0300, 0x036F]]],
+		['Combining Diacritical Marks Extended', [[0x1AB0, 0x1AEB]]],
+		['Combining Diacritical Marks Supplement', [[0x1DC0, 0x1DFF]]],
+		['Combining Diacritical Marks for Symbols', [[0x20D0, 0x20F0]]],
+		['Combining Half Marks', [[0xFE20, 0xFE2F]]],
+	],
 	diacritics: [
 		['Basic Latin', [[0x005E, 0x005E], [0x0060, 0x0060], [0x007E, 0x007E]]],
 		['Latin-1 Supplement', [[0x00A8, 0x00A8], [0x00AF, 0x00AF], [0x00B4, 0x00B4], [0x00B8, 0x00B8]]],
@@ -197,10 +210,14 @@ export const groupsToUnicodeBlocks = {
 		['Supplemental Punctuation', [[0x2E00, 0x2E7F]]],
 	],
 	math_operators: [
+		['Arrows', [[0x2190, 0x21FF]]],
 		['Mathematical Operators', [[0x2200, 0x22FF]]],
 		['Miscellaneous Mathematical Symbols-A', [[0x27C0, 0x27EF]]],
+		['Supplemental Arrows-A', [[0x27F0, 0x27FF]]],
+		['Supplemental Arrows-B', [[0x2900, 0x297F]]],
 		['Miscellaneous Mathematical Symbols-B', [[0x2980, 0x29FF]]],
 		['Supplemental Mathematical Operators', [[0x2A00, 0x2AFF]]],
+		['Miscellaneous Symbols and Arrows', [[0x2B00, 0x2BFF]]],
 	],
 	math_number: [
 		['Basic Latin', [[0x0000, 0x007F]]],
@@ -224,6 +241,31 @@ export const groupsToUnicodeBlocks = {
 		['Transport and Map Symbols', [[0x1F680, 0x1F6FF]]],
 		['Symbols and Pictographs Extended-A', [[0x1FA70, 0x1FAFF]]],
 	],
+	misc: [
+		['Letterlike Symbols', [[0x2100, 0x214F]]],
+		['Miscellaneous Technical', [[0x2300, 0x23FF]]],
+		['Control Pictures', [[0x2400, 0x2429]]],
+		['Optical Character Recognition', [[0x2440, 0x244A]]],
+		['Enclosed Alphanumerics', [[0x2460, 0x24FF]]],
+		['Box Drawing', [[0x2500, 0x257F]]],
+		['Block Elements', [[0x2580, 0x259F]]],
+		['Geometric Shapes', [[0x25A0, 0x25FF]]],
+		['Miscellaneous Symbols', [[0x2600, 0x26FF]]],
+		['Braille Patterns', [[0x2800, 0x28FF]]],
+		['Miscellaneous Symbols and Arrows', [[0x2B00, 0x2BFF]]],
+		['Yijing Hexagram Symbols', [[0x4DC0, 0x4DFF]]],
+		['Ancient Symbols', [[0x10190, 0x101A0]]],
+		['Tai Xuan Jing Symbols', [[0x1D300, 0x1D35F]]],
+		['Mahjong Tiles', [[0x1F000, 0x1F02F]]],
+		['Domino Tiles', [[0x1F030, 0x1F09F]]],
+		['Playing Cards', [[0x1F0A0, 0x1F0FF]]],
+		['Enclosed Alphanumeric Supplement', [[0x1F100, 0x1F1FF]]],
+		['Enclosed Ideographic Supplement', [[0x1F200, 0x1F2FF]]],
+		['Alchemical Symbols', [[0x1F700, 0x1F77F]]],
+		['Geometric Shapes Extended', [[0x1F780, 0x1F7FF]]],
+		['Chess Symbols', [[0x1FA00, 0x1FA6F]]],
+		['Symbols for Legacy Computing', [[0x1FB00, 0x1FBFF]]],
+	],
 	format: [
 		['Basic Latin', [[0x0000, 0x007F]]],
 		['Latin-1 Supplement', [[0x0080, 0x00FF]]],
@@ -232,6 +274,12 @@ export const groupsToUnicodeBlocks = {
 		['Tags', [[0xE0000, 0xE007F]]],
 		['Variation Selectors', [[0xFE00, 0xFE0F]]],
 		['Variation Selectors Supplement', [[0xE0100, 0xE01EF]]],
+	],
+	music: [
+		['Znamenny Musical Notation', [[0x1CF00, 0x1CFC3]]],
+		['Byzantine Musical Symbols', [[0x1D000, 0x1D0F5]]],
+		['Musical Symbols', [[0x1D100, 0x1D1EA]]],
+		['Ancient Greek Musical Notation', [[0x1D200, 0x1D245]]],
 	],
 };
 

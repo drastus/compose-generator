@@ -103,7 +103,7 @@ function CharacterPickerModal({closeModal, onConfirm, restrictToSection, selecte
 		if (activeTab === 'section' && sectionBlockNames) {
 			return assignedRanges.filter(([name]) => sectionBlockNames.has(name));
 		}
-		return assignedRanges;
+		return assignedRanges.filter(([name]) => !name.includes('Surrogates'));
 	}, [activeTab, sectionBlockNames]);
 
 	const blockRanges = useMemo(() => {

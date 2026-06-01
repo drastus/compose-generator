@@ -1,6 +1,6 @@
 import {Fragment, useState, useCallback, useMemo, useEffect, useDeferredValue} from 'react';
 import {CORE_CATEGORIES} from './constants/lists';
-import {defaultDiacriticMarks, scriptsGroups, symbolsGroups} from './constants/mappings';
+import {defaultDiacriticMarks, groupsToUnicodeBlocks, scriptsGroups, symbolsGroups} from './constants/mappings';
 import {assignedRanges} from './data/assigned-ranges';
 import {characters as mainCharacters} from './data/names';
 import {usePrefixes} from './hooks/usePrefixes';
@@ -230,6 +230,7 @@ function App() {
 	const handlePickerConfirm = useCallback((cps: number[]) => {
 		setPickerOpen(false);
 
+		const coreCatSet = new Set(CORE_CATEGORIES);
 		const cpGroups = new Map<number, string>();
 
 		for (const cp of cps) {
@@ -243,12 +244,32 @@ function App() {
 			}
 
 			// If not found in availableCharacters, use blockToGroup
+			let blockName: string | null = null;
 			if (!group) {
-				const blockName = findBlockNameForCp(cp);
+				blockName = findBlockNameForCp(cp);
 				if (blockName) {
 					group = blockToGroup(blockName);
 				} else {
 					console.error(`No group found for code point ${cp}`);
+				}
+			}
+
+			// If the resolved group is a raw block-derived name (not a known category),
+			// look it up in groupsToUnicodeBlocks to find the appropriate section.
+			// pickerSection acts as a tie-breaker when the block appears in multiple groups.
+			if (group && !coreCatSet.has(group)) {
+				blockName ??= findBlockNameForCp(cp);
+				if (blockName) {
+					const candidates = Object.entries(groupsToUnicodeBlocks)
+						.filter(([key, blocks]) => coreCatSet.has(key) && blocks.some(([name]) => name === blockName))
+						.map(([key]) => key);
+					if (candidates.length > 0) {
+						group = pickerSection && candidates.includes(pickerSection.key)
+							? pickerSection.key
+							: candidates[0];
+					} else if (pickerSection && coreCatSet.has(pickerSection.key)) {
+						group = pickerSection.key;
+					}
 				}
 			}
 
@@ -270,7 +291,7 @@ function App() {
 		setPendingEntryGroups(cpGroups);
 		setModalMode('addSequence');
 		setShowModal(true);
-	}, [availableCharacters]);
+	}, [availableCharacters, pickerSection]);
 
 	const closeModal = useCallback(() => {
 		setShowModal(false);
@@ -1042,6 +1063,12 @@ function App() {
 						title='Miscellaneous'
 						entries={selectedCharactersWithSequences.misc}
 						onAddSequence={() => handleOpenPicker({label: 'Miscellaneous', key: 'misc'})}
+						{...commonTableAttributes}
+					/>
+					<SimpleScriptSection
+						title='Musical symbols'
+						entries={selectedCharactersWithSequences.music ?? []}
+						onAddSequence={() => handleOpenPicker({label: 'Musical symbols', key: 'music'})}
 						{...commonTableAttributes}
 					/>
 					<SimpleScriptSection

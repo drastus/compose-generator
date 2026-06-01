@@ -36,6 +36,11 @@ export const CORE_BLOCKS = new Set<string>([
 ]);
 
 export const EXTRA_BLOCKS = new Set<string>([
+	'Latin Extended-C',
+	'Latin Extended-D',
+	'Latin Extended-E',
+	'Latin Extended-F',
+	'Latin Extended-G',
 	'Cyrillic',
 	'Cyrillic Supplement',
 	'Hebrew',
@@ -46,6 +51,16 @@ export const EXTRA_BLOCKS = new Set<string>([
 	'Arabic Extended-C',
 	'Arabic Presentation Forms-A',
 	'Arabic Presentation Forms-B',
+	'Armenian',
+	'Georgian',
+	'Georgian Extended',
+	'Georgian Supplement',
+	'Hangul Jamo',
+	'Hiragana',
+	'Katakana',
+	'Enclosed Alphanumerics',
+	'Box Drawing',
+	'Block Elements',
 ]);
 
 export const ALLOWED_BLOCKS = new Set([...CORE_BLOCKS, ...EXTRA_BLOCKS]);
@@ -62,6 +77,7 @@ export const CORE_CATEGORIES = [
 	'currency',
 	'emoji',
 	'misc',
+	'music',
 	'format',
 ];
 
