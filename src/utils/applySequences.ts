@@ -14,6 +14,22 @@ import {detectConflicts} from './detectConflicts';
 
 type Prefixes = typeof defaultPrefixes;
 
+function getDiacriticTemplateSeq(entry: NameEntry, diacriticMarksParam: DiacriticMark[]): string | undefined {
+	if (
+		!entry.template
+		|| entry.template.length < 4
+		|| !entry.template[0].endsWith('LETTER')
+		|| entry.template[2].length !== 1
+	) return undefined;
+	const diacriticParts = entry.template.slice(3);
+	const diacriticNames = mapDiacriticParts(diacriticParts);
+	const marks = diacriticNames.map((n) => diacriticMarksParam.find((m) => m.name === n));
+	if (marks.some((m) => !m)) return undefined;
+	const diacriticKeys = marks.map((m) => m!.key).join('');
+	const letter = entry.template[1] === 'SMALL' ? entry.template[2].toLowerCase() : entry.template[2];
+	return diacriticKeys + letter;
+}
+
 function getMathAlphanumericSymbolBase(entry: NameEntry): NameEntry | undefined {
 	const baseLetterName = entry.template![2];
 	if (baseLetterName === 'PARTIAL DIFFERENTIAL') return mainCharacters.math_operators.find((e) => e.cp === 0x2202);
@@ -71,7 +87,7 @@ export function applySequencesToCharacters(
 			const customSeq = customMap.get(String(entry.cp));
 			if (customSeq) {
 				seq = customSeq;
-			} else if (entry.defaultSeq) {
+			} else if (entry.defaultSeq && !getDiacriticTemplateSeq(entry, diacriticMarksParam)) {
 				let baseSeq = entry.defaultSeq;
 				if (groupKey === 'greek') {
 					baseSeq = prefixes.greek.cased ? entry.defaultSeq : (entry.altSeq ?? entry.defaultSeq);
@@ -143,9 +159,12 @@ export function applySequencesToCharacters(
 							if (hasStandardGreekLetter || [0x03C2, 0x2202].includes(baseEntry.cp)) {
 								preprefix = preprefix.charAt(0).toUpperCase() + preprefix.slice(1);
 							}
-							seq = hasStandardGreekLetter
-								? getGreekSeq(baseEntry, diacriticKeys, prefixes, preprefix)
-								: preprefix + baseEntry.defaultSeq;
+							if (hasStandardGreekLetter) {
+								seq = getGreekSeq(baseEntry, diacriticKeys, prefixes, preprefix);
+							} else {
+								const baseSeq = getDiacriticTemplateSeq(baseEntry, diacriticMarksParam) ?? baseEntry.defaultSeq;
+								seq = preprefix + baseSeq;
+							}
 						}
 					} else {
 						let prefix = '';

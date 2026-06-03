@@ -64,6 +64,12 @@ const CYRILLIC_DIACRITICS = [
 ];
 const CYRILLIC_DIACRITICS_PATTERN = CYRILLIC_DIACRITICS.join('|');
 
+// Dotless I and J are treated as letters with dot above for grouping and sequence purposes
+const dotlessLetterOverrides = new Map<number, string>([
+	[0x0131, 'LATIN SMALL LETTER I WITH DOT ABOVE'],
+	[0x0237, 'LATIN SMALL LETTER J WITH DOT ABOVE'],
+]);
+
 function fail(msg: string): never {
 	console.error(msg);
 	process.exit(1);
@@ -528,6 +534,7 @@ import {${clImport}} from '../constants/strings';
 		lines.push(`const ${key}: NameEntry[] = [`);
 		for (const {cp, name, cat} of entries) {
 			const cpHex = '0x' + cp.toString(16).toUpperCase().padStart(4, '0');
+			const effectiveName = dotlessLetterOverrides.get(cp) ?? name;
 			const sets = getSetsForCodePoint(cp, key);
 			const seqInfo = sequences.get(cp);
 			let seqPart = '';
@@ -538,12 +545,13 @@ import {${clImport}} from '../constants/strings';
 				}
 			}
 			const catPart = cat ? `, cat: '${cat}'` : '';
-			const trailingPart = seqPart + catPart;
+			const namePart = dotlessLetterOverrides.has(cp) ? `, name: '${escapeTSString(name)}'` : '';
+			const trailingPart = namePart + seqPart + catPart;
 			let handled = false;
 
-			handled ||= addLetterEntry(lines, cpHex, sets, trailingPart, name, 'LATIN', LATIN_DIACRITICS_PATTERN);
-			handled ||= addLetterEntry(lines, cpHex, sets, trailingPart, name, 'GREEK', GREEK_DIACRITICS_PATTERN);
-			handled ||= addLetterEntry(lines, cpHex, sets, trailingPart, name, 'CYRILLIC', CYRILLIC_DIACRITICS_PATTERN);
+			handled ||= addLetterEntry(lines, cpHex, sets, trailingPart, effectiveName, 'LATIN', LATIN_DIACRITICS_PATTERN);
+			handled ||= addLetterEntry(lines, cpHex, sets, trailingPart, effectiveName, 'GREEK', GREEK_DIACRITICS_PATTERN);
+			handled ||= addLetterEntry(lines, cpHex, sets, trailingPart, effectiveName, 'CYRILLIC', CYRILLIC_DIACRITICS_PATTERN);
 
 			if (handled) {
 				continue;
@@ -641,6 +649,9 @@ function main() {
 	const nameMap = loadUnicodeData(unicodePath);
 	const blockRanges = loadBlocks(blocksPath).filter((b) => ALLOWED_BLOCKS.has(b.name));
 	const sequences = loadSequences(sequencesPath);
+	// Dotless I/J behave like letters with dot above; defaultSeq kept for math alphanumeric base lookups
+	sequences.set(0x0131, {defaultSeq: '.i'});
+	sequences.set(0x0237, {defaultSeq: '.j'});
 
 	// Core categories accumulator (keyed by category).
 	const built: Record<string, {cp: number; name: string}[]> = {};
