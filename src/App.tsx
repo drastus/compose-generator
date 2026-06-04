@@ -824,21 +824,8 @@ function App() {
 						{...commonTableAttributes}
 					/>
 					<section>
-						{hasAnyInGroup(['math_operators', 'math_number', 'math_alphanumerics']) && (
+						{hasAnyInGroup(['math_number', 'math_operators', 'math_alphanumerics']) && (
 							<Fragment>
-								<section>
-									<CharactersContainer
-										header='Mathematical operators'
-										charactersNumber={selectedCharacters.math_operators.length}
-										conflictCount={selectedCharactersWithSequences.math_operators.filter((e) => e.conflicts && e.conflicts.length > 0).length}
-										onAddSequence={() => handleOpenPicker({label: 'Mathematical operators', key: 'math_operators'})}
-									>
-										<CharactersList
-											entries={selectedCharactersWithSequences.math_operators}
-											{...commonTableAttributes}
-										/>
-									</CharactersContainer>
-								</section>
 								<section>
 									<CharactersContainer
 										header='Numbers'
@@ -854,10 +841,23 @@ function App() {
 								</section>
 								<section>
 									<CharactersContainer
-										header='Alphanumeric symbols'
+										header='Mathematical operators'
+										charactersNumber={selectedCharacters.math_operators.length}
+										conflictCount={selectedCharactersWithSequences.math_operators.filter((e) => e.conflicts && e.conflicts.length > 0).length}
+										onAddSequence={() => handleOpenPicker({label: 'Mathematical operators', key: 'math_operators'})}
+									>
+										<CharactersList
+											entries={selectedCharactersWithSequences.math_operators}
+											{...commonTableAttributes}
+										/>
+									</CharactersContainer>
+								</section>
+								<section>
+									<CharactersContainer
+										header='Math alphanumeric symbols'
 										charactersNumber={selectedCharacters.math_alphanumerics.length}
 										conflictCount={selectedCharactersWithSequences.math_alphanumerics.filter((e) => e.conflicts && e.conflicts.length > 0).length}
-										onAddSequence={() => handleOpenPicker({label: 'Alphanumeric symbols', key: 'math_alphanumerics'})}
+										onAddSequence={() => handleOpenPicker({label: 'Math alphanumeric symbols', key: 'math_alphanumerics'})}
 									>
 										<p className='description'>
 											Mathematical alphanumeric symbols are Unicode characters duplicating Latin letters, Greek
@@ -1060,15 +1060,15 @@ function App() {
 						{...commonTableAttributes}
 					/>
 					<SimpleScriptSection
-						title='Miscellaneous'
-						entries={selectedCharactersWithSequences.misc}
-						onAddSequence={() => handleOpenPicker({label: 'Miscellaneous', key: 'misc'})}
-						{...commonTableAttributes}
-					/>
-					<SimpleScriptSection
 						title='Musical symbols'
 						entries={selectedCharactersWithSequences.music ?? []}
 						onAddSequence={() => handleOpenPicker({label: 'Musical symbols', key: 'music'})}
+						{...commonTableAttributes}
+					/>
+					<SimpleScriptSection
+						title='Miscellaneous'
+						entries={selectedCharactersWithSequences.misc}
+						onAddSequence={() => handleOpenPicker({label: 'Miscellaneous', key: 'misc'})}
 						{...commonTableAttributes}
 					/>
 					<SimpleScriptSection

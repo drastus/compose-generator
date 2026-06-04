@@ -1,4 +1,24 @@
 import {useEffect, useRef, useState, MouseEvent, ReactNode} from 'react';
+import feather from 'feather-icons';
+
+function FeatherIcon({name}: {readonly name: string}) {
+	const icon = feather.icons[name];
+	return (
+		<svg
+			// eslint-disable-next-line react/no-danger
+			dangerouslySetInnerHTML={{__html: icon.contents}}
+			fill='none'
+			height='18'
+			stroke='currentColor'
+			strokeLinecap='round'
+			strokeLinejoin='round'
+			strokeWidth='2'
+			viewBox='0 0 24 24'
+			width='18'
+			xmlns='http://www.w3.org/2000/svg'
+		/>
+	);
+}
 
 type CharactersContainerProps = {
 	readonly header?: string,
@@ -46,19 +66,19 @@ export default function CharactersContainer({header, charactersNumber, conflictC
 					▶
 				</span>
 				{header && <h3 className='container-header'>{header}</h3>}
-				<span>
+				<span className='char-count'>
 					{charactersNumber} character{charactersNumber === 1 ? '' : 's'}
-					{conflictCount !== undefined && conflictCount > 0 && (
-						<span className='footer-conflict-count'>
-							{' • '}{conflictCount} {conflictCount === 1 ? 'conflict' : 'conflicts'}
-						</span>
-					)}
 				</span>
+				{conflictCount !== undefined && conflictCount > 0 && (
+					<span className='footer-conflict-count'>
+						{' • '}{conflictCount} {conflictCount === 1 ? 'conflict' : 'conflicts'}
+					</span>
+				)}
 				<button
 					type='button'
+					className='footer-icon-btn secondary'
 					style={{
 						marginLeft: 'auto',
-						display: 'block',
 						opacity: isExpanded ? 1 : 0,
 						pointerEvents: isExpanded ? 'auto' : 'none',
 						transition: 'opacity 0.5s ease-in-out',
@@ -67,8 +87,9 @@ export default function CharactersContainer({header, charactersNumber, conflictC
 						event.stopPropagation();
 						onAddSequence();
 					}}
+				title='Add sequence'
 				>
-					Add sequence
+					<FeatherIcon name='plus'/>
 				</button>
 			</div>
 			<div

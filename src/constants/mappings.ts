@@ -96,9 +96,9 @@ export const scriptsGroups: {label: string; key: string; description: string}[] 
 ];
 export const symbolsGroups: {label: string; key: string; description: string}[] = [
 	{label: 'Punctuation', key: 'punctuation', description: 'Common punctuation including separators (space-like) and general marks.'},
-	{label: 'Mathematical operators', key: 'math_operators', description: 'Mathematical operator symbols.'},
 	{label: 'Numbers', key: 'math_number', description: 'Number-related math symbols including superscripts, subscripts, and number forms.'},
-	{label: 'Alphanumeric symbols', key: 'math_alphanumerics', description: 'Mathematical alphanumeric symbols in various styles (bold, italic, script, etc.).'},
+	{label: 'Mathematical operators', key: 'math_operators', description: 'Mathematical operator symbols.'},
+	{label: 'Math alphanumeric symbols', key: 'math_alphanumerics', description: 'Mathematical alphanumeric symbols in various styles (bold, italic, script, etc.).'},
 	{label: 'Currency', key: 'currency', description: 'Currency signs such as €, £, ¥.'},
 	{label: 'Emoji', key: 'emoji', description: 'Emoji and pictographic symbols.'},
 	{label: 'Miscellaneous', key: 'misc', description: 'Various symbols that do not fit other categories.'},
