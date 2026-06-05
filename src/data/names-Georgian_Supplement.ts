@@ -3,7 +3,7 @@
 
 import {NameEntry} from '../types';
 
-const georgian_supplement: NameEntry[] = [
+const georgian: NameEntry[] = [
 	{cp: 0x2D00, name: 'GEORGIAN SMALL LETTER AN'},
 	{cp: 0x2D01, name: 'GEORGIAN SMALL LETTER BAN'},
 	{cp: 0x2D02, name: 'GEORGIAN SMALL LETTER GAN'},
@@ -46,4 +46,4 @@ const georgian_supplement: NameEntry[] = [
 	{cp: 0x2D2D, name: 'GEORGIAN SMALL LETTER AEN'},
 ];
 
-export const characters: Record<string, NameEntry[]> = {georgian_supplement};
+export const characters: Record<string, NameEntry[]> = {georgian};

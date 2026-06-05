@@ -5,13 +5,6 @@ export function blockToGroup(blockName: string): string {
 	return blockName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
 }
 
-const MUSIC_BLOCKS = new Set([
-	'Byzantine Musical Symbols',
-	'Musical Symbols',
-	'Ancient Greek Musical Notation',
-	'Znamenny Musical Notation',
-]);
-
 const SCRIPT_BLOCK_PREFIXES: Array<[string, string]> = [
 	['Arabic', 'arabic'],
 	['Bopomofo', 'bopomofo'],
@@ -38,7 +31,6 @@ export function blockToGroupPartial(blockName: string): string | undefined {
 	for (const [prefix, group] of SCRIPT_BLOCK_PREFIXES) {
 		if (blockName.startsWith(prefix)) return group;
 	}
-	if (MUSIC_BLOCKS.has(blockName)) return 'music';
 	return undefined;
 }
 

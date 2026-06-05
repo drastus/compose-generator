@@ -3,6 +3,8 @@
 
 import {NameEntry} from '../types';
 
+import {ML} from '../constants/strings';
+
 const georgian: NameEntry[] = [
 	{cp: 0x10A0, name: 'GEORGIAN CAPITAL LETTER AN'},
 	{cp: 0x10A1, name: 'GEORGIAN CAPITAL LETTER BAN'},

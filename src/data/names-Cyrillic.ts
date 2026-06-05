@@ -3,7 +3,7 @@
 
 import {NameEntry} from '../types';
 
-import {DESCENDER, DIAERESIS, GRAVE, MACRON, STROKE} from '../constants/strings';
+import {GRAVE, DIAERESIS, STROKE, MACRON, DESCENDER} from '../constants/strings';
 import {_, C, S} from '../constants/strings';
 import {COMB, CL} from '../constants/strings';
 

@@ -77,7 +77,6 @@ export const CORE_CATEGORIES = [
 	'currency',
 	'emoji',
 	'misc',
-	'music',
 	'format',
 ];
 

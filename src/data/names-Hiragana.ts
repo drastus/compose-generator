@@ -3,6 +3,8 @@
 
 import {NameEntry} from '../types';
 
+import {COMB} from '../constants/strings';
+
 const hiragana: NameEntry[] = [
 	{cp: 0x3041, name: 'HIRAGANA LETTER SMALL A'},
 	{cp: 0x3042, name: 'HIRAGANA LETTER A'},

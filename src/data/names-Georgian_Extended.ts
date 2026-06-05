@@ -3,7 +3,7 @@
 
 import {NameEntry} from '../types';
 
-const georgian_extended: NameEntry[] = [
+const georgian: NameEntry[] = [
 	{cp: 0x1C90, name: 'GEORGIAN MTAVRULI CAPITAL LETTER AN'},
 	{cp: 0x1C91, name: 'GEORGIAN MTAVRULI CAPITAL LETTER BAN'},
 	{cp: 0x1C92, name: 'GEORGIAN MTAVRULI CAPITAL LETTER GAN'},
@@ -52,4 +52,4 @@ const georgian_extended: NameEntry[] = [
 	{cp: 0x1CBF, name: 'GEORGIAN MTAVRULI CAPITAL LETTER LABIAL SIGN'},
 ];
 
-export const characters: Record<string, NameEntry[]> = {georgian_extended};
+export const characters: Record<string, NameEntry[]> = {georgian};

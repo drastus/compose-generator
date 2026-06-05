@@ -3,6 +3,10 @@
 
 import {NameEntry} from '../types';
 
+import {STROKE, HOOK} from '../constants/strings';
+import {_, C, S} from '../constants/strings';
+import {ML, LL} from '../constants/strings';
+
 const latin_extendedc: NameEntry[] = [
 	{cp: 0x2C60, end: 'L WITH DOUBLE BAR', template: [LL, C], cat: 'latin'},
 	{cp: 0x2C61, end: 'L WITH DOUBLE BAR', template: [LL, S], cat: 'latin'},

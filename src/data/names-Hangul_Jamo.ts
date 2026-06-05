@@ -3,7 +3,7 @@
 
 import {NameEntry} from '../types';
 
-const hangul_jamo: NameEntry[] = [
+const hangul: NameEntry[] = [
 	{cp: 0x1100, name: 'HANGUL CHOSEONG KIYEOK'},
 	{cp: 0x1101, name: 'HANGUL CHOSEONG SSANGKIYEOK'},
 	{cp: 0x1102, name: 'HANGUL CHOSEONG NIEUN'},
@@ -262,4 +262,4 @@ const hangul_jamo: NameEntry[] = [
 	{cp: 0x11FF, name: 'HANGUL JONGSEONG SSANGNIEUN'},
 ];
 
-export const characters: Record<string, NameEntry[]> = {hangul_jamo};
+export const characters: Record<string, NameEntry[]> = {hangul};

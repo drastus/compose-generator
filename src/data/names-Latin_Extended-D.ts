@@ -3,6 +3,10 @@
 
 import {NameEntry} from '../types';
 
+import {STROKE, HOOK} from '../constants/strings';
+import {_, C, S} from '../constants/strings';
+import {ML, LL} from '../constants/strings';
+
 const latin_extendedd: NameEntry[] = [
 	{cp: 0xA720, template: [ML, 'STRESS AND HIGH TONE'], cat: 'modifier'},
 	{cp: 0xA721, template: [ML, 'STRESS AND LOW TONE'], cat: 'modifier'},

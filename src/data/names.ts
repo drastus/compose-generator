@@ -5879,8 +5879,6 @@ const misc: NameEntry[] = [
 	{cp: 0x1F3FF, name: 'EMOJI MODIFIER FITZPATRICK TYPE-6'},
 ];
 
-const music: NameEntry[] = [];
-
 const format: NameEntry[] = [
 	{cp: 0x0000, name: '<control>'},
 	{cp: 0x0001, name: '<control>'},
@@ -5950,4 +5948,4 @@ const format: NameEntry[] = [
 	{cp: 0x00AD, name: 'SOFT HYPHEN', set: ['base'], defaultSeq: '-?'},
 ];
 
-export const characters: Record<string, NameEntry[]> = {modifier, combining, latin, greek, punctuation, math_operators, math_number, math_alphanumerics, currency, emoji, misc, music, format};
+export const characters: Record<string, NameEntry[]> = {modifier, combining, latin, greek, punctuation, math_operators, math_number, math_alphanumerics, currency, emoji, misc, format};

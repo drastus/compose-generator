@@ -3,6 +3,8 @@
 
 import {NameEntry} from '../types';
 
+import {ML} from '../constants/strings';
+
 const latin_extendedf: NameEntry[] = [
 	{cp: 0x10780, template: [ML, 'SMALL CAPITAL AA'], cat: 'modifier'},
 	{cp: 0x10781, template: [ML, 'SUPERSCRIPT TRIANGULAR COLON'], cat: 'modifier'},

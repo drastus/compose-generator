@@ -3,6 +3,10 @@
 
 import {NameEntry} from '../types';
 
+import {STROKE} from '../constants/strings';
+import {_, S} from '../constants/strings';
+import {ML, LL, GL} from '../constants/strings';
+
 const latin_extendede: NameEntry[] = [
 	{cp: 0xAB30, end: 'BARRED ALPHA', template: [LL, S], cat: 'latin'},
 	{cp: 0xAB31, end: 'A REVERSED-SCHWA', template: [LL, S], cat: 'latin'},

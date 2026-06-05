@@ -265,6 +265,10 @@ export const groupsToUnicodeBlocks = {
 		['Geometric Shapes Extended', [[0x1F780, 0x1F7FF]]],
 		['Chess Symbols', [[0x1FA00, 0x1FA6F]]],
 		['Symbols for Legacy Computing', [[0x1FB00, 0x1FBFF]]],
+		['Znamenny Musical Notation', [[0x1CF00, 0x1CFC3]]],
+		['Byzantine Musical Symbols', [[0x1D000, 0x1D0F5]]],
+		['Musical Symbols', [[0x1D100, 0x1D1EA]]],
+		['Ancient Greek Musical Notation', [[0x1D200, 0x1D245]]],
 	],
 	format: [
 		['Basic Latin', [[0x0000, 0x007F]]],
@@ -274,12 +278,6 @@ export const groupsToUnicodeBlocks = {
 		['Tags', [[0xE0000, 0xE007F]]],
 		['Variation Selectors', [[0xFE00, 0xFE0F]]],
 		['Variation Selectors Supplement', [[0xE0100, 0xE01EF]]],
-	],
-	music: [
-		['Znamenny Musical Notation', [[0x1CF00, 0x1CFC3]]],
-		['Byzantine Musical Symbols', [[0x1D000, 0x1D0F5]]],
-		['Musical Symbols', [[0x1D100, 0x1D1EA]]],
-		['Ancient Greek Musical Notation', [[0x1D200, 0x1D245]]],
 	],
 };
 

@@ -1060,12 +1060,6 @@ function App() {
 						{...commonTableAttributes}
 					/>
 					<SimpleScriptSection
-						title='Musical symbols'
-						entries={selectedCharactersWithSequences.music ?? []}
-						onAddSequence={() => handleOpenPicker({label: 'Musical symbols', key: 'music'})}
-						{...commonTableAttributes}
-					/>
-					<SimpleScriptSection
 						title='Miscellaneous'
 						entries={selectedCharactersWithSequences.misc}
 						onAddSequence={() => handleOpenPicker({label: 'Miscellaneous', key: 'misc'})}

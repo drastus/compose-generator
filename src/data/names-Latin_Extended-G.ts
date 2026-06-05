@@ -3,6 +3,9 @@
 
 import {NameEntry} from '../types';
 
+import {_, S} from '../constants/strings';
+import {LL} from '../constants/strings';
+
 const latin_extendedg: NameEntry[] = [
 	{cp: 0x1DF00, end: 'FENG DIGRAPH WITH TRILL', template: [LL, S], cat: 'latin'},
 	{cp: 0x1DF01, end: 'REVERSED SCRIPT G', template: [LL, S], cat: 'latin'},

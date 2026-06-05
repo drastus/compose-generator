@@ -90,10 +90,19 @@ function CharacterPickerModal({closeModal, onConfirm, restrictToSection, selecte
 
 		const names = new Set<string>();
 		const blocks = groupsToUnicodeBlocks[restrictToSection.key as keyof typeof groupsToUnicodeBlocks] ?? [];
-		for (const [blockName] of blocks) {
-			// Only add block names that actually exist in assignedRanges
-			if (assignedRanges.some(([name]) => name === blockName)) {
-				names.add(blockName as string);
+		if (blocks.length > 0) {
+			for (const [blockName] of blocks) {
+				// Only add block names that actually exist in assignedRanges
+				if (assignedRanges.some(([name]) => name === blockName)) {
+					names.add(blockName as string);
+				}
+			}
+		} else {
+			// For dynamic script sections not in groupsToUnicodeBlocks, match by block prefix
+			for (const [blockName] of assignedRanges) {
+				if (blockToGroup(blockName) === restrictToSection.key) {
+					names.add(blockName);
+				}
 			}
 		}
 		return names;

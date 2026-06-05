@@ -4,7 +4,7 @@
 import {NameEntry} from '../types';
 
 import {DESCENDER} from '../constants/strings';
-import {_, C, S} from '../constants/strings';
+import {C, S} from '../constants/strings';
 import {CL} from '../constants/strings';
 
 const cyrillic: NameEntry[] = [
