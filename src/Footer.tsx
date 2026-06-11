@@ -34,42 +34,44 @@ export default function Footer({
 }) {
 	return (
 		<footer className='page-footer'>
-			<div className='footer-selected-count'>
-				{selectedCount} {selectedCount === 1 ? 'character' : 'characters'} selected
-				{conflictCount > 0 && (
-					<span className='footer-conflict-count'>
-						{' • '}{conflictCount} {conflictCount === 1 ? 'conflict' : 'conflicts'}
-					</span>
-				)}
-			</div>
-			<div className='footer-actions'>
-				<button
-					aria-label='Add sequence'
-					className='footer-icon-btn secondary'
-					title='Add sequence'
-					type='button'
-					onClick={onAddAnyCharacter}
-				>
-					<FeatherIcon name='plus'/>
-				</button>
-				<button
-					aria-label='Preview'
-					className='footer-icon-btn secondary'
-					title='Preview'
-					type='button'
-					onClick={onPreview}
-				>
-					<FeatherIcon name='eye'/>
-				</button>
-				<button
-					aria-label='Save'
-					className='footer-icon-btn'
-					title='Save'
-					type='button'
-					onClick={onGenerate}
-				>
-					<FeatherIcon name='save'/>
-				</button>
+			<div className='page-footer-content'>
+				<div className='footer-selected-count'>
+					{selectedCount} {selectedCount === 1 ? 'character' : 'characters'} selected
+					{conflictCount > 0 && (
+						<span className='footer-conflict-count'>
+							{' • '}{conflictCount} {conflictCount === 1 ? 'conflict' : 'conflicts'}
+						</span>
+					)}
+				</div>
+				<div className='footer-actions'>
+					<button
+						aria-label='Add sequence'
+						className='footer-icon-btn secondary'
+						title='Add sequence'
+						type='button'
+						onClick={onAddAnyCharacter}
+					>
+						<FeatherIcon name='plus'/>
+					</button>
+					<button
+						aria-label='Preview'
+						className='footer-icon-btn secondary'
+						title='Preview'
+						type='button'
+						onClick={onPreview}
+					>
+						<FeatherIcon name='eye'/>
+					</button>
+					<button
+						aria-label='Save'
+						className='footer-icon-btn'
+						title='Save'
+						type='button'
+						onClick={onGenerate}
+					>
+						<FeatherIcon name='save'/>
+					</button>
+				</div>
 			</div>
 		</footer>
 	);

@@ -2,6 +2,8 @@ import type {ReactNode} from 'react';
 import {createPortal} from 'react-dom';
 import {useEffect} from 'react';
 
+const H3 = (EMBEDDED ? 'h4' : 'h3') as 'h3' | 'h4';
+
 type ModalProps = {
 	readonly isOpen: boolean,
 	readonly children: ReactNode,
@@ -32,7 +34,7 @@ export default function Modal({
 		<div className='modal-overlay' onClick={onClose}>
 			<div className={`modal-content${contentClassName ? ` ${contentClassName}` : ''}`} onClick={(e) => e.stopPropagation()}>
 				<div className='modal-header'>
-					<h3 style={{margin: 0}}>{title}</h3>
+					<H3 style={{margin: 0}}>{title}</H3>
 					<button
 						type='button'
 						className='modal-close-button'
@@ -46,6 +48,6 @@ export default function Modal({
 				</div>
 			</div>
 		</div>,
-		document.body,
+		document.getElementById('root') ?? document.body,
 	);
 }

@@ -453,7 +453,6 @@ function generateFileContent(
 	categories: string[],
 	built: Record<string, {cp: number; name: string; cat?: string}[]>,
 	sequences: Map<number, {defaultSeq: string; altSeq?: string}>,
-	runtimeGroup?: string,
 ): string {
 	const usedConstants = new Set<string>();
 	const bodyLines: string[] = [];
@@ -716,7 +715,7 @@ function main() {
 		const blockBuilt: Record<string, {cp: number; name: string; cat?: string}[]> = {
 			[runtimeGroup]: entries,
 		};
-		const content = generateFileContent([runtimeGroup], blockBuilt, sequences, runtimeGroup);
+		const content = generateFileContent([runtimeGroup], blockBuilt, sequences);
 		fs.writeFileSync(path.join(srcDir, `names-${fileSlug}.ts`), content, 'utf8');
 	}
 }

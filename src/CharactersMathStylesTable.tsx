@@ -7,6 +7,8 @@ import {
 	C, MB, MBI, MBF, MBS, MDS, MF, MI, MM, MS, MSS, MSSB, MSSBI, MSSI, GREEK_LETTERS, ADDITIONAL_MATH_ALPHANUMERIC_SYMBOLS, ADDITIONAL_GREEK_LETTERS,
 } from './constants/strings';
 
+const H4 = (EMBEDDED ? 'h5' : 'h4') as 'h4' | 'h5';
+
 function formatCodePoint(cp: number): string {
 	return 'U+' + cp.toString(16).toUpperCase().padStart(4, '0');
 }
@@ -280,7 +282,7 @@ export default function CharactersMathStylesTable({
 			</div>
 			{unmatchedChars.length > 0 && (
 				<div style={{marginTop: '2rem'}}>
-					<h4>Other characters</h4>
+					<H4>Other characters</H4>
 					<CharactersList
 						entries={unmatchedChars}
 						allCharacters={allCharacters}

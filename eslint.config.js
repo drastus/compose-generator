@@ -10,6 +10,7 @@ export default [
 			'dist/**',
 			'dist-standalone/**',
 			'build/**',
+			'**/*.d.ts',
 		],
 	},
 
@@ -51,6 +52,9 @@ export default [
 		languageOptions: {
 			parser: tsParser,
 			parserOptions: {},
+			globals: {
+				EMBEDDED: 'readonly',
+			},
 		},
 		rules: {},
 	},

@@ -4,6 +4,10 @@ import {fileURLToPath, URL} from 'node:url';
 
 export default defineConfig(({mode}) => ({
 	plugins: [react()],
+	define: {
+		'process.env.NODE_ENV': JSON.stringify(mode === 'development' ? 'development' : 'production'),
+		EMBEDDED: JSON.stringify(mode !== 'standalone'),
+	},
 	resolve: {
 		alias: {
 			'@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -23,7 +27,6 @@ export default defineConfig(({mode}) => ({
 				fileName: () => 'compose-generator.js',
 			},
 			rollupOptions: {
-				external: ['feather-icons'],
 				output: {
 					assetFileNames: 'compose-generator.[ext]',
 					chunkFileNames: 'compose-generator-[name]-[hash].js',

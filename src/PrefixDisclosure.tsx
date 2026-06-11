@@ -54,6 +54,7 @@ export default function PrefixDisclosure({scriptKey, prefixes, setPrefixes}: Pro
 								id={`${scriptKey}-prefix-cased`}
 								isChecked={(prefixes[scriptKey] as {char: string; cased: boolean}).cased}
 								label='Cased'
+								style={{marginBottom: '0.8rem'}}
 								onChange={() => setPrefixes((prev) => {
 									const cur = prev[scriptKey as CasedKey];
 									return {
@@ -72,7 +73,7 @@ export default function PrefixDisclosure({scriptKey, prefixes, setPrefixes}: Pro
 						<input
 							type='text'
 							className='key-input'
-							maxLength={2}
+							maxLength={3}
 							value={prefixes[scriptKey as SimpleKey].char}
 							onChange={(e) => setPrefixes((prev) => ({
 								...prev,

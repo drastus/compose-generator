@@ -1,6 +1,8 @@
 import {useEffect, useRef, useState, MouseEvent, ReactNode} from 'react';
 import feather from 'feather-icons';
 
+const H3 = (EMBEDDED ? 'h4' : 'h3') as 'h3' | 'h4';
+
 function FeatherIcon({name}: {readonly name: string}) {
 	const icon = feather.icons[name];
 	return (
@@ -65,7 +67,7 @@ export default function CharactersContainer({header, charactersNumber, conflictC
 				<span style={{transition: 'transform 0.5s', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0)'}}>
 					▶
 				</span>
-				{header && <h3 className='container-header'>{header}</h3>}
+				{header && <H3 className='container-header'>{header}</H3>}
 				<span className='char-count'>
 					{charactersNumber} character{charactersNumber === 1 ? '' : 's'}
 				</span>
@@ -83,11 +85,11 @@ export default function CharactersContainer({header, charactersNumber, conflictC
 						pointerEvents: isExpanded ? 'auto' : 'none',
 						transition: 'opacity 0.5s ease-in-out',
 					}}
+					title='Add sequence'
 					onClick={(event: MouseEvent) => {
 						event.stopPropagation();
 						onAddSequence();
 					}}
-				title='Add sequence'
 				>
 					<FeatherIcon name='plus'/>
 				</button>

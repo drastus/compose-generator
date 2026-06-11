@@ -8,6 +8,7 @@
     "generate:names": "tsx scripts/generate-names.ts",
     "generate:assigned-ranges": "tsx scripts/generate-assigned-ranges.ts",
     "start": "vite",
+    "start:standalone": "vite --mode standalone",
     "build": "vite build",
     "build:standalone": "vite build --mode standalone",
     "preview": "vite preview --outDir dist-standalone --port 5173",

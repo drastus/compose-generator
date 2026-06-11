@@ -1,4 +1,5 @@
-:root {
+#root,
+#page-footer-root {
 	color-scheme: light dark;
 	--text-primary: #1a1a1a;
 	--bg-primary: #ffffff;
@@ -6,33 +7,59 @@
 	--text-secondary: #555;
 	--muted: #6b7280;
 	--border: #e5e7eb;
-	/* Prevent Pico CSS responsive font scaling */
-	--pico-font-size: 100%;
-	/* Compact form elements globally */
+	/* Compact form elements within the app */
 	--pico-form-element-spacing-vertical: 0.4rem;
 	--pico-form-element-spacing-horizontal: 0.75rem;
 }
 
+#root,
+#page-footer-root {
+	font-family: ui-sans-serif, system-ui;
+	font-size: 16px;
+}
+
+#root {
+	color: var(--text-primary);
+	background: var(--bg-primary);
+}
+
 @media (prefers-color-scheme: dark) {
-	:root {
+	#root,
+	#page-footer-root {
 		--text-primary: #e5e7eb;
-		--bg-primary: #202b36;
-		--bg-secondary: #1a202c;
+		--bg-primary: #1a202c;
+		--bg-secondary: #202b36;
 		--text-secondary: #999;
 		--muted: #94a3b8;
 		--border: #284165;
 	}
 }
 
-* {
-	box-sizing: border-box;
+html[data-theme="dark"] #root,
+html[data-theme="dark"] #page-footer-root {
+	color-scheme: dark;
+	--text-primary: #e5e7eb;
+	--bg-primary: #1a202c;
+	--bg-secondary: #202b36;
+	--text-secondary: #999;
+	--muted: #94a3b8;
+	--border: #284165;
 }
 
-body {
-	margin: 0;
-	font-family: ui-sans-serif, system-ui;
-	color: var(--text-primary);
-	background: var(--bg-primary);
+html[data-theme="light"] #root,
+html[data-theme="light"] #page-footer-root {
+	color-scheme: light;
+	--text-primary: #1a1a1a;
+	--bg-primary: #ffffff;
+	--bg-secondary: #f3f4f6;
+	--text-secondary: #555;
+	--muted: #6b7280;
+	--border: #e5e7eb;
+}
+
+#root *,
+#page-footer-root * {
+	box-sizing: border-box;
 }
 
 .container {
@@ -41,10 +68,11 @@ body {
 	padding: 24px;
 }
 
-h1 { margin: 0 0 16px; font-size: 28px; }
-h2 { margin: 24px 0 8px; font-size: 20px; }
-h3 { margin: 16px 0 8px; font-size: 16px; }
-h3.container-header { margin: 0 1.5em 0 0; min-width: 14em; }
+#root h1 { margin: 0 0 16px; font-size: 28px; }
+.intro { margin: 0 0 20px; color: var(--text-secondary); line-height: 1.6; }
+#root h2 { margin: 24px 0 8px; font-size: 20px; }
+#root h3 { margin: 16px 0 8px; font-size: 16px; }
+#root h3.container-header { margin: 0 1.5em 0 0; min-width: 14em; }
 .char-count { min-width: 8em; text-align: right; }
 
 .description {
@@ -53,7 +81,7 @@ h3.container-header { margin: 0 1.5em 0 0; min-width: 14em; }
     margin-top: 0.25rem;
 }
 
-section {
+#root section {
 	margin-bottom: 0;
 }
 
@@ -72,7 +100,8 @@ details.section-disclosure > summary {
 details.section-disclosure > summary::after {
 	float: none;
 	display: inline-block;
-	vertical-align: -0.2em;
+	height: 1em;
+	vertical-align: -0.1em;
 	margin-inline-start: 0.25rem;
 }
 
@@ -100,7 +129,7 @@ section + section {
 	gap: 8px;
 }
 
-table {
+#root table {
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
@@ -108,19 +137,19 @@ table {
   margin-bottom: 0;
 }
 
-table th {
+#root table th {
 	position: sticky;
 	top: 1px;
 	z-index: 1;
 }
 
-th, td {
+#root th, #root td {
   padding: 8px 10px;
   border-bottom: 1px solid var(--border);
   text-align: left;
 }
 
-th {
+#root th {
   background: var(--bg-primary);
   font-weight: 500;
 }
@@ -184,18 +213,11 @@ details.inline-prefix > summary {
 	list-style: none;
 }
 
-details.inline-prefix > summary::-webkit-details-marker {
-	display: none;
-}
-
-details.inline-prefix > summary::marker {
-	display: none;
-}
-
 details.inline-prefix > summary::after {
 	display: inline-block;
 	float: none;
-	vertical-align: -0.2em;
+	height: 1em;
+	vertical-align: -0.1em;
 }
 
 .inline-prefix-content {
@@ -208,7 +230,9 @@ details.inline-prefix > summary::after {
 
 .inline-prefix-content select {
 	width: auto;
-	min-width: 5rem;
+	min-width: 3rem;
+	font-size: 0.85em;
+	padding: 0.1rem 0.2rem;
 }
 
 .math-prefixes-grid {
@@ -254,8 +278,6 @@ details.inline-prefix > summary::after {
 }
 
 .key-input {
-	flex: 1;
-	min-width: 0;
 	text-align: center;
 	padding: 4px 2px;
 	border: 1px solid var(--border);
@@ -268,12 +290,15 @@ details.inline-prefix > summary::after {
 
 /* Pico's input:not(...) has specificity 0-1-1, which beats .key-input alone */
 input.key-input {
+	width: calc(3ch + 2em);
 	height: auto;
 	margin-bottom: 0;
 }
 
-input[type='checkbox'] {
+#root input[type='checkbox'] {
 	cursor: pointer;
+	font-size: inherit;
+	margin-inline-end: 0;
 }
 
 .page-footer {
@@ -281,13 +306,22 @@ input[type='checkbox'] {
 	bottom: 0;
 	left: 0;
 	right: 0;
+	width: 100%;
+	max-width: 100%;
+	margin: 0;
 	background-color: var(--bg-primary);
 	border-top: 1px solid var(--border);
-	padding: 1rem;
+	padding: 0.5rem 0;
+	z-index: 100;
+}
+
+.page-footer-content {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	z-index: 100;
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 0 24px;
 }
 
 /* Modal styles */
@@ -319,12 +353,12 @@ input[type='checkbox'] {
 	margin-bottom: 15px;
 }
 
-button {
+#root button {
 	cursor: pointer;
 }
 
 /* Pico adds margin-bottom: var(--pico-spacing) to [type=button] — strip it */
-[type=button], [type=submit], [type=reset] {
+#root [type=button], #root [type=submit], #root [type=reset] {
 	margin-bottom: 0;
 }
 
@@ -403,14 +437,27 @@ button {
 	gap: 10px;
 }
 
-/* Compact icon-only buttons used in the footer */
-.footer-icon-btn {
-	--pico-form-element-spacing-vertical: 0.45rem;
-	--pico-form-element-spacing-horizontal: 0.55rem;
+/* Compact icon-only buttons used in the footer and sections - styled to match top-bar-nav */
+.footer-icon-btn,
+.footer-icon-btn.secondary {
+	--pico-background-color: transparent;
+	--pico-border-color: transparent;
+	--pico-color: var(--text-primary);
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
 	line-height: 1;
+	padding: 0.5rem;
+	border-radius: var(--pico-border-radius);
+	transition: background-color 0.2s, color 0.2s;
+}
+
+.footer-icon-btn:hover,
+.footer-icon-btn:focus,
+.footer-icon-btn.secondary:hover,
+.footer-icon-btn.secondary:focus {
+	--pico-background-color: var(--pico-primary-hover);
+	--pico-color: var(--pico-primary-inverse);
 }
 
 
@@ -451,6 +498,16 @@ button {
 	}
 }
 
+html[data-theme="dark"] .sequence-input--conflict {
+	background-color: #450a0a;
+	border-color: #dc2626;
+}
+
+html[data-theme="light"] .sequence-input--conflict {
+	background-color: #fee2e2;
+	border-color: #dc2626;
+}
+
 .sequence-input--conflict.sequence-input--focused {
 	box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.25);
 }
@@ -481,6 +538,18 @@ button {
 		border-color: #6366f1;
 		color: #c7d2fe;
 	}
+}
+
+html[data-theme="dark"] .sequence-input__chip--special {
+	background-color: #1e1b4b;
+	border-color: #6366f1;
+	color: #c7d2fe;
+}
+
+html[data-theme="light"] .sequence-input__chip--special {
+	background-color: #e0e7ff;
+	border-color: #6366f1;
+	color: #3730a3;
 }
 
 .sequence-input__caret {
@@ -549,6 +618,14 @@ button {
 	}
 }
 
+html[data-theme="dark"] .footer-conflict-count {
+	color: #ef4444;
+}
+
+html[data-theme="light"] .footer-conflict-count {
+	color: #dc2626;
+}
+
 /* Sequence toolbar styles */
 .sequence-input-wrapper {
 	position: relative;
@@ -604,6 +681,8 @@ button {
 /* Diacritics table styles */
 .diacritics-table-wrapper {
 	overflow-x: auto;
+	width: fit-content;
+	max-width: 100%;
 	margin: 1rem 0;
 }
 
@@ -614,18 +693,25 @@ button {
 	width: max-content;
 }
 
+#root .diacritics-table {
+    width: max-content;
+}
+
 .diacritics-table th {
 	background: var(--bg-secondary);
 	font-weight: 500;
 	padding: 8px;
 	border: 1px solid var(--border);
+}
+
+#root .diacritics-table th,
+#root .diacritics-table td {
 	text-align: center;
 }
 
 .diacritics-table td {
 	border: 1px solid var(--border);
 	padding: 4px;
-	text-align: center;
 	vertical-align: top;
 }
 
@@ -678,6 +764,7 @@ button {
 
 .diacritics-char {
 	width: 100%;
+	text-align: center;
 	font-family: 'DejaVu Serif', 'Cambria Math', ui-sans-serif, system-ui;
 	font-size: 1.1em;
 	cursor: help;
@@ -882,6 +969,16 @@ button {
 		background: #1e3a5f;
 		border-color: #3b82f6;
 	}
+}
+
+html[data-theme="dark"] .picker-cell.picked {
+	background: #1e3a5f;
+	border-color: #3b82f6;
+}
+
+html[data-theme="light"] .picker-cell.picked {
+	background: #dbeafe;
+	border-color: #3b82f6;
 }
 
 .picker-cell.already-sequenced {

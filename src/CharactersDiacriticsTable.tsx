@@ -5,6 +5,8 @@ import CharactersList from './CharactersList';
 import SequenceInput, {SequenceInputHandle} from './SequenceInput';
 import {LL, GL, CL, C} from './constants/strings';
 
+const H4 = (EMBEDDED ? 'h5' : 'h4') as 'h4' | 'h5';
+
 function formatCodePoint(cp: number): string {
 	return 'U+' + cp.toString(16).toUpperCase().padStart(4, '0');
 }
@@ -303,7 +305,7 @@ export default function CharactersDiacriticsTable({
 			</div>
 			{unmatchedChars.length > 0 && (
 				<div style={{marginTop: '2rem'}}>
-					<h4>Other characters</h4>
+					<H4>Other characters</H4>
 					<CharactersList
 						entries={unmatchedChars}
 						allCharacters={allCharacters}

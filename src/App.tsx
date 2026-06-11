@@ -1,4 +1,5 @@
 import {Fragment, useState, useCallback, useMemo, useEffect, useDeferredValue} from 'react';
+import {createPortal} from 'react-dom';
 import {CORE_CATEGORIES} from './constants/lists';
 import {defaultDiacriticMarks, groupsToUnicodeBlocks, scriptsGroups, symbolsGroups} from './constants/mappings';
 import {assignedRanges} from './data/assigned-ranges';
@@ -22,6 +23,10 @@ import SimpleScriptSection from './SimpleScriptSection';
 import Footer from './Footer';
 import Modal from './Modal';
 import './index.css';
+
+const H1 = (EMBEDDED ? 'h2' : 'h1') as 'h1' | 'h2';
+const H2 = (EMBEDDED ? 'h3' : 'h2') as 'h2' | 'h3';
+console.log('EMBEDDED', EMBEDDED);
 
 const formatScriptGroupName = (groupName: string): string => groupName
 	.split('_')
@@ -489,6 +494,8 @@ function App() {
 		setShowModal(true);
 	};
 
+	const footerRoot = useMemo(() => document.getElementById('page-footer-root'), []);
+
 	const selectedCount = Object.values(selectedCharactersWithSequences).flat().length;
 
 	const conflictCount = useMemo(() => Object.values(selectedCharactersWithSequences)
@@ -515,10 +522,15 @@ function App() {
 
 	return (
 		<Fragment>
-			<main className='container' style={{paddingBottom: '80px'}}>
-				<h1>Compose Generator</h1>
+			<main className={EMBEDDED ? 'container embedded' : 'container'} style={{paddingBottom: '80px'}}>
+				<H1>Compose Generator</H1>
+				<p className='intro'>
+					Select the characters you need below, then download a ready-to-use <code>~/.XCompose</code> file.
+					The file teaches X11 how to type those characters via the Compose key — for example,
+					pressing <kbd>Compose</kbd> <kbd>`</kbd> <kbd>e</kbd> produces <strong>è</strong>.
+				</p>
 				<section>
-					<h2>Scripts</h2>
+					<H2>Scripts</H2>
 					<details className='section-disclosure'>
 						<summary>Diacritic prefixes</summary>
 						<div className='scripts-layout'>
@@ -723,7 +735,7 @@ function App() {
 						))}
 				</section>
 				<section>
-					<h2>Symbols</h2>
+					<H2>Symbols</H2>
 					<div className='filters'>
 						{symbolsGroups.map((g) => {
 							const id = `symbol-${g.label.toLowerCase().replace(/\s+/g, '-')}`;
@@ -821,6 +833,12 @@ function App() {
 						title='Punctuation'
 						entries={selectedCharactersWithSequences.punctuation}
 						onAddSequence={() => handleOpenPicker({label: 'Punctuation', key: 'punctuation'})}
+						{...commonTableAttributes}
+					/>
+					<SimpleScriptSection
+						title='Format'
+						entries={selectedCharactersWithSequences.format}
+						onAddSequence={() => handleOpenPicker({label: 'Format', key: 'format'})}
 						{...commonTableAttributes}
 					/>
 					<section>
@@ -1065,21 +1083,20 @@ function App() {
 						onAddSequence={() => handleOpenPicker({label: 'Miscellaneous', key: 'misc'})}
 						{...commonTableAttributes}
 					/>
-					<SimpleScriptSection
-						title='Format'
-						entries={selectedCharactersWithSequences.format}
-						onAddSequence={() => handleOpenPicker({label: 'Format', key: 'format'})}
-						{...commonTableAttributes}
-					/>
 				</section>
 			</main>
-			<Footer
-				selectedCount={selectedCount}
-				conflictCount={conflictCount}
-				onGenerate={handleGenerate}
-				onPreview={handlePreview}
-				onAddAnyCharacter={() => handleOpenPicker()}
-			/>
+			{(() => {
+				const footer = (
+					<Footer
+						selectedCount={selectedCount}
+						conflictCount={conflictCount}
+						onGenerate={handleGenerate}
+						onPreview={handlePreview}
+						onAddAnyCharacter={() => handleOpenPicker()}
+					/>
+				);
+				return footerRoot ? createPortal(footer, footerRoot) : footer;
+			})()}
 			<Modal
 				isOpen={pickerOpen}
 				title='Add sequence'

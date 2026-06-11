@@ -1,0 +1,29 @@
+.container {
+	padding: 0;
+}
+
+.page-footer-content {
+	padding-left: 1rem;
+	padding-right: 1rem;
+	box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+	.page-footer-content {
+		padding-left: 2rem;
+		padding-right: 2rem;
+	}
+}
+
+@media (min-width: 1024px) {
+	.page-footer-content {
+		padding-left: 3rem;
+		padding-right: 3rem;
+	}
+}
+
+#root .embedded h2 { margin: 0 0 16px; font-size: 28px; }
+#root .embedded h3 { margin: 24px 0 8px; font-size: 20px; }
+#root .embedded h4 { margin: 16px 0 8px; font-size: 16px; }
+#root .embedded h4.container-header { margin: 0 1.5em 0 0; min-width: 14em; }
+#root .modal-header h4 { font-size: 16px; }

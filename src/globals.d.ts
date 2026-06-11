@@ -1,0 +1,1 @@
+declare const EMBEDDED: boolean;

@@ -122,12 +122,14 @@ export function classifyAsCore(blockName: string, generalCat: string, cp: number
 	)) {
 		return 'emoji';
 	}
+	// Format
+	if (generalCat === 'Cf' || generalCat === 'Cc' || blockName === 'Variation Selectors') {
+		return 'format';
+	}
 	// Symbols other
 	if (generalCat === 'So' || symbolBlockRanges.some((range) => cp >= range.start && cp <= range.end)) {
 		return 'misc';
 	}
-	// Format
-	if (generalCat === 'Cf' || generalCat === 'Cc' || blockName === 'Variation Selectors') return 'format';
 
 	return undefined;
 }
