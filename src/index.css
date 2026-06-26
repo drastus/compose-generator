@@ -466,7 +466,7 @@ input.key-input {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	flex-wrap: wrap;
+	flex-wrap: nowrap;
 	gap: 2px;
 	min-width: calc(2.8em + 16px);
 	min-height: 28px;
@@ -771,6 +771,7 @@ html[data-theme="light"] .footer-conflict-count {
 }
 
 .sequence-input.diacritics-input {
+	flex-wrap: wrap;
 	min-width: 50px;
 	max-width: 90px;
 	font-size: 0.75em;

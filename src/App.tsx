@@ -26,7 +26,6 @@ import './index.css';
 
 const H1 = (EMBEDDED ? 'h2' : 'h1') as 'h1' | 'h2';
 const H2 = (EMBEDDED ? 'h3' : 'h2') as 'h2' | 'h3';
-console.log('EMBEDDED', EMBEDDED);
 
 const formatScriptGroupName = (groupName: string): string => groupName
 	.split('_')
@@ -527,7 +526,7 @@ function App() {
 				<p className='intro'>
 					Select the characters you need below, then download a ready-to-use <code>~/.XCompose</code> file.
 					The file teaches X11 how to type those characters via the Compose key — for example,
-					pressing <kbd>Compose</kbd> <kbd>`</kbd> <kbd>e</kbd> produces <strong>è</strong>.
+					pressing <kbd>Compose</kbd> <kbd>:</kbd> <kbd>o</kbd> produces <strong>ö</strong>.
 				</p>
 				<section>
 					<H2>Scripts</H2>
