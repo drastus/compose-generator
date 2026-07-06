@@ -2,23 +2,19 @@ import {defineConfig} from 'vite';
 import react from '@vitejs/plugin-react';
 import {fileURLToPath, URL} from 'node:url';
 
-export default defineConfig(({mode}) => ({
+export default defineConfig(({mode, command}) => ({
 	plugins: [react()],
 	define: {
-		'process.env.NODE_ENV': JSON.stringify(mode === 'development' ? 'development' : 'production'),
-		EMBEDDED: JSON.stringify(mode !== 'standalone'),
+		'process.env.NODE_ENV': JSON.stringify(command === 'serve' ? 'development' : 'production'),
+		EMBEDDED: JSON.stringify(mode === 'embedded'),
 	},
 	resolve: {
 		alias: {
 			'@': fileURLToPath(new URL('./src', import.meta.url)),
 		},
 	},
-	build: mode === 'standalone'
+	build: mode === 'embedded'
 		? {
-			outDir: 'dist-standalone',
-			emptyOutDir: true,
-		}
-		: {
 			outDir: 'dist',
 			emptyOutDir: true,
 			lib: {
@@ -32,5 +28,9 @@ export default defineConfig(({mode}) => ({
 					chunkFileNames: 'compose-generator-[name]-[hash].js',
 				},
 			},
+		}
+		: {
+			outDir: 'dist-standalone',
+			emptyOutDir: true,
 		},
 }));
