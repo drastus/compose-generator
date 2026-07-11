@@ -6,7 +6,8 @@ type CustomSequence = {key: string; seq: string};
 
 const greekCodePoints = new Set((mainCharacters.greek ?? []).map((entry) => entry.cp));
 const cyrillicCodePoints = new Set((mainCharacters.cyrillic ?? []).map((entry) => entry.cp));
-const diaCodePoints = new Set((mainCharacters.modifier ?? []).map((entry) => entry.cp));
+const diaCodePoints = new Set((mainCharacters.dia ?? []).map((entry) => entry.cp));
+const modifierLetterCodePoints = new Set((mainCharacters.modifier ?? []).map((entry) => entry.cp));
 const combCodePoints = new Set((mainCharacters.combining ?? []).map((entry) => entry.cp));
 const currencyCodePoints = new Set((mainCharacters.currency ?? []).map((entry) => entry.cp));
 
@@ -31,11 +32,12 @@ export function usePrefixes(setCustomSequences: Dispatch<SetStateAction<CustomSe
 		const diaChanged = prev.dia.char !== prefixes.dia.char;
 		const combChanged = prev.comb.char !== prefixes.comb.char;
 		const currencyChanged = prev.currency.char !== prefixes.currency.char;
+		const modifierLetterChanged = prev.modifierLetter.char !== prefixes.modifierLetter.char;
 		const mathChanged = Object.keys(prev.math).some(
 			(k) => prev.math[k as keyof typeof prev.math] !== prefixes.math[k as keyof typeof prefixes.math],
 		);
 
-		if (!greekChanged && !cyrillicChanged && !diaChanged && !combChanged && !currencyChanged && !mathChanged) {
+		if (!greekChanged && !cyrillicChanged && !diaChanged && !combChanged && !currencyChanged && !modifierLetterChanged && !mathChanged) {
 			return;
 		}
 
@@ -109,6 +111,12 @@ export function usePrefixes(setCustomSequences: Dispatch<SetStateAction<CustomSe
 
 				if (currencyChanged && currencyCodePoints.has(cp) && seq.startsWith(prev.currency.char)) {
 					seq = prefixes.currency.char + seq.slice(prev.currency.char.length);
+					changed = true;
+					return {...cs, seq};
+				}
+
+				if (modifierLetterChanged && modifierLetterCodePoints.has(cp) && seq.startsWith(prev.modifierLetter.char)) {
+					seq = prefixes.modifierLetter.char + seq.slice(prev.modifierLetter.char.length);
 					changed = true;
 					return {...cs, seq};
 				}

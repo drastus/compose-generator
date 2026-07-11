@@ -10,10 +10,11 @@ type ModalProps = {
 	readonly title: string,
 	readonly onClose: () => void,
 	readonly contentClassName?: string,
+	readonly footer?: ReactNode,
 };
 
 export default function Modal({
-	isOpen, children, title, onClose, contentClassName,
+	isOpen, children, title, onClose, contentClassName, footer,
 }: ModalProps) {
 	useEffect(() => {
 		if (!isOpen) return;
@@ -46,6 +47,7 @@ export default function Modal({
 				<div className='modal-body'>
 					{children}
 				</div>
+				{footer && <div className='modal-footer'>{footer}</div>}
 			</div>
 		</div>,
 		document.getElementById('root') ?? document.body,

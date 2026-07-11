@@ -14,6 +14,8 @@ type CharacterPickerModalProps = {
 	readonly onAvailableCharactersChange: (_characters: Record<string, NameEntry[]>) => void;
 	readonly loadedBlocks: Set<string>;
 	readonly onBlockLoaded: (_blockName: string) => void;
+	/** When false, hides the section/"All characters" tabs and stays restricted to the section. */
+	readonly isAllTabShown?: boolean;
 };
 
 function dedupeByCp(entries: NameEntry[]): NameEntry[] {
@@ -42,7 +44,10 @@ function isCpInRanges(cp: number, ranges: [number, number][]): boolean {
 	return false;
 }
 
-function CharacterPickerModal({closeModal, onConfirm, restrictToSection, selectedCps, availableCharacters, onAvailableCharactersChange, loadedBlocks, onBlockLoaded}: CharacterPickerModalProps) {
+function CharacterPickerModal({
+	closeModal, onConfirm, restrictToSection, selectedCps, availableCharacters,
+	onAvailableCharactersChange, loadedBlocks, onBlockLoaded, isAllTabShown = true,
+}: CharacterPickerModalProps) {
 	const [activeTab, setActiveTab] = useState<'section' | 'all'>('section');
 	const [selectedBlock, setSelectedBlock] = useState<string | null>(null);
 	const [pickedCps, setPickedCps] = useState<Set<number>>(new Set());
@@ -198,7 +203,7 @@ function CharacterPickerModal({closeModal, onConfirm, restrictToSection, selecte
 
 	return (
 		<Fragment>
-			{restrictToSection && (
+			{restrictToSection && isAllTabShown && (
 				<div className='picker-tabs'>
 					<button
 						type='button'

@@ -6,6 +6,7 @@ export type NameEntry = {
 	set?: string[],
 	defaultSeq?: string,
 	altSeq?: string,
+	/** Unicode general category (e.g. 'Lu', 'Zs', 'Pd'), from UnicodeData.txt. */
 	cat?: string,
 };
 

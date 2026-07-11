@@ -67,6 +67,7 @@ export const ALLOWED_BLOCKS = new Set([...CORE_BLOCKS, ...EXTRA_BLOCKS]);
 
 export const CORE_CATEGORIES = [
 	'modifier',
+	'dia',
 	'combining',
 	'latin',
 	'greek',

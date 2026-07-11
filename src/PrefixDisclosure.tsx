@@ -19,20 +19,21 @@ const uncasedPrefixOptions = latinPrefixLetters.flatMap((letter) => {
 });
 
 type CasedKey = 'greek' | 'cyrillic';
-type SimpleKey = 'dia' | 'comb';
+type SimpleKey = 'dia' | 'comb' | 'modifierLetter';
 
 type Props = {
 	readonly scriptKey: CasedKey | SimpleKey;
 	readonly prefixes: Prefixes;
 	readonly setPrefixes: Dispatch<SetStateAction<Prefixes>>;
+	readonly label?: string;
 };
 
-export default function PrefixDisclosure({scriptKey, prefixes, setPrefixes}: Props) {
+export default function PrefixDisclosure({scriptKey, prefixes, setPrefixes, label = 'Prefix'}: Props) {
 	const isCased = scriptKey === 'greek' || scriptKey === 'cyrillic';
 
 	return (
-		<details className='inline-prefix'>
-			<summary>Prefix</summary>
+		<div className='inline-prefix'>
+			<div className='inline-prefix-label'>{label}</div>
 			<div className='inline-prefix-content'>
 				{isCased
 					? (
@@ -82,6 +83,6 @@ export default function PrefixDisclosure({scriptKey, prefixes, setPrefixes}: Pro
 						/>
 					)}
 			</div>
-		</details>
+		</div>
 	);
 }

@@ -112,6 +112,8 @@ export function applySequencesToCharacters(
 					}
 				} else if (groupKey === 'currency' && newSeq.length > 0 && newSeq[0] === '=') {
 					newSeq = prefixes.currency.char + newSeq.slice(1);
+				} else if (groupKey === 'modifier' && newSeq.length > 0 && newSeq[0] === 'l') {
+					newSeq = prefixes.modifierLetter.char + newSeq.slice(1);
 				}
 				seq = newSeq;
 			} else if (

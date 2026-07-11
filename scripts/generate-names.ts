@@ -10,7 +10,7 @@ import {parse} from 'csv-parse/sync';
 import {DIGIT_NAMES} from '../src/constants/strings';
 import {ALLOWED_BLOCKS, CORE_BLOCKS, CORE_CATEGORIES} from '../src/constants/lists';
 import {blockToGroup} from '../src/utils/blockToGroup';
-import classify, {classifyAsCore, scatteredMathematicalAlphanumericSymbols} from '../src/utils/classify';
+import classify, {scatteredMathematicalAlphanumericSymbols} from '../src/utils/classify';
 
 const DIGIT_NAMES_VALUES = Object.fromEntries(Object.entries(DIGIT_NAMES).map(([k, v]) => [v, k]));
 
@@ -37,6 +37,7 @@ const LATIN_DIACRITICS = [
 	'DOUBLE GRAVE',
 	'DOUBLE ACUTE',
 	'COMMA BELOW',
+	'BREVE BELOW',
 ];
 const LATIN_DIACRITICS_PATTERN = LATIN_DIACRITICS.join('|');
 
@@ -182,9 +183,14 @@ const orderingOverrides: Record<string, {cp: number; after: number}[]> = {
 		{cp: 0x2133, after: 0x2112},
 		{cp: 0x2134, after: 0x1D4C3},
 	],
+	math_number: [
+		{cp: 0x00B9, after: 0x2070},
+		{cp: 0x00B2, after: 0x00B9},
+		{cp: 0x00B3, after: 0x00B2},
+	],
 };
 
-function applyOrderingOverrides(built: Record<string, {cp: number; name: string}[]>): void {
+function applyOrderingOverrides(built: Record<string, {cp: number; name: string; cat?: string}[]>): void {
 	for (const [category, overrides] of Object.entries(orderingOverrides)) {
 		const entries = built[category];
 		if (!entries) continue;
@@ -206,8 +212,13 @@ function applyOrderingOverrides(built: Record<string, {cp: number; name: string}
 const sets = {
 	modifier: {
 		base: [
-			[0x00A8, 0x00B8],
 			[0x02B9, 0x02BC],
+			[0x02BE, 0x02BF],
+		],
+	},
+	dia: {
+		base: [
+			[0x00A8, 0x00B8],
 			[0x02C7, 0x02C7],
 			[0x02D8, 0x02DD],
 		],
@@ -274,7 +285,7 @@ const sets = {
 			[0x1E02, 0x1E05],
 			[0x1E0A, 0x1E0D],
 			[0x1E10, 0x1E11],
-			[0x1E1E, 0x1E29],
+			[0x1E1E, 0x1E2B],
 			[0x1E30, 0x1E33],
 			[0x1E36, 0x1E37],
 			[0x1E3E, 0x1E47],
@@ -433,6 +444,8 @@ const sets = {
 			[0x2116, 0x2116], // number sign
 			[0x2122, 0x2122], // trade mark sign
 			[0x2300, 0x2300], // diameter
+			[0x2713, 0x2713], // check mark
+			[0x2717, 0x2717], // ballot x
 		],
 	},
 };
@@ -563,7 +576,7 @@ function generateFileContent(
 					const endingEsc = escapeTSString(end);
 					bodyLines.push(`\t{cp: ${cpHex}, end: '${endingEsc}', template: [COMB]${setsPart(sets)}${trailingPart}},`);
 				}
-			} else if (key === 'modifier') {
+			} else if (key === 'dia') {
 				const match = name.match(`^(${LATIN_DIACRITICS_PATTERN}|${GREEK_DIACRITICS_PATTERN})( ACCENT)?$`);
 				if (match) {
 					const diacriticName = match[1].replace(' ', '_');
@@ -681,8 +694,8 @@ function main() {
 	sequences.set(0x0237, {defaultSeq: '.j'});
 
 	// Core categories accumulator (keyed by category).
-	const built: Record<string, {cp: number; name: string}[]> = {};
-	// Extra blocks accumulator (keyed by block name, with optional cat metadata).
+	const built: Record<string, {cp: number; name: string; cat?: string}[]> = {};
+	// Extra blocks accumulator (keyed by block name).
 	const extraBuilt: Record<string, {cp: number; name: string; cat?: string}[]> = {};
 
 	for (const {start, end, name: blockName} of blockRanges) {
@@ -690,14 +703,13 @@ function main() {
 			const info = nameMap.get(cp);
 			if (!info) continue;
 			if (CORE_BLOCKS.has(blockName)) {
-				const category = classify(blockName, info.cat, cp);
+				const category = classify(blockName, info.cat, cp, info.name);
 				if (!category) continue;
 				built[category] ||= [];
-				built[category].push({cp, name: info.name});
+				built[category].push({cp, name: info.name, cat: info.cat});
 			} else {
-				const cat = classifyAsCore(blockName, info.cat, cp);
 				extraBuilt[blockName] ||= [];
-				extraBuilt[blockName].push(cat === undefined ? {cp, name: info.name} : {cp, name: info.name, cat});
+				extraBuilt[blockName].push({cp, name: info.name, cat: info.cat});
 			}
 		}
 	}

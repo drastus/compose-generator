@@ -89,6 +89,7 @@ export function composeMathPrefix(math: MathPrefixes, flags: MathFlags): string 
 
 export const scriptsGroups: {label: string; key: string; description: string}[] = [
 	{label: 'Modifier letters', key: 'modifier', description: 'Spacing modifier letters used for phonetic/diacritic purposes.'},
+	{label: 'Standalone diacritics', key: 'dia', description: 'Free-standing diacritic marks not attached to a base letter, e.g. ¨, ˇ, ˘.'},
 	{label: 'Combining diacritical marks', key: 'combining', description: 'Non-spacing combining marks to modify preceding characters.'},
 	{label: 'Latin alphabet', key: 'latin', description: 'Basic and extended Latin letters commonly used in European languages.'},
 	{label: 'Greek alphabet', key: 'greek', description: 'Greek letters including basic forms.'},
@@ -126,6 +127,7 @@ export const defaultDiacriticMarks: DiacriticMark[] = [
 	{name: 'double grave', mark: '̏', key: '2`'},
 	{name: 'double acute', mark: '˝', key: '"'},
 	{name: 'comma below', mark: '̦', key: ','},
+	{name: 'breve below', mark: '̮', key: '_)'},
 	{name: 'ypogegrammeni', mark: 'ͅ', key: '_i'},
 ];
 export const defaultDiacriticMarkKeys = defaultDiacriticMarks.map((mark) => mark.key);
@@ -162,18 +164,17 @@ export const groupsToUnicodeBlocks = {
 		['Phonetic Extensions', [[0x1D00, 0x1D7F]]],
 		['Phonetic Extensions Supplement', [[0x1D80, 0x1DBF]]],
 	],
+	dia: [
+		['Basic Latin', [[0x005E, 0x005E], [0x0060, 0x0060], [0x007E, 0x007E]]],
+		['Latin-1 Supplement', [[0x00A8, 0x00A8], [0x00AF, 0x00AF], [0x00B4, 0x00B4], [0x00B8, 0x00B8]]],
+		['Spacing Modifier Letters', [[0x02B0, 0x02FF]]],
+	],
 	combining: [
 		['Combining Diacritical Marks', [[0x0300, 0x036F]]],
 		['Combining Diacritical Marks Extended', [[0x1AB0, 0x1AEB]]],
 		['Combining Diacritical Marks Supplement', [[0x1DC0, 0x1DFF]]],
 		['Combining Diacritical Marks for Symbols', [[0x20D0, 0x20F0]]],
 		['Combining Half Marks', [[0xFE20, 0xFE2F]]],
-	],
-	diacritics: [
-		['Basic Latin', [[0x005E, 0x005E], [0x0060, 0x0060], [0x007E, 0x007E]]],
-		['Latin-1 Supplement', [[0x00A8, 0x00A8], [0x00AF, 0x00AF], [0x00B4, 0x00B4], [0x00B8, 0x00B8]]],
-		['Spacing Modifier Letters', [[0x02B0, 0x02FF]]],
-		['Combining Diacritical Marks', [[0x0300, 0x036F]]],
 	],
 	latin: [
 		['Basic Latin', [[0x0041, 0x005A], [0x0061, 0x007A]]],
@@ -287,6 +288,7 @@ export const defaultPrefixes = {
 	dia: {char: 'd'},
 	comb: {char: '&'},
 	currency: {char: '='},
+	modifierLetter: {char: 'l'},
 	math: {
 		bold: 'm*',
 		italic: 'm/',
