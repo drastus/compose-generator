@@ -6,9 +6,9 @@ import {NameEntry} from '../types';
 import {ML} from '../constants/strings';
 
 const latin_extendedf: NameEntry[] = [
-	{cp: 0x10780, template: [ML, 'SMALL CAPITAL AA'], cat: 'Lm'},
 	{cp: 0x10781, template: [ML, 'SUPERSCRIPT TRIANGULAR COLON'], cat: 'Lm'},
 	{cp: 0x10782, template: [ML, 'SUPERSCRIPT HALF TRIANGULAR COLON'], cat: 'Lm'},
+	{cp: 0x10780, template: [ML, 'SMALL CAPITAL AA'], cat: 'Lm'},
 	{cp: 0x10783, template: [ML, 'SMALL AE'], cat: 'Lm'},
 	{cp: 0x10784, template: [ML, 'SMALL CAPITAL B'], cat: 'Lm'},
 	{cp: 0x10785, template: [ML, 'SMALL B WITH HOOK'], cat: 'Lm'},
@@ -21,8 +21,8 @@ const latin_extendedf: NameEntry[] = [
 	{cp: 0x1078D, template: [ML, 'SMALL D WITH HOOK AND TAIL'], cat: 'Lm'},
 	{cp: 0x1078E, template: [ML, 'SMALL REVERSED E'], cat: 'Lm'},
 	{cp: 0x1078F, template: [ML, 'SMALL CLOSED REVERSED OPEN E'], cat: 'Lm'},
-	{cp: 0x10790, template: [ML, 'SMALL FENG DIGRAPH'], cat: 'Lm'},
 	{cp: 0x10791, template: [ML, 'SMALL RAMS HORN'], cat: 'Lm'},
+	{cp: 0x10790, template: [ML, 'SMALL FENG DIGRAPH'], cat: 'Lm'},
 	{cp: 0x10792, template: [ML, 'SMALL CAPITAL G'], cat: 'Lm'},
 	{cp: 0x10793, template: [ML, 'SMALL G WITH HOOK'], cat: 'Lm'},
 	{cp: 0x10794, template: [ML, 'SMALL CAPITAL G WITH HOOK'], cat: 'Lm'},
@@ -43,11 +43,12 @@ const latin_extendedf: NameEntry[] = [
 	{cp: 0x107A3, template: [ML, 'SMALL CAPITAL OE'], cat: 'Lm'},
 	{cp: 0x107A4, template: [ML, 'SMALL CLOSED OMEGA'], cat: 'Lm'},
 	{cp: 0x107A5, template: [ML, 'SMALL Q'], cat: 'Lm'},
+	{cp: 0x107AA, template: [ML, 'SMALL CAPITAL R'], cat: 'Lm'},
 	{cp: 0x107A6, template: [ML, 'SMALL TURNED R WITH LONG LEG'], cat: 'Lm'},
 	{cp: 0x107A7, template: [ML, 'SMALL TURNED R WITH LONG LEG AND RETROFLEX HOOK'], cat: 'Lm'},
 	{cp: 0x107A8, template: [ML, 'SMALL R WITH TAIL'], cat: 'Lm'},
 	{cp: 0x107A9, template: [ML, 'SMALL R WITH FISHHOOK'], cat: 'Lm'},
-	{cp: 0x107AA, template: [ML, 'SMALL CAPITAL R'], cat: 'Lm'},
+	{cp: 0x107BA, template: [ML, 'SMALL S WITH CURL'], cat: 'Lm'},
 	{cp: 0x107AB, template: [ML, 'SMALL TC DIGRAPH WITH CURL'], cat: 'Lm'},
 	{cp: 0x107AC, template: [ML, 'SMALL TS DIGRAPH'], cat: 'Lm'},
 	{cp: 0x107AD, template: [ML, 'SMALL TS DIGRAPH WITH RETROFLEX HOOK'], cat: 'Lm'},
@@ -57,12 +58,11 @@ const latin_extendedf: NameEntry[] = [
 	{cp: 0x107B2, template: [ML, 'SMALL CAPITAL Y'], cat: 'Lm'},
 	{cp: 0x107B3, template: [ML, 'GLOTTAL STOP WITH STROKE'], cat: 'Lm'},
 	{cp: 0x107B4, template: [ML, 'REVERSED GLOTTAL STOP WITH STROKE'], cat: 'Lm'},
-	{cp: 0x107B5, template: [ML, 'BILABIAL CLICK'], cat: 'Lm'},
 	{cp: 0x107B6, template: [ML, 'DENTAL CLICK'], cat: 'Lm'},
 	{cp: 0x107B7, template: [ML, 'LATERAL CLICK'], cat: 'Lm'},
 	{cp: 0x107B8, template: [ML, 'ALVEOLAR CLICK'], cat: 'Lm'},
 	{cp: 0x107B9, template: [ML, 'RETROFLEX CLICK WITH RETROFLEX HOOK'], cat: 'Lm'},
-	{cp: 0x107BA, template: [ML, 'SMALL S WITH CURL'], cat: 'Lm'},
+	{cp: 0x107B5, template: [ML, 'BILABIAL CLICK'], cat: 'Lm'},
 ];
 
 export const characters: Record<string, NameEntry[]> = {latin_extendedf};

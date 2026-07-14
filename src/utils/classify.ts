@@ -15,6 +15,7 @@ export const scatteredMathematicalAlphanumericSymbols = [
 	{cp: 0x2119, template: ['MDS', 'C', 'P']},
 	{cp: 0x211A, template: ['MDS', 'C', 'Q']},
 	{cp: 0x211B, template: ['MS', 'C', 'R']},
+	{cp: 0x211C, template: ['MF', 'C', 'R']},
 	{cp: 0x211D, template: ['MDS', 'C', 'R']},
 	{cp: 0x2124, template: ['MDS', 'C', 'Z']},
 	{cp: 0x2128, template: ['MF', 'C', 'Z']},

@@ -4,6 +4,10 @@
 import {NameEntry} from '../types';
 
 const arabic: NameEntry[] = [
+	{cp: 0x10EFD, name: 'ARABIC SMALL LOW WORD SAKTA', cat: 'Mn'},
+	{cp: 0x10EFE, name: 'ARABIC SMALL LOW WORD QASR', cat: 'Mn'},
+	{cp: 0x10EFF, name: 'ARABIC SMALL LOW WORD MADDA', cat: 'Mn'},
+	{cp: 0x10EFC, name: 'ARABIC COMBINING ALEF OVERLAY', cat: 'Mn'},
 	{cp: 0x10EC2, name: 'ARABIC LETTER DAL WITH TWO DOTS VERTICALLY BELOW', cat: 'Lo'},
 	{cp: 0x10EC3, name: 'ARABIC LETTER TAH WITH TWO DOTS VERTICALLY BELOW', cat: 'Lo'},
 	{cp: 0x10EC4, name: 'ARABIC LETTER KAF WITH TWO DOTS VERTICALLY BELOW', cat: 'Lo'},
@@ -21,10 +25,6 @@ const arabic: NameEntry[] = [
 	{cp: 0x10ED8, name: 'ARABIC LIGATURE NAWWARA ALLAAHU MARQADAH', cat: 'So'},
 	{cp: 0x10EFA, name: 'ARABIC DOUBLE VERTICAL BAR BELOW', cat: 'Mn'},
 	{cp: 0x10EFB, name: 'ARABIC SMALL LOW NOON', cat: 'Mn'},
-	{cp: 0x10EFC, name: 'ARABIC COMBINING ALEF OVERLAY', cat: 'Mn'},
-	{cp: 0x10EFD, name: 'ARABIC SMALL LOW WORD SAKTA', cat: 'Mn'},
-	{cp: 0x10EFE, name: 'ARABIC SMALL LOW WORD QASR', cat: 'Mn'},
-	{cp: 0x10EFF, name: 'ARABIC SMALL LOW WORD MADDA', cat: 'Mn'},
 ];
 
 export const characters: Record<string, NameEntry[]> = {arabic};

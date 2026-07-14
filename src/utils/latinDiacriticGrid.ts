@@ -123,7 +123,7 @@ export function buildDiacriticGrid<T extends {cp: number}>(
 			cell.lower = char;
 		}
 
-		if (diacriticKey === '') {
+		if (diacriticKey === '' && (!isUpper || !baseLetterCp.has(baseLetter))) {
 			baseLetterCp.set(baseLetter, char.cp);
 		}
 		const prevFallbackMinCp = baseLetterFallbackMinCp.get(baseLetter);

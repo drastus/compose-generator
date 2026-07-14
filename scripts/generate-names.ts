@@ -65,6 +65,13 @@ const CYRILLIC_DIACRITICS = [
 ];
 const CYRILLIC_DIACRITICS_PATTERN = CYRILLIC_DIACRITICS.join('|');
 
+// Diacritics that only occur as standalone combining marks (no LATIN/GREEK/CYRILLIC LETTER WITH … form)
+const ADDITIONAL_DIACRITICS = [
+	'COMMA ABOVE',
+	'MACRON BELOW',
+];
+const ADDITIONAL_DIACRITICS_PATTERN = ADDITIONAL_DIACRITICS.join('|');
+
 // Dotless I and J are treated as letters with dot above for grouping and sequence purposes
 const dotlessLetterOverrides = new Map<number, string>([
 	[0x0131, 'LATIN SMALL LETTER I WITH DOT ABOVE'],
@@ -157,55 +164,13 @@ const mathematicalAlphanumericSymbolsGroups = {
 	MM: 'MATHEMATICAL MONOSPACE',
 };
 
-const orderingOverrides: Record<string, {cp: number; after: number}[]> = {
-	math_alphanumerics: [
-		{cp: 0x2102, after: 0x1D539},
-		{cp: 0x210A, after: 0x1D4BB},
-		{cp: 0x210B, after: 0x1D4A2},
-		{cp: 0x210C, after: 0x1D50A},
-		{cp: 0x210D, after: 0x1D53E},
-		{cp: 0x210E, after: 0x1D454},
-		{cp: 0x2110, after: 0x210B},
-		{cp: 0x2111, after: 0x210C},
-		{cp: 0x2112, after: 0x1D4A6},
-		{cp: 0x2115, after: 0x1D544},
-		{cp: 0x2119, after: 0x1D546},
-		{cp: 0x211A, after: 0x2119},
-		{cp: 0x211B, after: 0x1D4AC},
-		{cp: 0x211D, after: 0x211A},
-		{cp: 0x2124, after: 0x1D550},
-		{cp: 0x2128, after: 0x1D51C},
-		{cp: 0x212C, after: 0x1D49C},
-		{cp: 0x212D, after: 0x1D505},
-		{cp: 0x212F, after: 0x1D4B9},
-		{cp: 0x2130, after: 0x1D49F},
-		{cp: 0x2131, after: 0x2130},
-		{cp: 0x2133, after: 0x2112},
-		{cp: 0x2134, after: 0x1D4C3},
-	],
-	math_number: [
-		{cp: 0x00B9, after: 0x2070},
-		{cp: 0x00B2, after: 0x00B9},
-		{cp: 0x00B3, after: 0x00B2},
-	],
-};
+const ucaCollator = new Intl.Collator('und', {sensitivity: 'variant'});
 
 function applyOrderingOverrides(built: Record<string, {cp: number; name: string; cat?: string}[]>): void {
-	for (const [category, overrides] of Object.entries(orderingOverrides)) {
+	for (const category of Object.keys(built)) {
 		const entries = built[category];
 		if (!entries) continue;
-		for (const {cp, after} of overrides) {
-			const fromIndex = entries.findIndex((e) => e.cp === cp);
-			if (fromIndex === -1) continue;
-			const [entry] = entries.splice(fromIndex, 1);
-			const afterIndex = entries.findIndex((e) => e.cp === after);
-			if (afterIndex === -1) {
-				// If the reference codepoint is not present, reinsert at original position to avoid data loss
-				entries.splice(fromIndex, 0, entry);
-				continue;
-			}
-			entries.splice(afterIndex + 1, 0, entry);
-		}
+		entries.sort((a, b) => ucaCollator.compare(String.fromCodePoint(a.cp), String.fromCodePoint(b.cp)));
 	}
 }
 
@@ -229,8 +194,10 @@ const sets = {
 			[0x0306, 0x030C],
 			[0x030F, 0x030F],
 			[0x0311, 0x0311],
+			[0x0313, 0x0313],
 			[0x0323, 0x0323],
 			[0x0326, 0x0328],
+			[0x0331, 0x0331],
 		],
 	},
 	latin: {
@@ -310,13 +277,11 @@ const sets = {
 	greek: {
 		basic: [
 			[0x0391, 0x03A9],
-			[0x03B1, 0x03C1],
-			[0x03C3, 0x03C9],
+			[0x03B1, 0x03C9],
 		],
 		base: [
 			[0x0386, 0x0390],
 			[0x03AA, 0x03B0],
-			[0x03C2, 0x03C2], // final sigma
 			[0x03CA, 0x03CE],
 		],
 		historic: [ // polytonic
@@ -566,7 +531,7 @@ function generateFileContent(
 				bodyLines.push(`\t{cp: ${cpHex}, template: [ML, '${endingEsc}']${setsPart(sets)}${trailingPart}},`);
 			} else if (name.startsWith('COMBINING ')) {
 				const end = name.substring('COMBINING '.length);
-				const match = end.match(`^(${LATIN_DIACRITICS_PATTERN}|${GREEK_DIACRITICS_PATTERN})( ACCENT)?$`);
+				const match = end.match(`^(${LATIN_DIACRITICS_PATTERN}|${GREEK_DIACRITICS_PATTERN}|${ADDITIONAL_DIACRITICS_PATTERN})( ACCENT)?$`);
 				usedConstants.add('COMB');
 				if (match) {
 					const diacriticName = match[1].replace(' ', '_');
@@ -640,7 +605,7 @@ function generateFileContent(
 		const importLines: string[] = [];
 
 		// Diacritic name constants, ordered by their position in the combined diacritics list
-		const allDiacritics = Array.from(new Set([...LATIN_DIACRITICS, ...GREEK_DIACRITICS, ...CYRILLIC_DIACRITICS]))
+		const allDiacritics = Array.from(new Set([...LATIN_DIACRITICS, ...GREEK_DIACRITICS, ...CYRILLIC_DIACRITICS, ...ADDITIONAL_DIACRITICS]))
 			.map((c) => c.replace(/ /g, '_'));
 		const usedDiacritics = allDiacritics.filter((c) => usedConstants.has(c));
 		if (usedDiacritics.length > 0) {
@@ -715,6 +680,7 @@ function main() {
 	}
 
 	applyOrderingOverrides(built);
+	applyOrderingOverrides(extraBuilt);
 
 	const srcDir = path.join(projectRoot, 'src', 'data');
 	if (!fs.existsSync(srcDir)) {

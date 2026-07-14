@@ -87,6 +87,21 @@ function nonEmpty(sublists: Sublist[]): Sublist[] | undefined {
 	return filtered.length > 0 ? filtered : undefined;
 }
 
+/** Splits a script's characters into three unlabelled sublists: capitals, small letters, other. */
+function splitByCase(items: CharItem[], rawByCp: Map<number, NameEntry>): Sublist[] {
+	const capitals: CharItem[] = [];
+	const smalls: CharItem[] = [];
+	const others: CharItem[] = [];
+	for (const item of items) {
+		const cat = rawByCp.get(item.cp)?.cat ?? '';
+		if (cat === 'Lu' || cat === 'Lt') capitals.push(item);
+		else if (cat === 'Ll') smalls.push(item);
+		else others.push(item);
+	}
+
+	return nonEmpty([{chars: capitals}, {chars: smalls}, {chars: others}]) ?? [];
+}
+
 /**
  * Builds the ordered supercategory → category tree rendered by the "Selected characters"
  * grid. `withSeq` is the memoized applySequencesToCharacters() result; `raw` is the matching
@@ -117,6 +132,7 @@ export function buildCategoryTree(
 		: undefined;
 
 	// --- Cyrillic + dynamic scripts ---
+	const cyrillicRawByCp = rawByCpFor(raw.cyrillic);
 	const cyrillicItems = charsWithSeq(withSeq.cyrillic);
 	const dynamicScriptKeys = Object.keys(raw)
 		.filter((key) => ![...CORE_CATEGORIES, 'cyrillic'].includes(key))
@@ -201,15 +217,17 @@ export function buildCategoryTree(
 					setGroup: 'greek',
 				},
 				{
-					key: 'cyrillic', label: 'Cyrillic', kind: 'plain', hidden: cyrillicItems.length === 0,
-					chars: cyrillicItems, setGroup: 'cyrillic',
+					key: 'cyrillic', label: 'Cyrillic', kind: 'sublists', hidden: cyrillicItems.length === 0, chars: [],
+					sublists: splitByCase(cyrillicItems, cyrillicRawByCp),
+					setGroup: 'cyrillic',
 				},
 				...dynamicScriptKeys.map((key): Category => ({
 					key,
 					label: formatScriptGroupName(key),
-					kind: 'plain',
+					kind: 'sublists',
 					hidden: (withSeq[key]?.filter((c) => c.seq).length ?? 0) === 0,
-					chars: charsWithSeq(withSeq[key]),
+					chars: [],
+					sublists: splitByCase(charsWithSeq(withSeq[key]), rawByCpFor(raw[key])),
 					setGroup: key,
 				})),
 			],
