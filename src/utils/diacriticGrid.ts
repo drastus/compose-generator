@@ -1,4 +1,6 @@
-import {C, CL, GL, LL} from '../constants/strings';
+import {
+	ACUTE, BREVE, C, CARON, CL, DIAERESIS, DOT_ABOVE, DOT_BELOW, GL, GRAVE, HOOK_ABOVE, LL, MACRON, TILDE,
+} from '../constants/strings';
 import {NameEntry} from '../types';
 
 type RawLookup = Pick<NameEntry, 'template' | 'end' | 'cat'>;
@@ -80,7 +82,9 @@ function isUpperCase(rawChar: RawLookup | undefined): boolean {
 export function buildDiacriticGrid<T extends {cp: number}>(
 	entries: T[],
 	rawByCp: Map<number, RawLookup>,
+	opts: {splitMultiDiacritic?: boolean} = {},
 ): DiacriticGrid<T> {
+	const {splitMultiDiacritic = true} = opts;
 	const rowsByDiacritic = new Map<string, Map<string, {lower?: T, upper?: T}>>();
 	const baseLetterCp = new Map<string, number>();
 	const baseLetterFallbackMinCp = new Map<string, number>();
@@ -102,7 +106,7 @@ export function buildDiacriticGrid<T extends {cp: number}>(
 			continue;
 		}
 
-		if (diacritics.length > 1) {
+		if (splitMultiDiacritic && diacritics.length > 1) {
 			multiDiacritic.push(char);
 			continue;
 		}
@@ -154,5 +158,76 @@ export function buildDiacriticGrid<T extends {cp: number}>(
 		special,
 		other,
 		multiDiacritic: multiDiacritic.sort((a, b) => a.cp - b.cp),
+	};
+}
+
+/**
+ * Column order for the trailing mark — Vietnamese tones first (sắc, huyền, hỏi, ngã, nặng),
+ * then the marks used as a trailing "tone" in other romanization schemes (Pinyin ü, Baltic
+ * pitch accent, …). Anything else sorts after, alphabetically.
+ */
+const TONE_ORDER = [ACUTE, GRAVE, HOOK_ABOVE, TILDE, DOT_BELOW, MACRON, CARON, DOT_ABOVE, BREVE, DIAERESIS];
+const toneRank = (mark: string): number => {
+	const index = TONE_ORDER.indexOf(mark);
+	return index === -1 ? TONE_ORDER.length : index;
+};
+
+/**
+ * Builds a grid for letters that carry more than one diacritic — columns are grouped by base
+ * letter, each letter's block holding its trailing "tone" marks (Vietnamese/Pinyin-style tone
+ * marks, Baltic pitch accent, …); rows are the other, non-trailing mark(s) shared across
+ * letters (e.g. "breve", "diaeresis"). Input is the `multiDiacritic` leftover from
+ * `buildDiacriticGrid`.
+ */
+export function buildMultiDiacriticGrid<T extends {cp: number}>(
+	entries: T[],
+	rawByCp: Map<number, RawLookup>,
+): DiacriticGrid<T> {
+	const rowsByOther = new Map<string, Map<string, {lower?: T, upper?: T}>>();
+	const tonesByLetter = new Map<string, Set<string>>();
+
+	for (const char of entries) {
+		const rawChar = rawByCp.get(char.cp);
+		const baseLetter = extractBaseLetter(rawChar);
+		const {diacritics} = extractDiacritics(rawChar);
+		if (!baseLetter || diacritics.length === 0) continue;
+
+		const tone = diacritics[diacritics.length - 1];
+		const otherKey = diacritics.slice(0, -1).join('+');
+		const columnKey = `${baseLetter}|${tone}`;
+
+		if (!tonesByLetter.has(baseLetter)) {
+			tonesByLetter.set(baseLetter, new Set());
+		}
+		tonesByLetter.get(baseLetter)!.add(tone);
+
+		if (!rowsByOther.has(otherKey)) {
+			rowsByOther.set(otherKey, new Map());
+		}
+		const row = rowsByOther.get(otherKey)!;
+		if (!row.has(columnKey)) {
+			row.set(columnKey, {});
+		}
+		const cell = row.get(columnKey)!;
+		if (isUpperCase(rawChar)) {
+			cell.upper = char;
+		} else {
+			cell.lower = char;
+		}
+	}
+
+	const sortedLetters = Array.from(tonesByLetter.keys()).sort((a, b) => a.localeCompare(b));
+	const columns = sortedLetters.flatMap((letter) => {
+		const tones = Array.from(tonesByLetter.get(letter)!).sort((a, b) => toneRank(a) - toneRank(b));
+		return tones.map((tone) => `${letter}|${tone}`);
+	});
+	const sortedOtherKeys = Array.from(rowsByOther.keys()).sort((a, b) => a.localeCompare(b));
+
+	return {
+		rows: sortedOtherKeys.map((otherKey) => ({diacriticKey: otherKey, cells: rowsByOther.get(otherKey)!})),
+		baseLetters: columns,
+		special: [],
+		other: [],
+		multiDiacritic: entries,
 	};
 }

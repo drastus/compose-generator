@@ -1,5 +1,5 @@
 import {CharItem} from './utils/buildCategoryTree';
-import {DiacriticGrid} from './utils/latinDiacriticGrid';
+import {DiacriticGrid} from './utils/diacriticGrid';
 import CharGlyph from './CharGlyph';
 
 type Props = {

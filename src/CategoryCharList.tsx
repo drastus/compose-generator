@@ -34,6 +34,12 @@ export default function CategoryCharList({category, onCharClick}: Props) {
 				{category.kind === 'latin' && category.diacriticGrid && (
 					<DiacriticCompactTable grid={category.diacriticGrid} onCharClick={onCharClick}/>
 				)}
+				{category.kind === 'latin' && category.multiDiacriticGrid && (
+					<div className='char-sublist char-sublist--stacked'>
+						<span className='char-sublist-label'>{MULTI_DIACRITIC_LABEL}</span>
+						<DiacriticCompactTable grid={category.multiDiacriticGrid} onCharClick={onCharClick}/>
+					</div>
+				)}
 				{category.kind === 'diacriticTable' && category.diacriticGrid && (
 					<DiacriticCompactTable grid={category.diacriticGrid} onCharClick={onCharClick}/>
 				)}

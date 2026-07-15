@@ -954,6 +954,11 @@ html[data-theme="light"] .picker-cell.picked {
 	margin-bottom: 0;
 }
 
+.char-sublist--stacked {
+	flex-direction: column;
+	align-items: flex-start;
+}
+
 .char-sublist-label {
 	font: inherit;
 	font-weight: normal;

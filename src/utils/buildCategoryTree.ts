@@ -1,13 +1,12 @@
 import {CORE_CATEGORIES} from '../constants/lists';
 import {CharWithSeq, NameEntry} from '../types';
 import {buildGreekPolytonicGrid, GreekPolytonicGrid} from './greekPolytonicGrid';
-import {buildDiacriticGrid, DiacriticGrid} from './latinDiacriticGrid';
+import {buildDiacriticGrid, buildMultiDiacriticGrid, DiacriticGrid} from './diacriticGrid';
 import {buildMathStylesGrid, mathStyleLabel, MathGrid} from './mathStylesGrid';
 
-/** Label for the sublist/table of letters carrying more than one diacritic. */
 export const MULTI_DIACRITIC_LABEL = 'Letters with multiple diacritics: ';
-/** Above this many multi-diacritic Greek letters, they render as a 2-D table instead of a flat line. */
-const GREEK_POLYTONIC_TABLE_THRESHOLD = 3;
+/** Above this many multi-diacritic letters, they render as a 2-D table instead of a flat line. */
+const MULTI_DIACRITIC_TABLE_THRESHOLD = 3;
 
 export type CharItem = {
 	cp: number,
@@ -37,6 +36,8 @@ export type Category = {
 	sublists?: Sublist[],
 	/** Transposed diacritic grid (rows = diacritics, cols = base letters) — 'latin' | 'diacriticTable'. */
 	diacriticGrid?: DiacriticGrid<CharItem>,
+	/** Grid of letters with more than one diacritic (rows = other mark, cols = letter blocks of trailing "tone" marks) — 'latin'. */
+	multiDiacriticGrid?: DiacriticGrid<CharItem>,
 	/** Transposed math-styles grid (rows = style, cols = base char) — 'mathTable'. */
 	mathGrid?: MathGrid<CharItem>,
 	/** Polytonic Greek table (rows = accent, cols = vowel+breathing) — 'diacriticTable' only. */
@@ -121,12 +122,16 @@ export function buildCategoryTree(
 	const latinRawByCp = rawByCpFor(raw.latin);
 	const latinItems = charsWithSeq(withSeq.latin);
 	const latinGrid = buildDiacriticGrid(latinItems, latinRawByCp);
+	const latinShowMultiDiacriticTable = latinGrid.multiDiacritic.length > MULTI_DIACRITIC_TABLE_THRESHOLD;
+	const latinMultiDiacriticGrid = latinShowMultiDiacriticTable
+		? buildMultiDiacriticGrid(latinGrid.multiDiacritic, latinRawByCp)
+		: undefined;
 
 	// --- Greek ---
 	const greekRawByCp = rawByCpFor(raw.greek);
 	const greekItems = charsWithSeq(withSeq.greek);
 	const greekGrid = buildDiacriticGrid(greekItems, greekRawByCp);
-	const greekShowPolytonicTable = greekGrid.multiDiacritic.length > GREEK_POLYTONIC_TABLE_THRESHOLD;
+	const greekShowPolytonicTable = greekGrid.multiDiacritic.length > MULTI_DIACRITIC_TABLE_THRESHOLD;
 	const greekPolytonicGrid = greekShowPolytonicTable
 		? buildGreekPolytonicGrid(greekGrid.multiDiacritic, greekRawByCp)
 		: undefined;
@@ -197,8 +202,11 @@ export function buildCategoryTree(
 				{
 					key: 'latin', label: 'Latin', kind: 'latin', hidden: false, chars: [],
 					diacriticGrid: latinGrid,
+					multiDiacriticGrid: latinMultiDiacriticGrid,
 					sublists: nonEmpty([
-						{label: MULTI_DIACRITIC_LABEL, chars: latinGrid.multiDiacritic},
+						latinShowMultiDiacriticTable
+							? {chars: []}
+							: {label: MULTI_DIACRITIC_LABEL, chars: latinGrid.multiDiacritic},
 						{label: 'Special letters: ', chars: latinGrid.special},
 						{label: 'Other: ', chars: latinGrid.other},
 					]),
