@@ -41,12 +41,12 @@ const arabic: NameEntry[] = [
 	{cp: 0x088B, name: 'ARABIC LETTER TAH WITH DOT BELOW', cat: 'Lo'},
 	{cp: 0x088C, name: 'ARABIC LETTER TAH WITH THREE DOTS BELOW', cat: 'Lo'},
 	{cp: 0x088D, name: 'ARABIC LETTER KEHEH WITH TWO DOTS VERTICALLY BELOW', cat: 'Lo'},
+	{cp: 0x088F, name: 'ARABIC LETTER NOON WITH RING ABOVE', cat: 'Lo'},
 	{cp: 0x0889, name: 'ARABIC LETTER NOON WITH INVERTED SMALL V', cat: 'Lo'},
 	{cp: 0x0884, name: 'ARABIC TATWEEL WITH OVERSTRUCK WAW', cat: 'Lo'},
 	{cp: 0x0885, name: 'ARABIC TATWEEL WITH TWO DOTS BELOW', cat: 'Lo'},
 	{cp: 0x0886, name: 'ARABIC LETTER THIN YEH', cat: 'Lo'},
 	{cp: 0x088E, name: 'ARABIC VERTICAL TAIL', cat: 'Lo'},
-	{cp: 0x088F, name: 'ARABIC LETTER NOON WITH RING ABOVE', cat: 'Lo'},
 ];
 
 export const characters: Record<string, NameEntry[]> = {arabic};

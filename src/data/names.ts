@@ -3680,9 +3680,9 @@ const currency: NameEntry[] = [
 	{cp: 0x20BE, name: 'LARI SIGN', cat: 'Sc'},
 	{cp: 0x20BF, name: 'BITCOIN SIGN', set: ['base'], defaultSeq: '=B', cat: 'Sc'},
 	{cp: 0x20C0, name: 'SOM SIGN', cat: 'Sc'},
+	{cp: 0x20C1, name: 'SAUDI RIYAL SIGN', cat: 'Sc'},
 	{cp: 0x20A7, name: 'PESETA SIGN', cat: 'Sc'},
 	{cp: 0x20A8, name: 'RUPEE SIGN', cat: 'Sc'},
-	{cp: 0x20C1, name: 'SAUDI RIYAL SIGN', cat: 'Sc'},
 ];
 
 const emoji: NameEntry[] = [
@@ -4455,6 +4455,7 @@ const emoji: NameEntry[] = [
 	{cp: 0x1F6D5, name: 'HINDU TEMPLE', cat: 'So'},
 	{cp: 0x1F6D6, name: 'HUT', cat: 'So'},
 	{cp: 0x1F6D7, name: 'ELEVATOR', cat: 'So'},
+	{cp: 0x1F6D8, name: 'LANDSLIDE', cat: 'So'},
 	{cp: 0x1F6DC, name: 'WIRELESS', cat: 'So'},
 	{cp: 0x1F6DD, name: 'PLAYGROUND SLIDE', cat: 'So'},
 	{cp: 0x1F6DE, name: 'WHEEL', cat: 'So'},
@@ -4470,7 +4471,6 @@ const emoji: NameEntry[] = [
 	{cp: 0x1F6FA, name: 'AUTO RICKSHAW', cat: 'So'},
 	{cp: 0x1F6FB, name: 'PICKUP TRUCK', cat: 'So'},
 	{cp: 0x1F6FC, name: 'ROLLER SKATE', cat: 'So'},
-	{cp: 0x1F6D8, name: 'LANDSLIDE', cat: 'So'},
 ];
 
 const misc: NameEntry[] = [
@@ -5398,6 +5398,7 @@ const misc: NameEntry[] = [
 	{cp: 0x2B93, name: 'NEWLINE RIGHT', cat: 'So'},
 	{cp: 0x2B94, name: 'FOUR CORNER ARROWS CIRCLING ANTICLOCKWISE', cat: 'So'},
 	{cp: 0x2B95, name: 'RIGHTWARDS BLACK ARROW', cat: 'So'},
+	{cp: 0x2B96, name: 'EQUALS SIGN WITH INFINITY ABOVE', cat: 'So'},
 	{cp: 0x2B97, name: 'SYMBOL FOR TYPE A ELECTRONICS', cat: 'So'},
 	{cp: 0x2B98, name: 'THREE-D TOP-LIGHTED LEFTWARDS EQUILATERAL ARROWHEAD', cat: 'So'},
 	{cp: 0x2B99, name: 'THREE-D RIGHT-LIGHTED UPWARDS EQUILATERAL ARROWHEAD', cat: 'So'},
@@ -5838,7 +5839,6 @@ const misc: NameEntry[] = [
 	{cp: 0x2136, name: 'BET SYMBOL', cat: 'Lo'},
 	{cp: 0x2137, name: 'GIMEL SYMBOL', cat: 'Lo'},
 	{cp: 0x2138, name: 'DALET SYMBOL', cat: 'Lo'},
-	{cp: 0x2B96, name: 'EQUALS SIGN WITH INFINITY ABOVE', cat: 'So'},
 ];
 
 const format: NameEntry[] = [

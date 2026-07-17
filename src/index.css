@@ -1061,6 +1061,58 @@ html[data-theme="light"] .char-glyph--conflict {
 	opacity: 1;
 }
 
+/* Sequence badges (visible when "Show Compose sequences" is on) */
+.seq-special-char {
+	background: rgba(0, 0, 0, 0.08);
+	border-radius: 2px;
+	padding: 0 2px;
+}
+
+@media (prefers-color-scheme: dark) {
+	.seq-special-char {
+		background: rgba(255, 255, 255, 0.15);
+	}
+}
+
+html[data-theme="dark"] .seq-special-char {
+	background: rgba(255, 255, 255, 0.15);
+}
+
+html[data-theme="light"] .seq-special-char {
+	background: rgba(0, 0, 0, 0.08);
+}
+
+.seq-badge {
+	display: block;
+	font-family: monospace;
+	font-size: 0.65em;
+	line-height: 1.2;
+	color: var(--text-secondary, #666);
+	text-align: center;
+	pointer-events: none;
+}
+
+.seq-toggle {
+	display: flex;
+	align-items: center;
+	gap: 0.4em;
+	font-size: 0.9em;
+	cursor: pointer;
+	margin-top: 1em;
+	margin-bottom: 0.5em;
+}
+
+.compact-table-row-badge,
+.compact-table-col-badge {
+	font-family: monospace;
+	font-size: 0.75em;
+	color: var(--text-secondary, #666);
+	padding: 0 4px;
+	white-space: nowrap;
+	text-align: center;
+	vertical-align: middle;
+}
+
 /* Compact tables (Latin/Greek diacritics, math-alphanumeric styles) */
 #root .compact-table {
 	border-collapse: collapse;

@@ -1,4 +1,4 @@
-import {Fragment, ReactElement} from 'react';
+import {Fragment, ReactElement, useState} from 'react';
 import {CategoryModalTarget, SuperCategory} from './utils/buildCategoryTree';
 import CategoryCharList from './CategoryCharList';
 
@@ -17,6 +17,7 @@ type Props = {
  * Combining, Cyrillic) never desync the supercategory row-span.
  */
 export default function SelectedCharactersGrid({tree, onCharClick, onLabelClick}: Props) {
+	const [isShowingSeqs, setIsShowingSeqs] = useState(false);
 	let rowIndex = 0;
 	const cells: ReactElement[] = [];
 
@@ -60,7 +61,7 @@ export default function SelectedCharactersGrid({tree, onCharClick, onLabelClick}
 			);
 			cells.push(
 				<div key={`${cat.key}-chars`} className='selected-grid-chars' style={{gridRow: row, gridColumn: 3}}>
-					<CategoryCharList category={cat} onCharClick={onCharClick}/>
+					<CategoryCharList category={cat} isShowingSeqs={isShowingSeqs} onCharClick={onCharClick}/>
 				</div>,
 			);
 			rowIndex += 1;
@@ -70,6 +71,15 @@ export default function SelectedCharactersGrid({tree, onCharClick, onLabelClick}
 	return (
 		<Fragment>
 			<H2>Selected characters</H2>
+			<label className='seq-toggle'>
+				<input
+					type='checkbox'
+					role='switch'
+					checked={isShowingSeqs}
+					onChange={(e) => setIsShowingSeqs(e.target.checked)}
+				/>
+				{' Show Compose sequences'}
+			</label>
 			<div className='selected-grid'>
 				{cells}
 			</div>
