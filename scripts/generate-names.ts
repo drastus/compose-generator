@@ -164,7 +164,7 @@ const mathematicalAlphanumericSymbolsGroups = {
 	MM: 'MATHEMATICAL MONOSPACE',
 };
 
-const ucaCollator = new Intl.Collator('und', {sensitivity: 'variant'});
+const ucaCollator = new Intl.Collator('en', {sensitivity: 'variant'});
 
 function applyOrderingOverrides(built: Record<string, {cp: number; name: string; cat?: string}[]>): void {
 	for (const category of Object.keys(built)) {
