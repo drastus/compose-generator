@@ -547,6 +547,7 @@ function App() {
 					tree={categoryTree}
 					onCharClick={openCharModal}
 					onLabelClick={openCategoryModal}
+					onAddCharactersClick={handleOpenPicker}
 				/>
 			</main>
 			{(() => {

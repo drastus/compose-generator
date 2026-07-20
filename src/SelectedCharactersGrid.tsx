@@ -1,13 +1,34 @@
+import feather from 'feather-icons';
 import {Fragment, ReactElement, useState} from 'react';
 import {CategoryModalTarget, SuperCategory} from './utils/buildCategoryTree';
 import CategoryCharList from './CategoryCharList';
 
 const H2 = (EMBEDDED ? 'h3' : 'h2') as 'h2' | 'h3';
 
+function PlusIcon() {
+	const icon = feather.icons.plus;
+	return (
+		<svg
+			// eslint-disable-next-line react/no-danger
+			dangerouslySetInnerHTML={{__html: icon.contents}}
+			fill='none'
+			height='14'
+			stroke='currentColor'
+			strokeLinecap='round'
+			strokeLinejoin='round'
+			strokeWidth='2'
+			viewBox='0 0 24 24'
+			width='14'
+			xmlns='http://www.w3.org/2000/svg'
+		/>
+	);
+}
+
 type Props = {
 	readonly tree: SuperCategory[],
 	readonly onCharClick: (_cp: number) => void,
 	readonly onLabelClick: (_target: CategoryModalTarget) => void,
+	readonly onAddCharactersClick: (_section: {key: string; label: string}) => void,
 };
 
 /**
@@ -16,7 +37,7 @@ type Props = {
  * explicitly in JS from the already-visibility-filtered tree, so hidden categories (e.g.
  * Combining, Cyrillic) never desync the supercategory row-span.
  */
-export default function SelectedCharactersGrid({tree, onCharClick, onLabelClick}: Props) {
+export default function SelectedCharactersGrid({tree, onCharClick, onLabelClick, onAddCharactersClick}: Props) {
 	const [isShowingSeqs, setIsShowingSeqs] = useState(false);
 	let rowIndex = 0;
 	const cells: ReactElement[] = [];
@@ -55,7 +76,19 @@ export default function SelectedCharactersGrid({tree, onCharClick, onLabelClick}
 						className='selected-grid-label-sticky'
 						onClick={() => onLabelClick({scope: 'category', key: cat.key, label: cat.label})}
 					>
-						{cat.label}
+						<span>{cat.label}</span>
+						<button
+							type='button'
+							className='selected-grid-add-btn'
+							title='Add characters…'
+							aria-label={`Add characters to ${cat.label}`}
+							onClick={(e) => {
+								e.stopPropagation();
+								onAddCharactersClick({key: cat.key, label: cat.label});
+							}}
+						>
+							<PlusIcon/>
+						</button>
 					</div>
 				</div>,
 			);

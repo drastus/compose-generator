@@ -62,6 +62,23 @@ html[data-theme="light"] #page-footer-root {
 	box-sizing: border-box;
 }
 
+/* Pico adds margin-bottom: var(--pico-spacing) to [type=button] — strip it */
+#root [type=button], #root [type=submit], #root [type=reset] {
+	margin-bottom: 0;
+}
+
+/*
+ * Pico's button font-size is a hardcoded 1rem, which resolves against the document root —
+ * and Pico scales that up on wide viewports (up to ~131%) independently of this app's own
+ * fixed 14px modal-body scale. Without this, modal buttons balloon in size on large screens.
+ */
+#root .modal-content button:not(.modal-close-button),
+#root .modal-content [type=button]:not(.modal-close-button),
+#root .modal-content [type=submit]:not(.modal-close-button) {
+	font-size: 0.85em;
+	padding: 0.35em 0.75em;
+}
+
 .container {
 	max-width: 1200px;
 	margin: 0 auto;
@@ -208,6 +225,10 @@ section + section {
 	white-space: nowrap;
 }
 
+#root .select-all-btn {
+	margin-bottom: 0.5rem;
+}
+
 .diacritic-marks-col {
 	display: flex;
 	flex-direction: column;
@@ -316,23 +337,6 @@ input.key-input {
 
 #root button {
 	cursor: pointer;
-}
-
-/* Pico adds margin-bottom: var(--pico-spacing) to [type=button] — strip it */
-#root [type=button], #root [type=submit], #root [type=reset] {
-	margin-bottom: 0;
-}
-
-/*
- * Pico's button font-size is a hardcoded 1rem, which resolves against the document root —
- * and Pico scales that up on wide viewports (up to ~131%) independently of this app's own
- * fixed 14px modal-body scale. Without this, modal buttons balloon in size on large screens.
- */
-#root .modal-content button:not(.modal-close-button),
-#root .modal-content [type=button]:not(.modal-close-button),
-#root .modal-content [type=submit]:not(.modal-close-button) {
-	font-size: 0.85em;
-	padding: 0.35em 0.75em;
 }
 
 .modal-close-button {
@@ -923,10 +927,40 @@ html[data-theme="light"] .picker-cell.picked {
 	white-space: nowrap;
 	background: var(--bg-primary);
 	z-index: 1;
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
 }
 
-.selected-grid-label-sticky:hover {
+.selected-grid-label-sticky:hover > span {
 	text-decoration: underline;
+}
+
+.selected-grid-add-btn {
+	--pico-background-color: transparent;
+	--pico-border-color: transparent;
+	--pico-color: var(--text-primary);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	line-height: 1;
+	padding: 0.15rem;
+	border-radius: var(--pico-border-radius);
+	transition: background-color 0.2s, color 0.2s, opacity 0.15s;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.selected-grid-label-sticky:hover .selected-grid-add-btn,
+.selected-grid-add-btn:focus {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.selected-grid-add-btn:hover,
+.selected-grid-add-btn:focus {
+	--pico-background-color: var(--pico-primary-hover);
+	--pico-color: var(--pico-primary-inverse);
 }
 
 .selected-grid-chars {
@@ -1001,6 +1035,10 @@ html[data-theme="light"] .picker-cell.picked {
 	text-decoration: underline wavy #dc2626;
 }
 
+.char-glyph--nonstandard {
+	text-decoration: underline dotted #d97706;
+}
+
 @media (prefers-color-scheme: dark) {
 	.char-glyph--highlight {
 		background: #274468;
@@ -1008,6 +1046,10 @@ html[data-theme="light"] .picker-cell.picked {
 
 	.char-glyph--conflict {
 		text-decoration-color: #ef4444;
+	}
+
+	.char-glyph--nonstandard {
+		text-decoration-color: #f59e0b;
 	}
 }
 
@@ -1019,12 +1061,20 @@ html[data-theme="dark"] .char-glyph--conflict {
 	text-decoration-color: #ef4444;
 }
 
+html[data-theme="dark"] .char-glyph--nonstandard {
+	text-decoration-color: #f59e0b;
+}
+
 html[data-theme="light"] .char-glyph--highlight {
 	background: #cfe3ff;
 }
 
 html[data-theme="light"] .char-glyph--conflict {
 	text-decoration-color: #dc2626;
+}
+
+html[data-theme="light"] .char-glyph--nonstandard {
+	text-decoration-color: #d97706;
 }
 
 .char-tooltip .char-tooltip-text {
@@ -1095,7 +1145,7 @@ html[data-theme="light"] .seq-special-char {
 .seq-toggle {
 	display: flex;
 	align-items: center;
-	gap: 0.4em;
+	gap: 0.75em;
 	font-size: 0.9em;
 	cursor: pointer;
 	margin-top: 1em;
@@ -1133,10 +1183,16 @@ html[data-theme="light"] .seq-special-char {
 	vertical-align: bottom;
 }
 
+
 .compact-table-cell-inner {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
+}
+
+.compact-table-upper-gap {
+	visibility: hidden;
+	pointer-events: none;
 }
 
 #root .compact-table td.compact-table-row-label {

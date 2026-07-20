@@ -18,15 +18,17 @@ type CharGlyphProps = {
 	readonly item: CharItem,
 	readonly isHighlighted?: boolean,
 	readonly isShowingSeqs?: boolean,
+	readonly isNonStandard?: boolean,
 	readonly onClick: (_cp: number) => void,
 };
 
-export default function CharGlyph({item, isHighlighted = false, isShowingSeqs = false, onClick}: CharGlyphProps) {
+export default function CharGlyph({item, isHighlighted = false, isShowingSeqs = false, isNonStandard = false, onClick}: CharGlyphProps) {
 	const conflictCount = item.conflicts?.length ?? 0;
 	const className = [
 		'char-glyph',
 		isHighlighted ? 'char-glyph--highlight' : '',
 		conflictCount > 0 ? 'char-glyph--conflict' : '',
+		isNonStandard ? 'char-glyph--nonstandard' : '',
 	].filter(Boolean).join(' ');
 
 	return (

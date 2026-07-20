@@ -25,6 +25,14 @@ function extractRowBadge(row: DiacriticGridRow<CharItem>, mode: DiacriticTableMo
 	return null;
 }
 
+function charIsNonStandard(item: CharItem | undefined, rowBadge: string | null, mode: DiacriticTableMode): boolean {
+	if (!item || !rowBadge || !item.seqs[0]) return false;
+	const seq = item.seqs[0];
+	if (mode === 'greek') return seq.length < 3 || seq.slice(1, -1) !== rowBadge;
+	if (mode === 'multiDiacritic') return seq.length < 3 || seq.slice(0, -2) !== rowBadge;
+	return seq.length < 2 || seq.slice(0, -1) !== rowBadge;
+}
+
 function extractColBadge(columnKey: string, rows: Array<DiacriticGridRow<CharItem>>): string | null {
 	for (const row of rows) {
 		const cell = row.cells.get(columnKey);
@@ -60,23 +68,26 @@ export default function DiacriticCompactTable({grid, isShowingSeqs = false, mode
 				{grid.rows.map((row) => {
 					const isBaseRow = row.diacriticKey === '';
 					const showCharSeqs = isShowingSeqs && mode === 'greek' && isBaseRow;
+					const rowBadge = extractRowBadge(row, mode);
 					return (
 						<tr key={row.diacriticKey || '—'}>
 							{isShowingSeqs && (
 								<td className='compact-table-row-badge'>
-									<SeqDisplay seq={extractRowBadge(row, mode) ?? ''}/>
+									<SeqDisplay seq={rowBadge ?? ''}/>
 								</td>
 							)}
 							{grid.baseLetters.map((letter) => {
 								const cell = row.cells.get(letter);
-								const tdClassName = !cell?.upper && cell?.lower
-									? 'compact-table-cell compact-table-cell--bottom'
-									: 'compact-table-cell';
+								const upperNonStd = isShowingSeqs && charIsNonStandard(cell?.upper, rowBadge, mode);
+								const lowerNonStd = isShowingSeqs && charIsNonStandard(cell?.lower, rowBadge, mode);
 								return (
-									<td key={letter} className={tdClassName}>
+									<td key={letter} className='compact-table-cell'>
 										<div className='compact-table-cell-inner'>
-											{cell?.upper && <CharGlyph item={cell.upper} isShowingSeqs={showCharSeqs} onClick={onCharClick}/>}
-											{cell?.lower && <CharGlyph item={cell.lower} isShowingSeqs={showCharSeqs} onClick={onCharClick}/>}
+											{cell?.upper
+												? <CharGlyph item={cell.upper} isShowingSeqs={showCharSeqs || upperNonStd} isNonStandard={upperNonStd} onClick={onCharClick}/>
+												: cell?.lower && <span className='char-glyph compact-table-upper-gap' aria-hidden='true'>{' '}</span>
+											}
+											{cell?.lower && <CharGlyph item={cell.lower} isShowingSeqs={showCharSeqs || lowerNonStd} isNonStandard={lowerNonStd} onClick={onCharClick}/>}
 										</div>
 									</td>
 								);
