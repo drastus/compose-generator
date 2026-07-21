@@ -22,6 +22,7 @@ export const CORE_BLOCKS = new Set<string>([
 	'Geometric Shapes',
 	'Miscellaneous Symbols',
 	'Dingbats',
+	'Supplemental Punctuation',
 	'Miscellaneous Mathematical Symbols-A',
 	'Supplemental Arrows-A',
 	'Supplemental Arrows-B',
