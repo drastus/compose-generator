@@ -75,19 +75,19 @@ function getCyrillicSeq(baseEntry: NameEntry, diacriticKeys: string, prefixes: P
 
 export function applySequencesToCharacters(
 	selectedCharactersParam: Record<string, NameEntry[]>,
-	customSequencesParam: {key: string; seq: string}[],
+	customSequencesParam: {key: string; seq: string; additionalSeqs?: string[]}[],
 	diacriticMarksParam: DiacriticMark[],
 	prefixes: Prefixes,
 ): Record<string, CharWithSeq[]> {
-	const customMap = new Map(customSequencesParam.map((cs) => [cs.key, cs.seq]));
+	const customMap = new Map(customSequencesParam.map((cs) => [cs.key, cs]));
 	const result: Record<string, CharWithSeq[]> = {};
 
 	for (const [groupKey, entries] of Object.entries(selectedCharactersParam)) {
 		const updatedEntries = entries.map((entry) => {
 			let seq: string | undefined;
-			const customSeq = customMap.get(String(entry.cp));
-			if (customSeq) {
-				seq = customSeq;
+			const customEntry = customMap.get(String(entry.cp));
+			if (customEntry?.seq) {
+				seq = customEntry.seq;
 			} else if (entry.defaultSeq && !getDiacriticTemplateSeq(entry, diacriticMarksParam)) {
 				let baseSeq = entry.defaultSeq;
 				if (groupKey === 'greek') {
@@ -186,10 +186,12 @@ export function applySequencesToCharacters(
 					}
 				}
 			}
+			const additionalSeqs = customEntry?.additionalSeqs?.filter(Boolean);
 			return {
 				cp: entry.cp,
 				name: buildName(entry),
 				seq,
+				additionalSeqs: additionalSeqs && additionalSeqs.length > 0 ? additionalSeqs : undefined,
 			};
 		});
 		result[groupKey] = updatedEntries;

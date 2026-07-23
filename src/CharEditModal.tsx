@@ -26,24 +26,41 @@ type ConflictDetail = {
 type CharEditModalProps = {
 	readonly char: CharWithSeq,
 	readonly value: string,
+	readonly additionalValues: string[],
 	readonly allCharacters: CharWithSeq[],
 	readonly cpToChar: Map<number, CharWithSeq>,
-	readonly onApply: (_seq: string) => void,
+	readonly onApply: (_seq: string, _additionalSeqs: string[]) => void,
 	readonly onRemove: () => void,
 	readonly onCancel: () => void,
 };
 
-export default function CharEditModal({char, value, allCharacters, cpToChar, onApply, onRemove, onCancel}: CharEditModalProps) {
+export default function CharEditModal({char, value, additionalValues, allCharacters, cpToChar, onApply, onRemove, onCancel}: CharEditModalProps) {
 	const inputRef = useRef<SequenceInputHandle>(null);
+	const additionalRefs = useRef<Array<SequenceInputHandle | null>>([]);
+	const activeInsertRef = useRef<SequenceInputHandle | null>(null);
+
 	const [pendingValue, setPendingValue] = useState(value);
+	const [pendingAdditionalSeqs, setPendingAdditionalSeqs] = useState(additionalValues);
 	const [pendingRemove, setPendingRemove] = useState(false);
-	const hasChanges = pendingRemove || pendingValue !== value;
+
+	const hasChanges = pendingRemove
+		|| pendingValue !== value
+		|| pendingAdditionalSeqs.length !== additionalValues.length
+		|| pendingAdditionalSeqs.some((s, i) => s !== additionalValues[i]);
 
 	const previewConflicts = useMemo(() => {
-		if (pendingRemove || !pendingValue) return undefined;
-		const previewChars = allCharacters.map((c) => (c.cp === char.cp ? {...c, seq: pendingValue} : c));
+		if (pendingRemove) return undefined;
+		const hasAnySeq = pendingValue || pendingAdditionalSeqs.some(Boolean);
+		if (!hasAnySeq) return undefined;
+		const previewChars = allCharacters.map((c) => (c.cp === char.cp
+			? {
+				...c,
+				seq: pendingValue || undefined,
+				additionalSeqs: pendingAdditionalSeqs.filter(Boolean),
+			}
+			: c));
 		return detectConflicts(previewChars).get(char.cp);
-	}, [allCharacters, char.cp, pendingValue, pendingRemove]);
+	}, [allCharacters, char.cp, pendingValue, pendingAdditionalSeqs, pendingRemove]);
 
 	const conflictDetails: ConflictDetail[] = (previewConflicts ?? [])
 		.map((cp) => {
@@ -55,9 +72,14 @@ export default function CharEditModal({char, value, allCharacters, cpToChar, onA
 
 	const handleApply = () => {
 		if (pendingRemove) {
-			onRemove();
+			const remaining = pendingAdditionalSeqs.filter(Boolean);
+			if (remaining.length > 0) {
+				onApply(remaining[0], remaining.slice(1));
+			} else {
+				onRemove();
+			}
 		} else {
-			onApply(pendingValue);
+			onApply(pendingValue, pendingAdditionalSeqs.filter(Boolean));
 		}
 	};
 
@@ -67,6 +89,8 @@ export default function CharEditModal({char, value, allCharacters, cpToChar, onA
 			handleApply();
 		}
 	};
+
+	const hasConflict = Boolean(previewConflicts?.length);
 
 	return (
 		<div className='char-edit-modal' onKeyDown={handleKeyDown}>
@@ -82,9 +106,12 @@ export default function CharEditModal({char, value, allCharacters, cpToChar, onA
 				<SequenceInput
 					ref={inputRef}
 					value={pendingValue}
-					hasConflict={Boolean(previewConflicts?.length)}
+					hasConflict={hasConflict}
 					ariaLabel='Compose sequence'
 					className={pendingRemove ? 'char-edit-sequence-input--removing' : undefined}
+					onFocus={() => {
+						activeInsertRef.current = inputRef.current;
+					}}
 					onChange={(next) => {
 						setPendingValue(next);
 						setPendingRemove(false);
@@ -100,6 +127,49 @@ export default function CharEditModal({char, value, allCharacters, cpToChar, onA
 					×
 				</button>
 			</div>
+			{pendingAdditionalSeqs.map((seq, i) => (
+				// eslint-disable-next-line react/no-array-index-key
+				<div key={i} className='char-edit-sequence-row'>
+					<SequenceInput
+						ref={(r) => {
+							additionalRefs.current[i] = r;
+						}}
+						value={seq}
+						hasConflict={hasConflict}
+						ariaLabel={`Additional sequence ${i + 1}`}
+						onFocus={() => {
+							activeInsertRef.current = additionalRefs.current[i] ?? null;
+						}}
+						onChange={(next) => {
+							setPendingAdditionalSeqs((prev) => {
+								const updated = [...prev];
+								updated[i] = next;
+								return updated;
+							});
+						}}
+					/>
+					<button
+						type='button'
+						aria-label='Remove additional sequence'
+						title='Remove additional sequence'
+						className='char-edit-remove-btn'
+						onClick={() => {
+							setPendingAdditionalSeqs((prev) => prev.filter((_, j) => j !== i));
+						}}
+					>
+						×
+					</button>
+				</div>
+			))}
+			<button
+				type='button'
+				className='char-edit-add-seq-btn'
+				onClick={() => {
+					setPendingAdditionalSeqs((prev) => [...prev, '']);
+				}}
+			>
+				+ Add sequence
+			</button>
 			{conflictDetails.length > 0 && (
 				<div className='char-edit-modal-conflicts'>
 					Conflicts with:
@@ -111,7 +181,9 @@ export default function CharEditModal({char, value, allCharacters, cpToChar, onA
 				</div>
 			)}
 			<div className='char-edit-modal-toolbar'>
-				<SequenceToolbar onInsert={(ch) => inputRef.current?.insertChar(ch)}/>
+				<SequenceToolbar onInsert={(ch) => {
+					(activeInsertRef.current ?? inputRef.current)?.insertChar(ch);
+				}}/>
 			</div>
 			<div className='modal-footer-buttons char-edit-modal-footer'>
 				<button type='button' className='secondary' onClick={onCancel}>Cancel</button>

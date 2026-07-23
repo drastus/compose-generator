@@ -11,7 +11,7 @@ import {buildCategoryTree, CategoryModalTarget} from './utils/buildCategoryTree'
 import {buildName} from './utils/buildName';
 import {detectConflicts} from './utils/detectConflicts';
 import {formatSequence} from './utils/formatSequence';
-import {CharWithSeq, DiacriticMark, NameEntry} from './types';
+import {CharWithSeq, CustomSequence, DiacriticMark, NameEntry} from './types';
 import AddingModal from './AddingModal';
 import CategoryConfigModal from './CategoryConfigModal';
 import CharacterPickerModal from './CharacterPickerModal';
@@ -88,7 +88,7 @@ function App() {
 	const [availableCharacters, setAvailableCharacters] = useState<Record<string, NameEntry[]>>(mainCharacters);
 	const [loadedBlocks, setLoadedBlocks] = useState<Set<string>>(new Set());
 	const [diacriticMarks, setDiacriticMarks] = useState<DiacriticMark[]>(defaultDiacriticMarks);
-	const [customSequences, setCustomSequences] = useState<{key: string; seq: string}[]>([]);
+	const [customSequences, setCustomSequences] = useState<CustomSequence[]>([]);
 	const [prefixes, setPrefixes] = usePrefixes(setCustomSequences);
 	const [selectedCharacters, setSelectedCharacters] = useState(defaultCharacters);
 	const [charModalCp, setCharModalCp] = useState<number | null>(null);
@@ -199,13 +199,14 @@ function App() {
 		});
 	}, [availableCharacters]);
 
-	const handleSequenceChange = useCallback((cpKey: string, seq: string) => {
+	const handleSequenceChange = useCallback((cpKey: string, seq: string, additionalSeqs: string[] = []) => {
 		setCustomSequences((prev) => {
 			const withoutCurrent = prev.filter((cs) => cs.key !== cpKey);
-			if (!seq) {
+			const filteredAdditional = additionalSeqs.filter(Boolean);
+			if (!seq && filteredAdditional.length === 0) {
 				return withoutCurrent;
 			}
-			return [...withoutCurrent, {key: cpKey, seq}];
+			return [...withoutCurrent, {key: cpKey, seq, additionalSeqs: filteredAdditional}];
 		});
 	}, []);
 
@@ -477,8 +478,11 @@ function App() {
 	const getGeneratedContent = useCallback(
 		() => Object.values(selectedCharactersWithSequences)
 			.flat()
-			.filter((char) => char.seq)
-			.map(formatSequence)
+			.filter((char) => char.seq || (char.additionalSeqs?.length ?? 0) > 0)
+			.flatMap((char) => [
+				...(char.seq ? [formatSequence(char)] : []),
+				...(char.additionalSeqs ?? []).map((seq) => formatSequence({...char, seq})),
+			])
 			.join('\n'),
 		[selectedCharactersWithSequences],
 	);
@@ -530,9 +534,15 @@ function App() {
 	);
 
 	const editingChar = charModalCp === null ? undefined : cpToChar.get(charModalCp);
+	const editingCustomEntry = editingChar
+		? customSequences.find((cs) => cs.key === String(editingChar.cp))
+		: undefined;
 	const editingCharValue = editingChar
-		? (customSequences.find((cs) => cs.key === String(editingChar.cp))?.seq ?? editingChar.seq ?? '')
+		? (editingCustomEntry?.seq ?? editingChar.seq ?? '')
 		: '';
+	const editingCharAdditionalValues = editingChar
+		? (editingCustomEntry?.additionalSeqs ?? editingChar.additionalSeqs ?? [])
+		: [];
 
 	return (
 		<Fragment>
@@ -642,10 +652,11 @@ function App() {
 					<CharEditModal
 						char={editingChar}
 						value={editingCharValue}
+						additionalValues={editingCharAdditionalValues}
 						allCharacters={allCharacters}
 						cpToChar={cpToChar}
-						onApply={(seq) => {
-							handleSequenceChange(String(editingChar.cp), seq);
+						onApply={(seq, additionalSeqs) => {
+							handleSequenceChange(String(editingChar.cp), seq, additionalSeqs);
 							closeCharModal();
 						}}
 						onRemove={() => {

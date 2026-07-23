@@ -70,7 +70,7 @@ function toItem(char: CharWithSeq): CharItem {
 	return {
 		cp: char.cp,
 		name: char.name,
-		seqs: char.seq ? [char.seq] : [],
+		seqs: [char.seq, ...(char.additionalSeqs ?? [])].filter(Boolean) as string[],
 		conflicts: char.conflicts,
 	};
 }

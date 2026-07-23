@@ -1,8 +1,7 @@
 import {Dispatch, SetStateAction, useEffect, useRef, useState} from 'react';
 import {MATH_FLAGS, composeMathPrefix, defaultPrefixes} from '../constants/mappings';
 import {characters as mainCharacters} from '../data/names';
-
-type CustomSequence = {key: string; seq: string};
+import {CustomSequence} from '../types';
 
 const greekCodePoints = new Set((mainCharacters.greek ?? []).map((entry) => entry.cp));
 const cyrillicCodePoints = new Set((mainCharacters.cyrillic ?? []).map((entry) => entry.cp));

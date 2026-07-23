@@ -14,7 +14,14 @@ export type CharWithSeq = {
 	cp: number,
 	name: string,
 	seq?: string,
+	additionalSeqs?: string[],
 	conflicts?: number[],
+};
+
+export type CustomSequence = {
+	key: string;
+	seq: string;
+	additionalSeqs?: string[];
 };
 
 export type DiacriticMark = {

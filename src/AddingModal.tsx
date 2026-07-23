@@ -1,12 +1,12 @@
 import {Fragment, useMemo, useRef, useState} from 'react';
 import CharactersList, {CharactersListHandle} from './CharactersList';
 import SequenceToolbar from './SequenceToolbar';
-import {CharWithSeq} from './types';
+import {CharWithSeq, CustomSequence} from './types';
 
 type AddingModalProps = {
 	readonly entries: CharWithSeq[];
 	readonly allCharacters: CharWithSeq[];
-	readonly customSequences: {key: string; seq: string}[];
+	readonly customSequences: CustomSequence[];
 	readonly handleSequenceChange: (_cp: string, _sequence: string) => void;
 	readonly handleApplySequences: () => void;
 	readonly closeModal: () => void;
