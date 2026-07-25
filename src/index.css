@@ -392,6 +392,10 @@ input.key-input {
 	overflow-y: auto;
 }
 
+.modal-add-sequence-table .sequence-input {
+	min-width: 10em;
+}
+
 .modal-add-sequence-footer {
 	display: flex;
 	justify-content: space-between;
@@ -1229,6 +1233,10 @@ html[data-theme="light"] .seq-special-char {
 	display: flex;
 	align-items: center;
 	gap: 0.4rem;
+}
+
+.char-edit-sequence-row .sequence-input {
+	min-width: 10em;
 }
 
 .char-edit-remove-btn {

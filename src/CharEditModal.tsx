@@ -37,7 +37,8 @@ type CharEditModalProps = {
 export default function CharEditModal({char, value, additionalValues, allCharacters, cpToChar, onApply, onRemove, onCancel}: CharEditModalProps) {
 	const inputRef = useRef<SequenceInputHandle>(null);
 	const additionalRefs = useRef<Array<SequenceInputHandle | null>>([]);
-	const activeInsertRef = useRef<SequenceInputHandle | null>(null);
+	// Store a getter rather than the handle itself to avoid stale refs after re-renders
+	const getActiveHandle = useRef<() => SequenceInputHandle | null>(() => inputRef.current);
 
 	const [pendingValue, setPendingValue] = useState(value);
 	const [pendingAdditionalSeqs, setPendingAdditionalSeqs] = useState(additionalValues);
@@ -110,7 +111,7 @@ export default function CharEditModal({char, value, additionalValues, allCharact
 					ariaLabel='Compose sequence'
 					className={pendingRemove ? 'char-edit-sequence-input--removing' : undefined}
 					onFocus={() => {
-						activeInsertRef.current = inputRef.current;
+						getActiveHandle.current = () => inputRef.current;
 					}}
 					onChange={(next) => {
 						setPendingValue(next);
@@ -138,7 +139,8 @@ export default function CharEditModal({char, value, additionalValues, allCharact
 						hasConflict={hasConflict}
 						ariaLabel={`Additional sequence ${i + 1}`}
 						onFocus={() => {
-							activeInsertRef.current = additionalRefs.current[i] ?? null;
+							const idx = i;
+							getActiveHandle.current = () => additionalRefs.current[idx] ?? null;
 						}}
 						onChange={(next) => {
 							setPendingAdditionalSeqs((prev) => {
@@ -182,7 +184,7 @@ export default function CharEditModal({char, value, additionalValues, allCharact
 			)}
 			<div className='char-edit-modal-toolbar'>
 				<SequenceToolbar onInsert={(ch) => {
-					(activeInsertRef.current ?? inputRef.current)?.insertChar(ch);
+					(getActiveHandle.current() ?? inputRef.current)?.insertChar(ch);
 				}}/>
 			</div>
 			<div className='modal-footer-buttons char-edit-modal-footer'>
