@@ -85,6 +85,10 @@ function App() {
 	const [pendingEntries, setPendingEntries] = useState<NameEntry[]>([]);
 	const [pendingEntryGroups, setPendingEntryGroups] = useState<Map<number, string>>(new Map());
 	const [pendingConflictMap, setPendingConflictMap] = useState<Map<number, number[]>>(new Map());
+	const [pendingAlreadySelectedCps, setPendingAlreadySelectedCps] = useState<Set<number>>(new Set());
+	const [pendingOriginalCustomSeqs, setPendingOriginalCustomSeqs] = useState<Map<number, CustomSequence | undefined>>(new Map());
+	const [pendingExistingSeqs, setPendingExistingSeqs] = useState<Map<number, string>>(new Map());
+	const [pendingExistingAdditionalSeqs, setPendingExistingAdditionalSeqs] = useState<Map<number, string[]>>(new Map());
 	const [availableCharacters, setAvailableCharacters] = useState<Record<string, NameEntry[]>>(mainCharacters);
 	const [loadedBlocks, setLoadedBlocks] = useState<Set<string>>(new Set());
 	const [diacriticMarks, setDiacriticMarks] = useState<DiacriticMark[]>(defaultDiacriticMarks);
@@ -104,6 +108,9 @@ function App() {
 	prefixesRef.current = prefixes;
 	const diacriticMarksRef = useRef(diacriticMarks);
 	diacriticMarksRef.current = diacriticMarks;
+	const customSequencesRef = useRef(customSequences);
+	customSequencesRef.current = customSequences;
+	const allCharactersRef = useRef<CharWithSeq[]>([]);
 
 	const isCategoryModalOpen = categoryModalTarget !== null;
 	useEffect(() => {
@@ -235,6 +242,7 @@ function App() {
 	const handleOpenPicker = useCallback((section?: {label: string; key: string}) => {
 		setPickerSection(section);
 		setPickerOpen(true);
+		setCategoryModalTarget(null);
 	}, []);
 
 	const openCharModal = useCallback((cp: number) => setCharModalCp(cp), []);
@@ -301,6 +309,32 @@ function App() {
 			};
 		});
 
+		// Detect which picked cps are already in selectedCharacters
+		const selectedCpsFlat = new Set(
+			Object.values(selectedCharactersRef.current).flat().map((e) => e.cp),
+		);
+		const alreadySelected = new Set(cps.filter((cp) => selectedCpsFlat.has(cp)));
+
+		// Capture existing data before clearing, so we can restore on cancel
+		const originalCustomSeqs = new Map<number, CustomSequence | undefined>();
+		const existingSeqs = new Map<number, string>();
+		const existingAdditionalSeqs = new Map<number, string[]>();
+		for (const cp of alreadySelected) {
+			originalCustomSeqs.set(cp, customSequencesRef.current.find((cs) => cs.key === String(cp)));
+			const existingChar = allCharactersRef.current.find((c) => c.cp === cp);
+			if (existingChar?.seq) existingSeqs.set(cp, existingChar.seq);
+			if (existingChar?.additionalSeqs?.length) existingAdditionalSeqs.set(cp, existingChar.additionalSeqs);
+		}
+
+		// Clear customSequences for already-selected chars so the AddingModal input starts empty
+		if (alreadySelected.size > 0) {
+			setCustomSequences((prev) => prev.filter((cs) => !alreadySelected.has(Number(cs.key))));
+		}
+
+		setPendingAlreadySelectedCps(alreadySelected);
+		setPendingOriginalCustomSeqs(originalCustomSeqs);
+		setPendingExistingSeqs(existingSeqs);
+		setPendingExistingAdditionalSeqs(existingAdditionalSeqs);
 		setPendingEntries(entries);
 		setPendingEntryGroups(cpGroups);
 		setModalMode('addSequence');
@@ -308,12 +342,26 @@ function App() {
 	}, [availableCharacters, pickerSection]);
 
 	const closeModal = useCallback(() => {
+		// Restore original customSequences for already-selected chars (user cancelled)
+		if (pendingAlreadySelectedCps.size > 0) {
+			setCustomSequences((prev) => {
+				let next = prev.filter((cs) => !pendingAlreadySelectedCps.has(Number(cs.key)));
+				for (const original of pendingOriginalCustomSeqs.values()) {
+					if (original) next = [...next, original];
+				}
+				return next;
+			});
+		}
 		setShowModal(false);
 		setModalMode(null);
 		setPendingEntries([]);
 		setPendingEntryGroups(new Map());
 		setPendingConflictMap(new Map());
-	}, []);
+		setPendingAlreadySelectedCps(new Set());
+		setPendingOriginalCustomSeqs(new Map());
+		setPendingExistingSeqs(new Map());
+		setPendingExistingAdditionalSeqs(new Map());
+	}, [pendingAlreadySelectedCps, pendingOriginalCustomSeqs]);
 
 	const closeCategoryModal = useCallback(() => {
 		setCategoryModalTarget(null);
@@ -322,9 +370,31 @@ function App() {
 	}, [closeModal]);
 
 	const handleApplySequences = useCallback(() => {
+		// For already-selected chars: merge user-entered seq as additionalSeq
+		setCustomSequences((prev) => {
+			let next = prev;
+			for (const cp of pendingAlreadySelectedCps) {
+				const cpKey = String(cp);
+				const userEnteredSeq = next.find((cs) => cs.key === cpKey)?.seq ?? '';
+				const original = pendingOriginalCustomSeqs.get(cp);
+				next = next.filter((cs) => cs.key !== cpKey);
+				if (userEnteredSeq) {
+					next = [...next, {
+						key: cpKey,
+						seq: original?.seq ?? '',
+						additionalSeqs: [...(original?.additionalSeqs ?? []), userEnteredSeq],
+					}];
+				} else if (original) {
+					next = [...next, original];
+				}
+			}
+			return next;
+		});
+		// For new chars: add to selectedCharacters
 		setSelectedCharacters((prev) => {
 			const next = {...prev};
 			for (const entry of pendingEntries) {
+				if (pendingAlreadySelectedCps.has(entry.cp)) continue;
 				const group = pendingEntryGroups.get(entry.cp);
 				if (!group) continue;
 				const key = String(entry.cp);
@@ -343,7 +413,11 @@ function App() {
 		setPendingEntries([]);
 		setPendingEntryGroups(new Map());
 		setPendingConflictMap(new Map());
-	}, [customSequences, pendingEntries, pendingEntryGroups]);
+		setPendingAlreadySelectedCps(new Set());
+		setPendingOriginalCustomSeqs(new Map());
+		setPendingExistingSeqs(new Map());
+		setPendingExistingAdditionalSeqs(new Map());
+	}, [customSequences, pendingEntries, pendingEntryGroups, pendingAlreadySelectedCps, pendingOriginalCustomSeqs]);
 
 	const deferredSelectedCharacters = useDeferredValue(selectedCharacters);
 	const selectedCharactersWithSequences = useMemo(
@@ -357,8 +431,10 @@ function App() {
 			name: buildName(entry),
 			seq: customSequences.find((cs) => cs.key === String(entry.cp))?.seq ?? '',
 			conflicts: pendingConflictMap.get(entry.cp),
+			existingSeq: pendingExistingSeqs.get(entry.cp),
+			existingAdditionalSeqs: pendingExistingAdditionalSeqs.get(entry.cp),
 		})),
-	[pendingEntries, customSequences, pendingConflictMap]);
+	[pendingEntries, customSequences, pendingConflictMap, pendingExistingSeqs, pendingExistingAdditionalSeqs]);
 
 	const handleAddingModalConflictDetection = useCallback((cpKey: string, seq: string) => {
 		const cp = Number(cpKey);
@@ -520,6 +596,7 @@ function App() {
 		() => Object.values(selectedCharactersWithSequences).flat(),
 		[selectedCharactersWithSequences],
 	);
+	allCharactersRef.current = allCharacters;
 
 	const pickerSelectedCps = useMemo(
 		() => new Set(Object.values(selectedCharacters).flat().map((e) => e.cp)),

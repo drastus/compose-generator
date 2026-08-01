@@ -397,7 +397,7 @@ export function classifyAsCore(blockName: string, generalCat: string, cp: number
 		}
 	}
 	// Modifier letters (e.g. ʰ, ʼ) vs standalone diacritics (e.g. ¨, ˇ, ˘)
-	if ((generalCat === 'Lm' || generalCat === 'Sk') && (isLatinBlock || blockName === 'Spacing Modifier Letters')) {
+	if (generalCat === 'Lm' || generalCat === 'Sk') {
 		return name.startsWith('MODIFIER LETTER ') ? 'modifier' : 'dia';
 	}
 	// Combining marks
@@ -405,11 +405,11 @@ export function classifyAsCore(blockName: string, generalCat: string, cp: number
 		return 'combining';
 	}
 	// Numbers
-	if ((['Nd', 'Nl', 'No'].includes(generalCat)) && (isLatinBlock || ['Number Forms', 'Superscripts and Subscripts'].includes(blockName))) {
+	if (['Nd', 'Nl', 'No'].includes(generalCat)) {
 		return 'math_number';
 	}
 	// Punctuation
-	if ((generalCat.startsWith('P') || generalCat.startsWith('Z')) && (isLatinBlock || ['General Punctuation', 'Supplemental Punctuation'].includes(blockName))) {
+	if (generalCat.startsWith('P') || generalCat.startsWith('Z')) {
 		return 'punctuation';
 	}
 	// Format

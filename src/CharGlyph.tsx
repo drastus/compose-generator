@@ -53,7 +53,7 @@ export default function CharGlyph({item, isHighlighted = false, isShowingSeqs = 
 								{'Sequence: '}
 								{item.seqs.map((seq, i) => (
 									// eslint-disable-next-line react/no-array-index-key
-									<Fragment key={i}>{i > 0 && ', '}<SeqDisplay seq={seq}/></Fragment>
+									<Fragment key={i}>{i > 0 && '  '}<SeqDisplay seq={seq}/></Fragment>
 								))}
 							</Fragment>
 						)

@@ -37,6 +37,9 @@ export const CORE_BLOCKS = new Set<string>([
 ]);
 
 export const EXTRA_BLOCKS = new Set<string>([
+	'Modifier Tone Letters',
+	'Phonetic Extensions',
+	'Phonetic Extensions Supplement',
 	'Latin Extended-C',
 	'Latin Extended-D',
 	'Latin Extended-E',

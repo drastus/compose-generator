@@ -4,6 +4,7 @@ import {groupsToUnicodeBlocks} from './constants/mappings';
 import {NameEntry} from './types';
 import {buildName} from './utils/buildName';
 import {blockToGroup} from './utils/blockToGroup';
+import {classifyAsCore} from './utils/classify';
 
 type CharacterPickerModalProps = {
 	readonly closeModal: () => void;
@@ -66,6 +67,18 @@ function CharacterPickerModal({
 		return map;
 	}, [availableCharacters]);
 
+	const cpCatMap = useMemo(() => {
+		const map = new Map<number, string>();
+		for (const entries of Object.values(availableCharacters)) {
+			for (const entry of entries) {
+				if (!map.has(entry.cp) && entry.cat) {
+					map.set(entry.cp, entry.cat);
+				}
+			}
+		}
+		return map;
+	}, [availableCharacters]);
+
 	const lazyLoadBlock = useCallback(async (blockName: string) => {
 		if (loadingBlocks.has(blockName) || loadedBlocks.has(blockName)) return;
 		const group = blockToGroup(blockName);
@@ -113,6 +126,12 @@ function CharacterPickerModal({
 		return names;
 	}, [restrictToSection]);
 
+	const sectionCpSet = useMemo(() => {
+		if (!restrictToSection) return null;
+		const entries = availableCharacters[restrictToSection.key] ?? [];
+		return new Set(entries.map((e) => e.cp));
+	}, [restrictToSection, availableCharacters]);
+
 	const visibleBlocks = useMemo(() => {
 		if (activeTab === 'section' && sectionBlockNames) {
 			return assignedRanges.filter(([name]) => sectionBlockNames.has(name));
@@ -152,7 +171,7 @@ function CharacterPickerModal({
 				const rangeHigh = Math.max(lastPickedCp, cp);
 				for (const {cells} of gridRows) {
 					for (const {cp: cellCp} of cells) {
-						if (cellCp !== null && cellCp >= rangeLow && cellCp <= rangeHigh && !selectedCps.has(cellCp)) {
+						if (cellCp !== null && cellCp >= rangeLow && cellCp <= rangeHigh) {
 							next.add(cellCp);
 						}
 					}
@@ -262,6 +281,16 @@ function CharacterPickerModal({
 												}
 												const isAlreadySequenced = selectedCps.has(cp);
 												const isPicked = pickedCps.has(cp);
+												let isOutOfSection = false;
+												if (sectionCpSet !== null && !sectionCpSet.has(cp)) {
+													const cat = cpCatMap.get(cp);
+													const name = cpNameMap.get(cp);
+													if (cat && name) {
+														isOutOfSection = classifyAsCore(selectedBlock!, cat, cp, name) !== restrictToSection!.key;
+													} else {
+														isOutOfSection = true;
+													}
+												}
 												const cpHex = cp.toString(16).toUpperCase().padStart(4, '0');
 												const name = cpNameMap.get(cp) ?? '';
 												let glyph: string;
@@ -277,10 +306,11 @@ function CharacterPickerModal({
 															'picker-cell',
 															isPicked ? 'picked' : '',
 															isAlreadySequenced ? 'already-sequenced' : '',
+															isOutOfSection ? 'out-of-section' : '',
 														].filter(Boolean).join(' ')}
 														title={`U+${cpHex} ${name}`}
 														onClick={(e) => {
-															if (!isAlreadySequenced) handleCellClick(cp, e.shiftKey);
+															handleCellClick(cp, e.shiftKey);
 														}}
 													>
 														{glyph}

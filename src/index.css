@@ -625,6 +625,12 @@ html[data-theme="light"] .footer-conflict-count {
 	position: relative;
 }
 
+.existing-seq-label {
+	font-size: 0.8em;
+	color: var(--muted);
+	margin-bottom: 0.2em;
+}
+
 .sequence-toolbar-container {
 	position: absolute;
 	top: 100%;
@@ -828,7 +834,7 @@ html[data-theme="light"] .footer-conflict-count {
 	user-select: none;
 }
 
-.picker-cell:hover:not(.already-sequenced):not(.picker-cell-empty) {
+.picker-cell:hover:not(.picker-cell-empty) {
 	background: var(--bg-secondary);
 }
 
@@ -856,13 +862,16 @@ html[data-theme="light"] .picker-cell.picked {
 
 .picker-cell.already-sequenced {
 	background: var(--bg-secondary);
+	border-style: dashed;
+}
+
+.picker-cell.out-of-section {
 	color: var(--muted);
-	cursor: not-allowed;
-	opacity: 0.5;
 }
 
 .picker-cell-empty {
 	border-color: transparent;
+	background: transparent;
 	cursor: default;
 }
 

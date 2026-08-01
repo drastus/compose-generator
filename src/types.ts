@@ -16,6 +16,8 @@ export type CharWithSeq = {
 	seq?: string,
 	additionalSeqs?: string[],
 	conflicts?: number[],
+	existingSeq?: string,
+	existingAdditionalSeqs?: string[],
 };
 
 export type CustomSequence = {

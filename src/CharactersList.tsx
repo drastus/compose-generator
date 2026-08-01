@@ -1,4 +1,4 @@
-import {useState, useRef, forwardRef, useImperativeHandle} from 'react';
+import {useState, useRef, forwardRef, useImperativeHandle, Fragment} from 'react';
 import {CharWithSeq} from './types';
 import SequenceToolbar from './SequenceToolbar';
 import SequenceInput, {SequenceInputHandle} from './SequenceInput';
@@ -99,6 +99,15 @@ const CharactersList = forwardRef<CharactersListHandle, CharactersListProps>(
 								<td className='char'>{codePointChar(e.cp)}</td>
 								<td>
 									<div className='sequence-input-wrapper'>
+										{e.existingSeq && (
+											<div className='existing-seq-label'>
+												<code>{e.existingSeq}</code>
+												{e.existingAdditionalSeqs?.map((seq, i) => (
+													// eslint-disable-next-line react/no-array-index-key
+													<Fragment key={i}>{'  '}<code>{seq}</code></Fragment>
+												))}
+											</div>
+										)}
 										{/* conflict-tooltip wrapper must always be rendered to prevent remounting SequenceInput on hasConflict changes */}
 										<span className='conflict-tooltip'>
 											<SequenceInput
