@@ -14,7 +14,7 @@ const armenian: NameEntry[] = [
 	{cp: 0x055F, name: 'ARMENIAN ABBREVIATION MARK', cat: 'Po'},
 	{cp: 0x058D, name: 'RIGHT-FACING ARMENIAN ETERNITY SIGN', cat: 'So'},
 	{cp: 0x058E, name: 'LEFT-FACING ARMENIAN ETERNITY SIGN', cat: 'So'},
-	{cp: 0x058F, name: 'ARMENIAN DRAM SIGN', cat: 'Sc'},
+	{cp: 0x058F, name: 'ARMENIAN DRAM SIGN', defaultSeq: '$D', cat: 'Sc'},
 	{cp: 0x0561, name: 'ARMENIAN SMALL LETTER AYB', cat: 'Ll'},
 	{cp: 0x0531, name: 'ARMENIAN CAPITAL LETTER AYB', cat: 'Lu'},
 	{cp: 0x0560, name: 'ARMENIAN SMALL LETTER TURNED AYB', cat: 'Ll'},

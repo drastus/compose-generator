@@ -289,7 +289,7 @@ export const defaultPrefixes = {
 	cyrillic: {char: 'c', cased: true},
 	dia: {char: 'd'},
 	comb: {char: '&'},
-	currency: {char: '='},
+	currency: {char: '$'},
 	modifierLetter: {char: 'l'},
 	math: {
 		bold: 'm*',

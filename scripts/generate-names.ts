@@ -10,7 +10,7 @@ import {parse} from 'csv-parse/sync';
 import {DIGIT_NAMES} from '../src/constants/strings';
 import {ALLOWED_BLOCKS, CORE_BLOCKS, CORE_CATEGORIES} from '../src/constants/lists';
 import {blockToGroup} from '../src/utils/blockToGroup';
-import classify, {scatteredMathematicalAlphanumericSymbols} from '../src/utils/classify';
+import classify, {scatteredCurrencySymbols, scatteredMathematicalAlphanumericSymbols} from '../src/utils/classify';
 
 const DIGIT_NAMES_VALUES = Object.fromEntries(Object.entries(DIGIT_NAMES).map(([k, v]) => [v, k]));
 
@@ -379,8 +379,20 @@ const sets = {
 	currency: {
 		base: [
 			[0x00A2, 0x00A5],
+			[0x058F, 0x058F], // armenian dram
+			[0x09F3, 0x09F3], // bengali rupee sign
+			[0x0E3F, 0x0E3F], // thai baht
+			[0x20A1, 0x20A1], // colon sign
+			[0x20A6, 0x20A6], // naira sign
+			[0x20A8, 0x20AB], // rupee, won, sheqel, dong
 			[0x20AC, 0x20AC], // euro sign
+			[0x20AD, 0x20AE], // kip, tugrik
+			[0x20B1, 0x20B2], // peso, guarani
+			[0x20B4, 0x20B5], // hryvnia, cedi
+			[0x20B8, 0x20BA], // tenge, indian rupee, turkish lira
+			[0x20BC, 0x20BE], // manat, ruble, lari
 			[0x20BF, 0x20BF], // bitcoin sign
+			[0x20C0, 0x20C1], // som, saudi riyal
 		],
 	},
 	emoji: {
@@ -671,6 +683,18 @@ function main() {
 			} else {
 				extraBuilt[blockName] ||= [];
 				extraBuilt[blockName].push({cp, name: info.name, cat: info.cat});
+			}
+		}
+	}
+
+	// Scattered currency symbols may be in script-specific blocks not processed as core.
+	// Add them explicitly so they appear in the currency category with correct set tags.
+	built.currency ||= [];
+	for (const cp of scatteredCurrencySymbols) {
+		if (!built.currency.some((e) => e.cp === cp)) {
+			const info = nameMap.get(cp);
+			if (info) {
+				built.currency.push({cp, name: info.name, cat: info.cat});
 			}
 		}
 	}

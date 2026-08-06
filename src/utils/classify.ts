@@ -28,7 +28,7 @@ export const scatteredMathematicalAlphanumericSymbols = [
 	{cp: 0x2134, template: ['MS', 'S', 'O']},
 ];
 
-const scatteredCurrencySymbols = [ // only non-script-specific
+export const scatteredCurrencySymbols = [
 	0x058F, // dram
 	0x0E3F, // baht
 	0x09F3, // taka
