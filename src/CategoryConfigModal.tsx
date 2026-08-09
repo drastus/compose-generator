@@ -48,7 +48,7 @@ function DiacriticMarksEditor({diacriticMarks, onDiacriticKeyChange, isYpogegram
 	const columns = [filtered.slice(0, mid), filtered.slice(mid)];
 
 	return (
-		<details open className='section-disclosure'>
+		<details className='section-disclosure'>
 			<summary>Diacritic keys</summary>
 			<div className='scripts-layout'>
 				{columns.map((col, colIdx) => (
