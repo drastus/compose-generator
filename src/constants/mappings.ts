@@ -14,6 +14,7 @@ import {
 	MBS,
 	MDS,
 	MF,
+	MH,
 	MI,
 	MM,
 	MS,
@@ -40,6 +41,7 @@ export type MathFlags = {
 	fraktur?: boolean;
 	monospace?: boolean;
 	doubleStruck?: boolean;
+	hebrewLetter?: boolean;
 };
 
 export const MATH_FLAGS: Record<string, MathFlags> = {
@@ -56,6 +58,7 @@ export const MATH_FLAGS: Record<string, MathFlags> = {
 	[MSSI]: {sansSerif: true, italic: true},
 	[MSSBI]: {sansSerif: true, bold: true, italic: true},
 	[MM]: {monospace: true},
+	[MH]: {hebrewLetter: true},
 };
 
 type MathPrefixes = {
@@ -66,9 +69,11 @@ type MathPrefixes = {
 	fraktur: string;
 	monospace: string;
 	doubleStruck: string;
+	hebrewLetter: string;
 };
 
 export function composeMathPrefix(math: MathPrefixes, flags: MathFlags): string {
+	if (flags.hebrewLetter) return math.hebrewLetter;
 	let base = '';
 	if (flags.sansSerif) base = math.sansSerif;
 	else if (flags.script) base = math.script;
@@ -299,6 +304,7 @@ export const defaultPrefixes = {
 		fraktur: 'mf',
 		monospace: 'm1',
 		doubleStruck: 'm2',
+		hebrewLetter: 'mh',
 	},
 };
 

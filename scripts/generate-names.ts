@@ -162,7 +162,15 @@ const mathematicalAlphanumericSymbolsGroups = {
 	MB: 'MATHEMATICAL BOLD',
 	MI: 'MATHEMATICAL ITALIC',
 	MM: 'MATHEMATICAL MONOSPACE',
+	MH: 'MATHEMATICAL HEBREW',
 };
+
+const hebrewMathLetters = new Map([
+	[0x2135, 'a'],
+	[0x2136, 'b'],
+	[0x2137, 'g'],
+	[0x2138, 'd'],
+]);
 
 const ucaCollator = new Intl.Collator('en', {sensitivity: 'variant'});
 
@@ -338,6 +346,8 @@ const sets = {
 			[0x2042, 0x2042],
 			[0x204A, 0x204A],
 			[0x205F, 0x205F],
+			[0x2308, 0x230B], // floor/ceiling
+			[0x27E8, 0x27EB],
 			[0x2E40, 0x2E40],
 		],
 	},
@@ -352,20 +362,29 @@ const sets = {
 			[0x2044, 0x2044], // fraction slash
 			[0x2190, 0x2194],
 			[0x21A6, 0x21A6],
+			[0x2195, 0x2199],
+			[0x21CC, 0x21CC],
+			[0x21D0, 0x21D5],
 			[0x2200, 0x2200], // for all
 			[0x2202, 0x2209],
 			[0x220E, 0x220F],
 			[0x2211, 0x2213],
-			[0x2215, 0x2216],
+			[0x2215, 0x2218],
 			[0x221A, 0x221B],
 			[0x221E, 0x221E], // infinity
-			[0x2223, 0x2235],
+			[0x2223, 0x2236],
+			[0x223C, 0x223C], // tilde operator
+			[0x2241, 0x2241], // not tilde
 			[0x2248, 0x2248], // almost equal to
 			[0x2260, 0x2262],
 			[0x2264, 0x2265],
 			[0x2282, 0x2289],
+			[0x2295, 0x2295],
+			[0x2297, 0x2297],
 			[0x22A2, 0x22A8],
 			[0x22C0, 0x22C3],
+			[0x22C5, 0x22C5],
+			[0x27C2, 0x27C2],
 		],
 	},
 	math_number: {
@@ -381,6 +400,10 @@ const sets = {
 			[0x211A],
 			[0x211D],
 			[0x2124],
+			[0x2135, 0x2136],
+		],
+		mh: [
+			[0x2135, 0x2138],
 		],
 	},
 	currency: {
@@ -595,6 +618,15 @@ function generateFileContent(
 						const template = `[${scatteredSymbol.template[0]}, ${scatteredSymbol.template[1]}, '${scatteredSymbol.template[2]}']`;
 						sets.push(scatteredSymbol.template[0].toLowerCase());
 						bodyLines.push(`\t{cp: ${cpHex}, name: '${nameEsc}', template: ${template}${setsPart(sets)}${trailingPart}},`);
+						handled = true;
+					}
+				}
+				if (!handled) {
+					const hebrewSeq = hebrewMathLetters.get(cp);
+					if (hebrewSeq !== undefined) {
+						usedConstants.add('MH');
+						usedConstants.add('_');
+						bodyLines.push(`\t{cp: ${cpHex}, name: '${nameEsc}', template: [MH, _, '${hebrewSeq}']${setsPart(sets)}${trailingPart}},`);
 						handled = true;
 					}
 				}

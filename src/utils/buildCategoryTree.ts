@@ -148,11 +148,13 @@ export function buildCategoryTree(
 	const punctuationItems = charsWithSeq(withSeq.punctuation);
 	const separators: CharItem[] = [];
 	const dashes: CharItem[] = [];
+	const brackets: CharItem[] = [];
 	const restPunctuation: CharItem[] = [];
 	for (const item of punctuationItems) {
 		const cat = punctuationRawByCp.get(item.cp)?.cat ?? '';
 		if (cat.startsWith('Z')) separators.push(item);
 		else if (cat === 'Pd') dashes.push(item);
+		else if ((cat === 'Ps' || cat === 'Pe') && !item.name.includes('QUOTATION')) brackets.push(item);
 		else restPunctuation.push(item);
 	}
 
@@ -161,6 +163,14 @@ export function buildCategoryTree(
 
 	// --- Math ---
 	const mathOperatorsItems = charsWithSeq(withSeq.math_operators);
+	const isArrowChar = (cp: number) =>
+		(cp >= 0x2190 && cp <= 0x21FF)
+		|| (cp >= 0x27F0 && cp <= 0x27FF)
+		|| (cp >= 0x2900 && cp <= 0x297F)
+		|| (cp >= 0x2B00 && cp <= 0x2BFF)
+		|| (cp >= 0x1F800 && cp <= 0x1F8FF);
+	const mathArrowItems = mathOperatorsItems.filter((c) => isArrowChar(c.cp));
+	const mathOperatorOnlyItems = mathOperatorsItems.filter((c) => !isArrowChar(c.cp));
 	const mathNumberItems = charsWithSeq(withSeq.math_number);
 	const superscripts: CharItem[] = [];
 	const subscripts: CharItem[] = [];
@@ -248,6 +258,7 @@ export function buildCategoryTree(
 					key: 'punctuation', label: 'Punctuation marks', kind: 'sublists', hidden: false, chars: [],
 					sublists: nonEmpty([
 						{chars: restPunctuation},
+						{label: 'Brackets: ', chars: brackets},
 						{label: 'Dashes: ', chars: dashes},
 						{label: 'Separators: ', style: 'highlight', chars: separators},
 					]),
@@ -258,8 +269,12 @@ export function buildCategoryTree(
 					chars: formatItems, highlight: true, setGroup: 'format',
 				},
 				{
-					key: 'math_operators', label: 'Math operators', kind: 'plain', hidden: false,
-					chars: mathOperatorsItems, setGroup: 'math_operators',
+					key: 'math_operators', label: 'Math operators', kind: 'sublists', hidden: false, chars: [],
+					sublists: nonEmpty([
+						{chars: mathOperatorOnlyItems},
+						{label: 'Arrows: ', chars: mathArrowItems},
+					]),
+					setGroup: 'math_operators',
 				},
 				mathIsTable
 					? {

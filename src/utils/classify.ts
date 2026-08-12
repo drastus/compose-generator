@@ -390,6 +390,8 @@ export function classifyAsCore(blockName: string, generalCat: string, cp: number
 	if (blockName === 'Mathematical Alphanumeric Symbols' || scatteredMathematicalAlphanumericSymbols.some((s) => s.cp === cp)) {
 		return 'math_alphanumerics';
 	}
+	// Hebrew letter symbols (ℵℶℷℸ) are used as math alphanumerics despite being letter-category
+	if (cp >= 0x2135 && cp <= 0x2138) return 'math_alphanumerics';
 	// Letters
 	if (generalCat === 'Lu' || generalCat === 'Ll' || generalCat === 'Lt' || generalCat === 'Lo') {
 		if (isLatinBlock) {
@@ -415,6 +417,10 @@ export function classifyAsCore(blockName: string, generalCat: string, cp: number
 	// Format
 	if (generalCat === 'Cf' || generalCat === 'Cc' || blockName === 'Variation Selectors') {
 		return 'format';
+	}
+	// Arrow blocks → math operators (Miscellaneous Symbols and Arrows only if name contains ARROW)
+	if (blockName.includes('Arrows') && (blockName !== 'Miscellaneous Symbols and Arrows' || name.includes('ARROW'))) {
+		return 'math_operators';
 	}
 	// Math operators
 	if (generalCat === 'Sm') return 'math_operators';

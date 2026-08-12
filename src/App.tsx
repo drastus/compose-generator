@@ -54,6 +54,7 @@ const initialSetSelection: SetSelectionState = {
 		mb: false,
 		mi: false,
 		mm: false,
+		mh: false,
 	},
 };
 

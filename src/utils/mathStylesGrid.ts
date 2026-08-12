@@ -9,6 +9,7 @@ import {
 	MBS,
 	MDS,
 	MF,
+	MH,
 	MI,
 	MM,
 	MS,
@@ -41,6 +42,7 @@ export const STYLE_ORDER: StyleColumn[] = [
 	{style: MSSI, label: 'Sans-serif italic'},
 	{style: MSSBI, label: 'Sans-serif bold italic'},
 	{style: MM, label: 'Monospace'},
+	{style: MH, label: 'Hebrew letters'},
 ];
 
 const STYLE_LABEL_BY_KEY = new Map(STYLE_ORDER.map((s) => [s.style, s.label]));

@@ -88,6 +88,7 @@ const MATH_STYLE_CHECKBOXES: Array<{setKey: string, label: string}> = [
 	{setKey: 'mbf', label: 'Fraktur bold'},
 	{setKey: 'mm', label: 'Monospace'},
 	{setKey: 'mds', label: 'Double-struck'},
+	{setKey: 'mh', label: 'Hebrew letters'},
 ];
 
 const MATH_PREFIX_FIELDS: Array<{key: keyof Prefixes['math'], label: string}> = [
@@ -98,6 +99,7 @@ const MATH_PREFIX_FIELDS: Array<{key: keyof Prefixes['math'], label: string}> = 
 	{key: 'fraktur', label: 'Fraktur'},
 	{key: 'monospace', label: 'Monospace'},
 	{key: 'doubleStruck', label: 'Double-struck'},
+	{key: 'hebrewLetter', label: 'Hebrew letters'},
 ];
 
 /** The set checkboxes for a group — shown at both supercategory and category scope. */
