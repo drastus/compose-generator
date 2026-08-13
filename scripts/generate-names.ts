@@ -444,9 +444,12 @@ const sets = {
 	misc: {
 		base: [
 			[0x00A6, 0x00B0],
+			[0x212E, 0x212E], // estimated sign
 			[0x2116, 0x2116], // number sign
 			[0x2122, 0x2122], // trade mark sign
 			[0x2300, 0x2300], // diameter
+			[0x2640, 0x2640], // female sign
+			[0x2642, 0x2642], // male sign
 			[0x2713, 0x2713], // check mark
 			[0x2717, 0x2717], // ballot x
 		],
