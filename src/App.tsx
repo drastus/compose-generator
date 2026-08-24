@@ -629,7 +629,7 @@ function App() {
 				<p className='intro'>
 					Select the characters you need below, then download a ready-to-use <code>~/.XCompose</code> file.
 					The file teaches X11 how to type those characters via the Compose key — for example,
-					pressing <kbd>Compose</kbd> <kbd>:</kbd> <kbd>o</kbd> produces <strong>ö</strong>.
+					pressing <kbd className='mf-key'>Compose</kbd> <kbd className='mf-key'>:</kbd> <kbd className='mf-key'>o</kbd> produces <strong>ö</strong>.
 				</p>
 				<SelectedCharactersGrid
 					tree={categoryTree}
