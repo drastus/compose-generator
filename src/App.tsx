@@ -625,11 +625,15 @@ function App() {
 	return (
 		<Fragment>
 			<main className={EMBEDDED ? 'container embedded' : 'container'} style={{paddingBottom: '80px'}}>
-				<H1>Compose Generator</H1>
+				<H1>Compose Key Sequences Generator</H1>
 				<p className='intro'>
-					Select the characters you need below, then download a ready-to-use <code>~/.XCompose</code> file.
-					The file teaches X11 how to type those characters via the Compose key — for example,
+					Select the characters you need below, then download a ready-to-use file.
+					The file teaches your system how to type those characters via the Compose key — for example,
 					pressing <kbd className='mf-key'>Compose</kbd> <kbd className='mf-key'>:</kbd> <kbd className='mf-key'>o</kbd> produces <strong>ö</strong>.
+					It works on Linux and other Unix-like systems running X11 or Wayland (via XWayland or a
+					compatible IBus/Fcitx Compose implementation) — just place the file
+					at <code>~/.XCompose</code> (when using IBus, <code>~/.config/ibus/Compose</code> location is preferred) and
+					restart your session for it to take effect.
 				</p>
 				<SelectedCharactersGrid
 					tree={categoryTree}
