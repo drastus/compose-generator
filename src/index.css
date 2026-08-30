@@ -85,10 +85,27 @@ html[data-theme="light"] #page-footer-root {
 	padding: 24px;
 }
 
-#root h1 { margin: 0 0 16px; font-size: 28px; }
-.intro { margin: 0 0 20px; color: var(--text-secondary); line-height: 1.6; }
-#root h2 { margin: 24px 0 8px; font-size: 20px; }
-#root h3 { margin: 16px 0 8px; font-size: 16px; }
+#root h1 {
+	margin: 0 0 16px;
+	font-size: 28px;
+}
+
+.intro {
+	margin: 0 0 20px;
+	line-height: 1.6;
+	text-align: justify;
+	color: var(--text-secondary);
+}
+
+#root h2 {
+	margin: 24px 0 8px;
+	font-size: 20px;
+}
+
+#root h3 {
+	margin: 16px 0 8px;
+	font-size: 16px;
+}
 
 .description {
     font-size: 0.9em;
@@ -394,6 +411,21 @@ input.key-input {
 
 .modal-add-sequence-table .sequence-input {
 	min-width: 10em;
+}
+
+.modal-add-sequence-table th:nth-child(1),
+.modal-add-sequence-table td:nth-child(1) {
+	width: 8em;
+}
+
+.modal-add-sequence-table th:nth-child(2),
+.modal-add-sequence-table td:nth-child(2) {
+	width: 6em;
+}
+
+.modal-add-sequence-table th:nth-child(3),
+.modal-add-sequence-table td:nth-child(3) {
+	width: 12em;
 }
 
 .modal-add-sequence-footer {

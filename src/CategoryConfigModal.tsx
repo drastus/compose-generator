@@ -307,7 +307,10 @@ export default function CategoryConfigModal({
 			{uniqueGroups.map((setGroup) => {
 				const info = groupInfo.get(setGroup);
 				const label = info?.label ?? sections.filter((s) => s.setGroup === setGroup).map((s) => s.label).join(' & ');
-				const showToggle = isCategoryScope ? (CORE_CATEGORIES.includes(setGroup) || setGroup === 'cyrillic') : true;
+				const hasSetCheckboxes = setGroup === 'latin' || setGroup === 'greek' || setGroup === 'cyrillic' || setGroup === 'math_alphanumerics';
+				const showToggle = isCategoryScope
+					? !hasSetCheckboxes && (CORE_CATEGORIES.includes(setGroup) || setGroup === 'cyrillic')
+					: true;
 				return (
 					<div
 						key={setGroup}
@@ -316,7 +319,7 @@ export default function CategoryConfigModal({
 						{showToggle && (
 							<Checkbox
 								id={`group-toggle-${setGroup}`}
-								label={label}
+								label={isCategoryScope ? `Base ${target.label.toLowerCase()}` : label}
 								description={info?.description}
 								isChecked={isGroupChecked([setGroup])}
 								onChange={() => onGroupToggle([setGroup])}
