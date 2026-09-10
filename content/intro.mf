@@ -1,0 +1,3 @@
+Select the characters you need below, then download a ready-to-use file. The file teaches your system how to type those characters via the Compose key — for example, pressing [[Compose]] [[:]] [[o]] produces *ö*.
+
+It works on Linux and other Unix-like systems running X11 or Wayland (via XWayland or a compatible IBus/Fcitx Compose implementation) — just place the file at `~/.XCompose` (when using IBus, `~/.config/ibus/Compose` location is preferred) and restart your session (>ibus restart> or >fcitx5-remote -r>) for it to take effect.

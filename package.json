@@ -7,6 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "generate:names": "tsx scripts/generate-names.ts",
     "generate:assigned-ranges": "tsx scripts/generate-assigned-ranges.ts",
+    "generate:intro": "tsx scripts/generate-intro.ts",
     "start": "vite --mode standalone",
     "start:embedded": "vite --mode embedded",
     "build": "vite build --mode standalone",
@@ -34,6 +35,7 @@
     "eslint-config-xo": "^0.49.0",
     "eslint-config-xo-react": "^0.29.0",
     "eslint-config-xo-typescript": "^9.0.0",
+    "markfive": "github:drastus/markfive",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vite": "^5.4.8"

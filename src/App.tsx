@@ -4,6 +4,7 @@ import {CORE_CATEGORIES} from './constants/lists';
 import {defaultDiacriticMarks, defaultPrefixes, groupsToUnicodeBlocks} from './constants/mappings';
 import {assignedRanges} from './data/assigned-ranges';
 import {characters as mainCharacters} from './data/names';
+import {introHtml} from './content/intro.generated';
 import {usePrefixes} from './hooks/usePrefixes';
 import {applySequencesToCharacters} from './utils/applySequences';
 import {blockToGroup, groupPrimaryBlock} from './utils/blockToGroup';
@@ -626,17 +627,11 @@ function App() {
 		<Fragment>
 			<main className={EMBEDDED ? 'container embedded' : 'container'} style={{paddingBottom: '80px'}}>
 				<H1>Compose Key Sequences Generator</H1>
-				<p className='intro'>
-					Select the characters you need below, then download a ready-to-use file.
-					The file teaches your system how to type those characters via the Compose key — for example,
-					pressing <kbd className='mf-key'>Compose</kbd> <kbd className='mf-key'>:</kbd> <kbd className='mf-key'>o</kbd> produces <strong>ö</strong>.
-				</p>
-				<p className='intro'>
-					It works on Linux and other Unix-like systems running X11 or Wayland (via XWayland or a
-					compatible IBus/Fcitx Compose implementation) — just place the file
-					at <code>~/.XCompose</code> (when using IBus, <code>~/.config/ibus/Compose</code> location is preferred) and
-					restart your session (<kbd>ibus restart</kbd> or <kbd>fcitx5-remote -r</kbd>) for it to take effect.
-				</p>
+				<div
+					// eslint-disable-next-line react/no-danger
+					dangerouslySetInnerHTML={{__html: introHtml}}
+					className='intro'
+				/>
 				<SelectedCharactersGrid
 					tree={categoryTree}
 					onCharClick={openCharModal}

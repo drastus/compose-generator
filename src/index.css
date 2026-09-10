@@ -90,7 +90,7 @@ html[data-theme="light"] #page-footer-root {
 	font-size: 28px;
 }
 
-.intro {
+.intro p {
 	margin: 0 0 20px;
 	line-height: 1.6;
 	text-align: justify;
