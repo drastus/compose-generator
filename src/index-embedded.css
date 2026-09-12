@@ -27,3 +27,21 @@
 #root .embedded h4 { margin: 16px 0 8px; font-size: 16px; }
 #root .embedded h4.container-header { margin: 0 1.5em 0 0; min-width: 14em; }
 #root .modal-header h4 { font-size: 16px; }
+
+#root table th {
+	top: calc(76px + 1px);
+	transition: top 0.3s ease;
+}
+
+.selected-grid-label-sticky {
+	top: 76px;
+	transition: top 0.3s ease;
+}
+
+html.top-bar-hidden #root table th {
+	top: 1px;
+}
+
+html.top-bar-hidden .selected-grid-label-sticky {
+	top: 0;
+}
