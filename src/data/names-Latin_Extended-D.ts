@@ -212,6 +212,8 @@ const latin_extendedd: NameEntry[] = [
 	{cp: 0xA7CE, end: 'PHARYNGEAL VOICED FRICATIVE', template: [LL, C], cat: 'Lu'},
 	{cp: 0xA725, end: 'EGYPTOLOGICAL AIN', template: [LL, S], cat: 'Ll'},
 	{cp: 0xA724, end: 'EGYPTOLOGICAL AIN', template: [LL, C], cat: 'Lu'},
+	{cp: 0xA7DD, end: 'CLOSED OMEGA', template: [LL, C], cat: 'Lu'},
+	{cp: 0xA7E2, end: 'R WITH LONG LEG', template: [LL, C], cat: 'Lu'},
 ];
 
 export const characters: Record<string, NameEntry[]> = {latin_extendedd};

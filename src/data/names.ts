@@ -81,6 +81,7 @@ const modifier: NameEntry[] = [
 	{cp: 0x02E4, template: [ML, 'SMALL REVERSED GLOTTAL STOP'], defaultSeq: 'lzq', cat: 'Lm'},
 	{cp: 0x02BF, template: [ML, 'LEFT HALF RING'], set: ['base'], defaultSeq: 'l(', cat: 'Lm'},
 	{cp: 0x02C1, template: [ML, 'REVERSED GLOTTAL STOP'], defaultSeq: 'lQ', cat: 'Lm'},
+	{cp: 0x208F, template: [ML, 'HIGH AND LOW VERTICAL LINE'], cat: 'Lm'},
 ];
 
 const dia: NameEntry[] = [
@@ -118,6 +119,9 @@ const dia: NameEntry[] = [
 	{cp: 0x209C, name: 'LATIN SUBSCRIPT SMALL LETTER T', cat: 'Lm'},
 	{cp: 0x2093, name: 'LATIN SUBSCRIPT SMALL LETTER X', cat: 'Lm'},
 	{cp: 0x2E2F, name: 'VERTICAL TILDE', cat: 'Lm'},
+	{cp: 0x209D, name: 'LATIN SUBSCRIPT SMALL LETTER W', cat: 'Lm'},
+	{cp: 0x209E, name: 'LATIN SUBSCRIPT SMALL LETTER Y', cat: 'Lm'},
+	{cp: 0x209F, name: 'LATIN SUBSCRIPT SMALL LETTER Z', cat: 'Lm'},
 ];
 
 const combining: NameEntry[] = [
@@ -1783,6 +1787,10 @@ const punctuation: NameEntry[] = [
 	{cp: 0x2E46, name: 'INVERTED LOW KAVYKA WITH KAVYKA ABOVE', cat: 'Po'},
 	{cp: 0x2E47, name: 'LOW KAVYKA', cat: 'Po'},
 	{cp: 0x2E48, name: 'LOW KAVYKA WITH DOT', cat: 'Po'},
+	{cp: 0x2E60, name: 'WIGGLY EXCLAMATION MARK', cat: 'Po'},
+	{cp: 0x2E61, name: 'INVERTED WIGGLY EXCLAMATION MARK', cat: 'Po'},
+	{cp: 0x2E62, name: 'LEFT PARENTHESIS WITH MIDDLE RING', cat: 'Ps'},
+	{cp: 0x2E63, name: 'RIGHT PARENTHESIS WITH MIDDLE RING', cat: 'Pe'},
 ];
 
 const math_operators: NameEntry[] = [
@@ -4049,6 +4057,7 @@ const math_alphanumerics: NameEntry[] = [
 	{cp: 0x2136, name: 'BET SYMBOL', template: [MH, _, 'b'], set: ['mds_base', 'mh'], cat: 'Lo'},
 	{cp: 0x2137, name: 'GIMEL SYMBOL', template: [MH, _, 'g'], set: ['mh'], cat: 'Lo'},
 	{cp: 0x2138, name: 'DALET SYMBOL', template: [MH, _, 'd'], set: ['mh'], cat: 'Lo'},
+	{cp: 0x1D6A6, template: [MI, S, 'LIGATURE LONG S WITH DESCENDER S'], set: ['mi'], cat: 'Ll'},
 ];
 
 const currency: NameEntry[] = [
@@ -4095,6 +4104,9 @@ const currency: NameEntry[] = [
 	{cp: 0x20C1, name: 'SAUDI RIYAL SIGN', set: ['base'], defaultSeq: '$z', cat: 'Sc'},
 	{cp: 0x20A7, name: 'PESETA SIGN', cat: 'Sc'},
 	{cp: 0x20A8, name: 'RUPEE SIGN', set: ['base'], defaultSeq: '$j', cat: 'Sc'},
+	{cp: 0x20C2, name: 'RUFIYAA SIGN', cat: 'Sc'},
+	{cp: 0x20C3, name: 'UAE DIRHAM SIGN', cat: 'Sc'},
+	{cp: 0x20C4, name: 'OMANI RIAL SIGN', cat: 'Sc'},
 ];
 
 const emoji: NameEntry[] = [
@@ -5937,6 +5949,7 @@ const misc: NameEntry[] = [
 	{cp: 0x213C, name: 'DOUBLE-STRUCK SMALL PI', cat: 'Ll'},
 	{cp: 0x213F, name: 'DOUBLE-STRUCK CAPITAL PI', cat: 'Lu'},
 	{cp: 0x2126, name: 'OHM SIGN', cat: 'Lu'},
+	{cp: 0x1F6D9, name: 'LIGHTHOUSE', cat: 'So'},
 ];
 
 const format: NameEntry[] = [

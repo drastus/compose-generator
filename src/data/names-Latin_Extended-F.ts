@@ -63,6 +63,11 @@ const latin_extendedf: NameEntry[] = [
 	{cp: 0x107B8, template: [ML, 'ALVEOLAR CLICK'], cat: 'Lm'},
 	{cp: 0x107B9, template: [ML, 'RETROFLEX CLICK WITH RETROFLEX HOOK'], cat: 'Lm'},
 	{cp: 0x107B5, template: [ML, 'BILABIAL CLICK'], cat: 'Lm'},
+	{cp: 0x107BB, template: [ML, 'SMALL TURNED T'], cat: 'Lm'},
+	{cp: 0x107BC, template: [ML, 'INVERTED GLOTTAL STOP'], cat: 'Lm'},
+	{cp: 0x107BD, template: [ML, 'STRETCHED C'], cat: 'Lm'},
+	{cp: 0x107BE, template: [ML, 'SMALL TURNED K'], cat: 'Lm'},
+	{cp: 0x107BF, template: [ML, 'SMALL ESH WITH DOUBLE BAR'], cat: 'Lm'},
 ];
 
 export const characters: Record<string, NameEntry[]> = {latin_extendedf};

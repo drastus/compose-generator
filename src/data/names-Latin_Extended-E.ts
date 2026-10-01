@@ -4,7 +4,7 @@
 import {NameEntry} from '../types';
 
 import {STROKE} from '../constants/strings';
-import {_, S} from '../constants/strings';
+import {_, C, S} from '../constants/strings';
 import {ML, LL, GL} from '../constants/strings';
 
 const latin_extendede: NameEntry[] = [
@@ -68,6 +68,8 @@ const latin_extendede: NameEntry[] = [
 	{cp: 0xAB61, end: 'IOTIFIED E', template: [LL, S], cat: 'Ll'},
 	{cp: 0xAB63, end: 'UO', template: [LL, S], cat: 'Ll'},
 	{cp: 0xAB65, end: 'SMALL CAPITAL OMEGA', template: [GL, _], cat: 'Ll'},
+	{cp: 0xAB6C, end: 'SCRIPT R', template: [LL, C], cat: 'Lu'},
+	{cp: 0xAB6D, end: 'SCRIPT R WITH RING', template: [LL, C], cat: 'Lu'},
 ];
 
 export const characters: Record<string, NameEntry[]> = {latin_extendede};

@@ -3,6 +3,8 @@
 
 import {NameEntry} from '../types';
 
+import {ML} from '../constants/strings';
+
 const armenian: NameEntry[] = [
 	{cp: 0x058A, name: 'ARMENIAN HYPHEN', cat: 'Pd'},
 	{cp: 0x055D, name: 'ARMENIAN COMMA', cat: 'Po'},
@@ -95,6 +97,9 @@ const armenian: NameEntry[] = [
 	{cp: 0x0586, name: 'ARMENIAN SMALL LETTER FEH', cat: 'Ll'},
 	{cp: 0x0556, name: 'ARMENIAN CAPITAL LETTER FEH', cat: 'Lu'},
 	{cp: 0x0559, name: 'ARMENIAN MODIFIER LETTER LEFT HALF RING', cat: 'Lm'},
+	{cp: 0x0558, template: [ML, 'ARMENIAN SMALL EH'], cat: 'Lm'},
+	{cp: 0x058B, template: [ML, 'ARMENIAN SMALL INI'], cat: 'Lm'},
+	{cp: 0x058C, template: [ML, 'ARMENIAN SMALL YI'], cat: 'Lm'},
 ];
 
 export const characters: Record<string, NameEntry[]> = {armenian};

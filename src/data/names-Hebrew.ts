@@ -92,6 +92,8 @@ const hebrew: NameEntry[] = [
 	{cp: 0x05E8, name: 'HEBREW LETTER RESH', cat: 'Lo'},
 	{cp: 0x05E9, name: 'HEBREW LETTER SHIN', cat: 'Lo'},
 	{cp: 0x05EA, name: 'HEBREW LETTER TAV', cat: 'Lo'},
+	{cp: 0x05C8, name: 'HEBREW POINT SHEVA NA MUDGASH', cat: 'Mn'},
+	{cp: 0x05C9, name: 'HEBREW POINT DAGESH HAZAQ MUDGASH', cat: 'Mn'},
 ];
 
 export const characters: Record<string, NameEntry[]> = {hebrew};
