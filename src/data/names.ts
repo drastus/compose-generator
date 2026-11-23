@@ -1533,7 +1533,7 @@ const punctuation: NameEntry[] = [
 	{cp: 0x00A0, name: 'NO-BREAK SPACE', set: ['base'], defaultSeq: ' !', cat: 'Zs'},
 	{cp: 0x2007, name: 'FIGURE SPACE', set: ['base'], defaultSeq: ' #', cat: 'Zs'},
 	{cp: 0x202F, name: 'NARROW NO-BREAK SPACE', set: ['base'], defaultSeq: ' N', cat: 'Zs'},
-	{cp: 0x203E, name: 'OVERLINE', cat: 'Po'},
+	{cp: 0x203E, name: 'OVERLINE', set: ['base'], defaultSeq: '^-', cat: 'Po'},
 	{cp: 0x005F, name: 'LOW LINE', cat: 'Pc'},
 	{cp: 0x2017, name: 'DOUBLE LOW LINE', cat: 'Po'},
 	{cp: 0x002D, name: 'HYPHEN-MINUS', cat: 'Pd'},
